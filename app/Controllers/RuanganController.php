@@ -132,8 +132,11 @@ class RuanganController extends Controller
             return redirect()->to('/ruangan')->with('error', 'Ruangan tidak ditemukan');
         }
 
-        $data['meetings'] = $this->ruanganModel->getMeetings($id);
+        // Default filter is today; allow override via ?date=Y-m-d
+        $date = $this->request->getGet('date') ?: date('Y-m-d');
+        $data['meetings'] = $this->ruanganModel->getMeetings($id, $date);
         $data['ruangan'] = $ruangan;
+        $data['date'] = $date;
         return view('ruangan/meetings', $data);
     }
 }

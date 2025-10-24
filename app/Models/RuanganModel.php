@@ -48,16 +48,23 @@ class RuanganModel extends Model
         return $approvedMeetings === 0;
     }
 
-    // Get all meetings for a specific room
-    public function getMeetings($ruanganId)
+    // Get meetings for a specific room, optionally filtered by date (Y-m-d)
+    public function getMeetings($ruanganId, ?string $date = null)
     {
-        return $this->db->table('meeting')
+        $builder = $this->db->table('meeting')
             ->select('meeting.*, pegawai.nama as nama_pegawai')
-            ->join('pegawai', 'pegawai.id = meeting.pegawai_id')
+            ->join('pegawai', 'pegawai.id = meeting.pegawai_id', 'left')
             ->where('ruangan_id', $ruanganId)
-            ->orderBy('waktu_mulai', 'ASC')
-            ->get()
-            ->getResultArray();
+            ->orderBy('waktu_mulai', 'ASC');
+
+        if ($date) {
+            $start = date('Y-m-d 00:00:00', strtotime($date));
+            $end   = date('Y-m-d 23:59:59', strtotime($date));
+            $builder->where('waktu_mulai >=', $start)
+                    ->where('waktu_selesai <=', $end);
+        }
+
+        return $builder->get()->getResultArray();
     }
 
     // Override insert to handle timestamps

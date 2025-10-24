@@ -37,6 +37,8 @@ $routes->post('ruangan/create', 'RuanganController::create');
 $routes->get('ruangan/edit/(:num)', 'RuanganController::edit/$1');
 $routes->post('ruangan/update/(:num)', 'RuanganController::update/$1');
 $routes->post('ruangan/delete/(:num)', 'RuanganController::delete/$1');
+// Ruangan meetings (daily filter)
+$routes->get('ruangan/(:num)/meetings', 'RuanganController::meetings/$1');
 
 // Default route
 $routes->get('/', 'MeetingController::calendar');

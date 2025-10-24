@@ -14,6 +14,17 @@
 </div>
 
 <div class="bg-white shadow-sm rounded-lg overflow-hidden p-6">
+    <form method="GET" action="<?= base_url('ruangan/' . $ruangan['id'] . '/meetings') ?>" class="mb-4 flex items-end gap-3">
+        <div>
+            <label for="date" class="block text-sm font-medium text-gray-700">Tanggal</label>
+            <input type="date" id="date" name="date" value="<?= esc($date ?? date('Y-m-d')) ?>" class="mt-1 block w-56 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+        </div>
+        <div>
+            <button type="submit" class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700">
+                <i class="fas fa-filter mr-2"></i> Filter
+            </button>
+        </div>
+    </form>
     <?php if (empty($meetings)): ?>
         <p class="text-gray-500 text-center py-4">Tidak ada meeting terjadwal</p>
     <?php else: ?>
