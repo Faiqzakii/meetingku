@@ -1,0 +1,241 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Models\PegawaiModel;
+use CodeIgniter\Controller;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+
+class PegawaiController extends Controller
+{
+    protected $pegawaiModel;
+
+    public function __construct()
+    {
+        $this->pegawaiModel = new PegawaiModel();
+    }
+
+    protected function isAdmin()
+    {
+        return session()->get('is_admin') === true;
+    }
+
+    public function index()
+    {
+        if (!session()->get('logged_in')) {
+            return redirect()->to('auth/login');
+        }
+
+        $data['pegawai'] = $this->pegawaiModel->findAll();
+        $data['isAdmin'] = $this->isAdmin();
+        return view('pegawai/index', $data);
+    }
+
+    public function create()
+    {
+        if (!session()->get('logged_in') || !$this->isAdmin()) {
+            return redirect()->to('auth/login');
+        }
+
+        $data = [
+            'nama' => $this->request->getPost('nama'),
+            'nip' => $this->request->getPost('nip'),
+            'username' => $this->request->getPost('username'),
+            'password' => $this->request->getPost('password'),
+            'is_admin' => $this->request->getPost('is_admin') ? 1 : 0
+        ];
+
+        if ($this->pegawaiModel->insert($data) === false) {
+            return redirect()->back()
+                ->with('errors', $this->pegawaiModel->errors())
+                ->withInput();
+        }
+
+        return redirect()->to('/pegawai')->with('success', 'Pegawai berhasil ditambahkan');
+    }
+
+    public function edit($id = null)
+    {
+        if (!session()->get('logged_in') || !$this->isAdmin()) {
+            return redirect()->to('auth/login');
+        }
+
+        $data['pegawai'] = $this->pegawaiModel->find($id);
+        if (!$data['pegawai']) {
+            return redirect()->to('/pegawai')->with('error', 'Pegawai tidak ditemukan');
+        }
+
+        return view('pegawai/edit', $data);
+    }
+
+    public function update($id = null)
+    {
+        if (!session()->get('logged_in') || !$this->isAdmin()) {
+            return redirect()->to('auth/login');
+        }
+
+        // Get existing pegawai data
+        $existingPegawai = $this->pegawaiModel->find($id);
+        if (!$existingPegawai) {
+            return redirect()->to('/pegawai')->with('error', 'Pegawai tidak ditemukan');
+        }
+
+        // Get input data based on request method
+        $input = $this->request->getMethod() === 'put' 
+            ? $this->request->getRawInput()
+            : $this->request->getPost();
+
+        // Prepare update data
+        $data = [];
+
+        // Only update fields that have changed
+        $nama = $input['nama'] ?? '';
+        if ($nama && $nama !== $existingPegawai['nama']) {
+            $data['nama'] = $nama;
+        }
+
+        $nip = $input['nip'] ?? '';
+        if ($nip && $nip !== $existingPegawai['nip']) {
+            $data['nip'] = $nip;
+        }
+
+        $username = $input['username'] ?? '';
+        if ($username && $username !== $existingPegawai['username']) {
+            $data['username'] = $username;
+        }
+
+        $isAdmin = ($input['is_admin'] ?? 'false') === 'true' ? 1 : 0;
+        if ($isAdmin !== (int)$existingPegawai['is_admin']) {
+            $data['is_admin'] = $isAdmin;
+        }
+
+        // Only update password if a new one is provided
+        if ($password = ($input['password'] ?? false)) {
+            $data['password'] = $password;
+        }
+
+        // If no fields have changed, redirect back with success
+        if (empty($data)) {
+            return redirect()->to('/pegawai')->with('success', 'Tidak ada perubahan pada data pegawai');
+        }
+
+        if ($this->pegawaiModel->update($id, $data) === false) {
+            return redirect()->back()
+                ->with('errors', $this->pegawaiModel->errors())
+                ->withInput();
+        }
+
+        return redirect()->to('/pegawai')->with('success', 'Pegawai berhasil diupdate');
+    }
+
+    public function delete($id = null)
+    {
+        if (!session()->get('logged_in') || !$this->isAdmin()) {
+            return redirect()->to('auth/login');
+        }
+
+        if ($this->pegawaiModel->delete($id) === false) {
+            return redirect()->back()->with('error', 'Gagal menghapus pegawai');
+        }
+
+        return redirect()->to('/pegawai')->with('success', 'Pegawai berhasil dihapus');
+    }
+
+    public function import()
+    {
+        if (!$this->isAdmin()) {
+            return redirect()->back()->with('error', 'Hanya admin yang dapat mengimport data pegawai');
+        }
+
+        $file = $this->request->getFile('excel_file');
+        
+        if (!$file->isValid() || $file->getExtension() !== 'xlsx') {
+            return redirect()->back()->with('error', 'File harus dalam format Excel (.xlsx)');
+        }
+
+        try {
+            $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+            $spreadsheet = $reader->load($file->getTempName());
+            $worksheet = $spreadsheet->getActiveSheet();
+            $rows = $worksheet->toArray();
+
+            // Remove header row
+            array_shift($rows);
+
+            $successCount = 0;
+            $errorCount = 0;
+            $errors = [];
+
+            foreach ($rows as $row) {
+                // Skip empty rows
+                if (empty($row[0])) continue;
+
+                // The password from Excel is already in plain text, so we need to hash it
+                $data = [
+                    'nama' => trim($row[0]),
+                    'nip' => trim($row[1]),
+                    'username' => trim($row[2]),
+                    'password' => trim($row[3]),
+                    'is_admin' => isset($row[4]) && strtolower(trim($row[4])) === 'ya' ? 1 : 0
+                ];
+
+                if ($this->pegawaiModel->insert($data) === false) {
+                    $errorCount++;
+                    $errors[] = "Baris " . ($successCount + $errorCount + 1) . ": " . implode(', ', $this->pegawaiModel->errors());
+                } else {
+                    $successCount++;
+                }
+            }
+
+            $message = "Berhasil import $successCount data pegawai.";
+            if ($errorCount > 0) {
+                $message .= " Gagal import $errorCount data.";
+                if (!empty($errors)) {
+                    $message .= "\nError: " . implode("\n", $errors);
+                }
+                return redirect()->back()->with('warning', $message);
+            }
+
+            return redirect()->back()->with('success', $message);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal mengimport data: ' . $e->getMessage());
+        }
+    }
+
+    public function downloadTemplate()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        // Set headers
+        $sheet->setCellValue('A1', 'Nama');
+        $sheet->setCellValue('B1', 'NIP');
+        $sheet->setCellValue('C1', 'Username');
+        $sheet->setCellValue('D1', 'Password');
+        $sheet->setCellValue('E1', 'Admin (Ya/Tidak)');
+        
+        // Add example row
+        $sheet->setCellValue('A2', 'John Doe');
+        $sheet->setCellValue('B2', '198501012010011001');
+        $sheet->setCellValue('C2', 'johndoe');
+        $sheet->setCellValue('D2', 'password123');
+        $sheet->setCellValue('E2', 'Tidak');
+        
+        // Auto-size columns
+        foreach (range('A', 'E') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+        
+        // Create Excel file
+        $writer = new Xlsx($spreadsheet);
+        
+        // Set headers for download
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="template_pegawai.xlsx"');
+        header('Cache-Control: max-age=0');
+        
+        $writer->save('php://output');
+        exit;
+    }
+}
