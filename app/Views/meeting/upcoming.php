@@ -53,7 +53,7 @@
                                         $canOwnOrAdmin = false; 
                                         $canApprove = false; 
                                         if (session()->get('logged_in')) {
-                                            $canOwnOrAdmin = ((int)$meeting['pegawai_id'] === (int)session()->get('pegawai_id')) || $isAdmin;
+                                            $canOwnOrAdmin = ($meeting['pegawai_id'] !== null && (int)$meeting['pegawai_id'] === (int)session()->get('pegawai_id')) || $isAdmin;
                                             $canApprove = $isAdmin && $meeting['status'] === 'pending';
                                         }
                                     ?>
@@ -76,7 +76,7 @@
                                     </td>
                                     <?php if (session()->get('logged_in')): ?> 
                                         <?php 
-                                            $canOwnOrAdmin = ((int)$meeting['pegawai_id'] === (int)session()->get('pegawai_id')) || $isAdmin; 
+                                            $canOwnOrAdmin = ($meeting['pegawai_id'] !== null && (int)$meeting['pegawai_id'] === (int)session()->get('pegawai_id')) || $isAdmin; 
                                             $canApprove = $isAdmin && $meeting['status'] === 'pending';
                                         ?>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="action-menu hidden fixed z-50 w-40 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                             <div class="py-1">
                                 ${(
-                                    Number(meeting.pegawai_id) === Number(document.querySelector('[data-pegawai-id]').dataset.pegawaiId)
+                                    (meeting.pegawai_id != null && Number(meeting.pegawai_id) === Number(document.querySelector('[data-pegawai-id]').dataset.pegawaiId))
                                     || document.querySelector('[data-is-admin="true"]')
                                 ) ? `
                                     <a href="${baseUrl}/meeting/edit/${meeting.id}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-50">
@@ -458,7 +458,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var isAdmin    = !!document.querySelector('[data-is-admin="true"]');
         var pegEl      = document.querySelector('[data-pegawai-id]');
         var currentId  = pegEl ? Number(pegEl.dataset.pegawaiId) : 0;
-        var canOwnOrAdmin = isLoggedIn && (Number(meeting.pegawai_id) === currentId || isAdmin);
+        var canOwnOrAdmin = isLoggedIn && ((meeting.pegawai_id != null && Number(meeting.pegawai_id) === currentId) || isAdmin);
         var canApprove    = isLoggedIn && isAdmin && meeting.status === 'pending';
 
         var html = `

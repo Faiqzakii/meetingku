@@ -1,68 +1,141 @@
-# CodeIgniter 4 Application Starter
+# Meetingku — Meeting Room Scheduling (CodeIgniter 4)
 
-## What is CodeIgniter?
+Meetingku is a simple meeting room scheduling application built with CodeIgniter 4. It supports authentication, role‑based admin actions, room and employee management, and meeting creation with calendar and upcoming views. Optional WhatsApp notification integration is available via Saungwa.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+• Demo routes: `/` or `/meeting/calendar` (calendar), `/upcoming` (upcoming), `/auth/login` (login)
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+## Features
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+- Authentication: login/logout with hashed passwords; admin role
+- Meetings: create/update/delete, status workflow (pending/approved/rejected/cancelled)
+- Views: calendar, today/upcoming, and admin all‑meetings by date range
+- Rooms (Ruangan): CRUD with type Online/Offline/Hybrid; prevent deletion if approved meetings exist
+- Employees (Pegawai): CRUD, password hashing, Excel import, downloadable template
+- CLI: `php spark auth:create-admin` to bootstrap the first admin
+- Notifications: optional Saungwa API integration via environment variables
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+## Tech Stack
 
-## Installation & updates
+- PHP 8.1+, CodeIgniter 4.x
+- Dependencies: `phpoffice/phpspreadsheet`, `vlucas/phpdotenv`
+- Testing: PHPUnit 10 (coverage to `build/logs/`)
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+## Project Structure
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+- Source: `app/` (controllers, models, views, config)
+- Public webroot: `public/` (configure your server to point here)
+- Tests: `tests/` (helpers under `tests/_support/`)
+- Runtime: `writable/` (logs, cache, uploads)
+- Composer deps: `vendor/`; sample DB: `meetingku.sql`
+
+## Requirements
+
+- PHP 8.1+ with extensions: intl, mbstring, json, curl, mysqlnd
+- A MySQL-compatible database (migrations use ENUM)
 
 ## Setup
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+1) Install dependencies
 
-## Important Change with index.php
+- `composer install`
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+2) Configure environment
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+- Copy `env` to `.env` and set at minimum:
+  - `app.baseURL` (e.g., `http://localhost:8080`)
+  - Database: `database.default.*` (hostname, database, username, password, DBDriver)
+  - Optional Saungwa:
+    - `saungwa.enabled=true`
+    - `saungwa.url=https://app.saungwa.com/api/create-message`
+    - `saungwa.appkey=...`
+    - `saungwa.authkey=...`
+    - `saungwa.to=...`
+    - `saungwa.template_id=...`
+    - `saungwa.template_id_update=...`
 
-**Please** read the user guide for a better explanation of how CI4 works!
+3) Prepare writable directories
 
-## Repository Management
+- Ensure `writable/` and `build/` are writable by the web/PHP user (coverage writes to `build/logs/`).
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+## Database
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+You can start with the provided sample or run migrations.
 
-## Server Requirements
+- Option A: import sample
+  - Import `meetingku.sql` into your database.
 
-PHP version 8.1 or higher is required, with the following extensions installed:
+- Option B: run migrations
+  - `php spark migrate`
+  - Creates tables: `pegawai`, `ruangan`, `meeting` with proper FKs and timestamps.
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+## Bootstrapping Admin
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - If you are still using PHP 7.4 or 8.0, you should upgrade immediately.
-> - The end of life date for PHP 8.1 will be December 31, 2025.
+Create the initial admin account via CLI:
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+- `php spark auth:create-admin`
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+The command prompts for username, NIP (18 digits), password, and full name, then persists an admin user.
+
+## Running the App
+
+- Local dev server: `php spark serve` then open `http://localhost:8080`
+- Web server: set document root to `public/` (not the project root)
+- Default routes:
+  - `/` → `MeetingController::calendar`
+  - `/upcoming` → upcoming list
+  - `/auth/login` → login form
+
+## Key Routes
+
+- Auth
+  - `GET /auth/login`, `POST /auth/login`, `GET /auth/logout`
+- Meeting
+  - `GET /meeting/calendar`, `GET /meeting/upcoming`, `GET /meeting/all` (admin)
+  - `POST /meeting/create`
+  - `GET /meeting/edit/{id}`
+  - `POST /meeting/update/{id}`
+  - `POST /meeting/delete/{id}`
+  - `POST /meeting/status/{id}` (admin)
+- Pegawai
+  - `GET /pegawai` (auth)
+  - `POST /pegawai/create` (admin)
+  - `GET /pegawai/edit/{id}` (admin)
+  - `PUT /pegawai/update/{id}` or `POST /pegawai/update/{id}` (admin)
+  - `POST /pegawai/delete/{id}` (admin)
+  - `POST /pegawai/import` (admin). Upload `.xlsx` matching the template
+  - `GET /pegawai/downloadTemplate` (download Excel template)
+- Ruangan
+  - `GET /ruangan` (auth)
+  - `POST /ruangan/create` (admin)
+  - `GET /ruangan/edit/{id}` (admin)
+  - `POST /ruangan/update/{id}` (admin)
+  - `POST /ruangan/delete/{id}` (admin)
+
+## Testing
+
+- Run all tests: `composer test` or `vendor/bin/phpunit -c phpunit.xml.dist`
+- Coverage, JUnit, and TestDox output to `build/logs/`
+
+## Excel Import Notes
+
+- Template columns: Nama, NIP, Username, Password, Admin (Ya/Tidak)
+- Download template at `GET /pegawai/downloadTemplate`
+- Import file at `POST /pegawai/import` (admin, `.xlsx` only)
+
+## Configuration & Security
+
+- Keep secrets in `.env` and never commit it
+- Set `app.baseURL` to your public URL
+- Configure your web server to use `public/` as document root
+- Ensure `writable/` is writable and review `writable/logs/` during development
+- Consider enabling CSRF in `Config\Security` and adjusting as needed
+
+## License
+
+MIT. See `LICENSE`.
+
+## Contributing
+
+- PHP `^8.1`, PSR‑12, 4‑space indentation
+- Namespaces: `App\` (app/), `Config\` (app/Config/)
+- Run `composer test` and ensure passing tests before PRs

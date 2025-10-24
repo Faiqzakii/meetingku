@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'ruangan' => $meeting['nama_ruangan'],
                 'tipe' => $meeting['tipe'],
                 'status' => $meeting['status'],
-                'pegawai' => $meeting['nama_pegawai']
+                'pegawai' => $meeting['nama_pegawai'] ?? null
             ]
         ];
     }, $meetings)) ?>;
@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('eventRoom').textContent = props.ruangan + ' (' + props.tipe + ')';
             document.getElementById('eventTime').textContent = moment(event.start).format('DD MMM YYYY HH:mm') + ' - ' + 
                                                              moment(event.end).format('HH:mm');
-            document.getElementById('eventPegawai').textContent = props.pegawai;
+            document.getElementById('eventPegawai').textContent = props.pegawai || 'Tidak tersedia';
             
             // Set status with appropriate styling
             var statusElement = document.getElementById('eventStatus');
