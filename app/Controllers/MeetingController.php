@@ -162,7 +162,7 @@ class MeetingController extends Controller
 
                     $variables = [
                         '{1}' => $data['nama_keg'],
-                        '{2}' => $ruangan['tipe'] ?? '',
+                        '{2}' => $ruangan['nama_ruangan'] . ' - ' . $ruangan['tipe'] ?? '',
                         '{3}' => date('d M Y H:i', strtotime($data['waktu_mulai'])) . ' - ' . date('H:i', strtotime($data['waktu_selesai'])),
                         '{4}' => $pegawai['nama'] ?? '',
                     ];
@@ -320,7 +320,7 @@ class MeetingController extends Controller
 
                     $variables = [
                         '{1}' => $data['nama_keg'],
-                        '{2}' => $ruangan['tipe'] ?? '',
+                        '{2}' => $ruangan['nama_ruangan'] . ' - ' . $ruangan['tipe'] ?? '',
                         '{3}' => date('d M Y H:i', strtotime($data['waktu_mulai'])) . ' - ' . date('H:i', strtotime($data['waktu_selesai'])),
                         '{4}' => $pegawai['nama'] ?? '',
                     ];
