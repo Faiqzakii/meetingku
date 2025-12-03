@@ -38,7 +38,8 @@ class RuanganController extends Controller
 
         $data = [
             'nama_ruangan' => $this->request->getPost('nama_ruangan'),
-            'tipe' => $this->request->getPost('tipe')
+            'tipe' => $this->request->getPost('tipe'),
+            'is_active' => $this->request->getPost('is_active') ? 1 : 0
         ];
 
         if (!$this->ruanganModel->validate($data)) {
@@ -85,7 +86,8 @@ class RuanganController extends Controller
 
         $data = [
             'nama_ruangan' => $this->request->getPost('nama_ruangan'),
-            'tipe' => $this->request->getPost('tipe')
+            'tipe' => $this->request->getPost('tipe'),
+            'is_active' => $this->request->getPost('is_active') ? 1 : 0
         ];
 
         if (!$this->ruanganModel->validate($data)) {

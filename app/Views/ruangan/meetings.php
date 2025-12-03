@@ -46,7 +46,7 @@
                     </p>
                     <p>
                         <i class="fas fa-user mr-2"></i>
-                        Pegawai: <?= esc($meeting['nama_pegawai'] ?? 'Tidak tersedia') ?>
+                        Diajukan Oleh: <?= esc($meeting['nama_pegawai'] ?? 'Tidak tersedia') ?>
                     </p>
                 </div>
             </div>

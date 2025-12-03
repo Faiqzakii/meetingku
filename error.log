@@ -1,0 +1,458 @@
+﻿{
+    "title": "CodeIgniter\\Cache\\Exceptions\\CacheException",
+    "type": "CodeIgniter\\Cache\\Exceptions\\CacheException",
+    "code": 500,
+    "message": "Cache unable to write to \"E:\\Webdev\\meetingku\\writable\\cache/\".",
+    "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Cache\\Handlers\\FileHandler.php",
+    "line": 61,
+    "trace": [
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Cache\\Handlers\\FileHandler.php",
+            "line": 61,
+            "function": "forUnableToWrite",
+            "class": "CodeIgniter\\Cache\\Exceptions\\CacheException",
+            "type": "::",
+            "args": [
+                "E:\\Webdev\\meetingku\\writable\\cache/"
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Cache\\CacheFactory.php",
+            "line": 67,
+            "function": "__construct",
+            "class": "CodeIgniter\\Cache\\Handlers\\FileHandler",
+            "type": "->",
+            "args": [
+                {
+                    "handler": "file",
+                    "backupHandler": "dummy",
+                    "prefix": "",
+                    "ttl": 60,
+                    "reservedCharacters": "{}()/\\@:",
+                    "file": {
+                        "storePath": "E:\\Webdev\\meetingku\\writable\\cache/",
+                        "mode": 416
+                    },
+                    "memcached": {
+                        "host": "127.0.0.1",
+                        "port": 11211,
+                        "weight": 1,
+                        "raw": false
+                    },
+                    "redis": {
+                        "host": "127.0.0.1",
+                        "password": null,
+                        "port": 6379,
+                        "timeout": 0,
+                        "database": 0
+                    },
+                    "validHandlers": {
+                        "dummy": "CodeIgniter\\Cache\\Handlers\\DummyHandler",
+                        "file": "CodeIgniter\\Cache\\Handlers\\FileHandler",
+                        "memcached": "CodeIgniter\\Cache\\Handlers\\MemcachedHandler",
+                        "predis": "CodeIgniter\\Cache\\Handlers\\PredisHandler",
+                        "redis": "CodeIgniter\\Cache\\Handlers\\RedisHandler",
+                        "wincache": "CodeIgniter\\Cache\\Handlers\\WincacheHandler"
+                    },
+                    "cacheQueryString": false
+                }
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\Services.php",
+            "line": 129,
+            "function": "getHandler",
+            "class": "CodeIgniter\\Cache\\CacheFactory",
+            "type": "::",
+            "args": [
+                {
+                    "handler": "file",
+                    "backupHandler": "dummy",
+                    "prefix": "",
+                    "ttl": 60,
+                    "reservedCharacters": "{}()/\\@:",
+                    "file": {
+                        "storePath": "E:\\Webdev\\meetingku\\writable\\cache/",
+                        "mode": 416
+                    },
+                    "memcached": {
+                        "host": "127.0.0.1",
+                        "port": 11211,
+                        "weight": 1,
+                        "raw": false
+                    },
+                    "redis": {
+                        "host": "127.0.0.1",
+                        "password": null,
+                        "port": 6379,
+                        "timeout": 0,
+                        "database": 0
+                    },
+                    "validHandlers": {
+                        "dummy": "CodeIgniter\\Cache\\Handlers\\DummyHandler",
+                        "file": "CodeIgniter\\Cache\\Handlers\\FileHandler",
+                        "memcached": "CodeIgniter\\Cache\\Handlers\\MemcachedHandler",
+                        "predis": "CodeIgniter\\Cache\\Handlers\\PredisHandler",
+                        "redis": "CodeIgniter\\Cache\\Handlers\\RedisHandler",
+                        "wincache": "CodeIgniter\\Cache\\Handlers\\WincacheHandler"
+                    },
+                    "cacheQueryString": false
+                }
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\BaseService.php",
+            "line": 312,
+            "function": "cache",
+            "class": "CodeIgniter\\Config\\Services",
+            "type": "::",
+            "args": [
+                {
+                    "handler": "file",
+                    "backupHandler": "dummy",
+                    "prefix": "",
+                    "ttl": 60,
+                    "reservedCharacters": "{}()/\\@:",
+                    "file": {
+                        "storePath": "E:\\Webdev\\meetingku\\writable\\cache/",
+                        "mode": 416
+                    },
+                    "memcached": {
+                        "host": "127.0.0.1",
+                        "port": 11211,
+                        "weight": 1,
+                        "raw": false
+                    },
+                    "redis": {
+                        "host": "127.0.0.1",
+                        "password": null,
+                        "port": 6379,
+                        "timeout": 0,
+                        "database": 0
+                    },
+                    "validHandlers": {
+                        "dummy": "CodeIgniter\\Cache\\Handlers\\DummyHandler",
+                        "file": "CodeIgniter\\Cache\\Handlers\\FileHandler",
+                        "memcached": "CodeIgniter\\Cache\\Handlers\\MemcachedHandler",
+                        "predis": "CodeIgniter\\Cache\\Handlers\\PredisHandler",
+                        "redis": "CodeIgniter\\Cache\\Handlers\\RedisHandler",
+                        "wincache": "CodeIgniter\\Cache\\Handlers\\WincacheHandler"
+                    },
+                    "cacheQueryString": false
+                },
+                false
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\BaseService.php",
+            "line": 251,
+            "function": "__callStatic",
+            "class": "CodeIgniter\\Config\\BaseService",
+            "type": "::",
+            "args": [
+                "cache",
+                [
+                    null,
+                    false
+                ]
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\Services.php",
+            "line": 124,
+            "function": "getSharedInstance",
+            "class": "CodeIgniter\\Config\\BaseService",
+            "type": "::",
+            "args": [
+                "cache",
+                null
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\BaseService.php",
+            "line": 321,
+            "function": "cache",
+            "class": "CodeIgniter\\Config\\Services",
+            "type": "::",
+            "args": []
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\BaseService.php",
+            "line": 202,
+            "function": "__callStatic",
+            "class": "CodeIgniter\\Config\\BaseService",
+            "type": "::",
+            "args": [
+                "cache",
+                []
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\Services.php",
+            "line": 454,
+            "function": "get",
+            "class": "CodeIgniter\\Config\\BaseService",
+            "type": "::",
+            "args": [
+                "cache"
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\BaseService.php",
+            "line": 312,
+            "function": "responsecache",
+            "class": "CodeIgniter\\Config\\Services",
+            "type": "::",
+            "args": [
+                {
+                    "handler": "file",
+                    "backupHandler": "dummy",
+                    "prefix": "",
+                    "ttl": 60,
+                    "reservedCharacters": "{}()/\\@:",
+                    "file": {
+                        "storePath": "E:\\Webdev\\meetingku\\writable\\cache/",
+                        "mode": 416
+                    },
+                    "memcached": {
+                        "host": "127.0.0.1",
+                        "port": 11211,
+                        "weight": 1,
+                        "raw": false
+                    },
+                    "redis": {
+                        "host": "127.0.0.1",
+                        "password": null,
+                        "port": 6379,
+                        "timeout": 0,
+                        "database": 0
+                    },
+                    "validHandlers": {
+                        "dummy": "CodeIgniter\\Cache\\Handlers\\DummyHandler",
+                        "file": "CodeIgniter\\Cache\\Handlers\\FileHandler",
+                        "memcached": "CodeIgniter\\Cache\\Handlers\\MemcachedHandler",
+                        "predis": "CodeIgniter\\Cache\\Handlers\\PredisHandler",
+                        "redis": "CodeIgniter\\Cache\\Handlers\\RedisHandler",
+                        "wincache": "CodeIgniter\\Cache\\Handlers\\WincacheHandler"
+                    },
+                    "cacheQueryString": false
+                },
+                null,
+                false
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\BaseService.php",
+            "line": 251,
+            "function": "__callStatic",
+            "class": "CodeIgniter\\Config\\BaseService",
+            "type": "::",
+            "args": [
+                "responsecache",
+                [
+                    null,
+                    null,
+                    false
+                ]
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\Services.php",
+            "line": 450,
+            "function": "getSharedInstance",
+            "class": "CodeIgniter\\Config\\BaseService",
+            "type": "::",
+            "args": [
+                "responsecache",
+                null,
+                null
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\BaseService.php",
+            "line": 321,
+            "function": "responsecache",
+            "class": "CodeIgniter\\Config\\Services",
+            "type": "::",
+            "args": []
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\CodeIgniter.php",
+            "line": 178,
+            "function": "__callStatic",
+            "class": "CodeIgniter\\Config\\BaseService",
+            "type": "::",
+            "args": [
+                "responsecache",
+                []
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\Services.php",
+            "line": 164,
+            "function": "__construct",
+            "class": "CodeIgniter\\CodeIgniter",
+            "type": "->",
+            "args": [
+                {
+                    "baseURL": "http://localhost:8080",
+                    "indexPage": "",
+                    "uriProtocol": "REQUEST_URI",
+                    "defaultLocale": "en",
+                    "negotiateLocale": false,
+                    "supportedLocales": [
+                        "en"
+                    ],
+                    "appTimezone": "Asia/Jakarta",
+                    "charset": "UTF-8",
+                    "proxyIPs": [],
+                    "CSPEnabled": false,
+                    "forceGlobalSecureRequests": false,
+                    "sessionDriver": "CodeIgniter\\Session\\Handlers\\FileHandler",
+                    "sessionCookieName": "ci_session",
+                    "sessionExpiration": 7200,
+                    "sessionSavePath": "E:\\Webdev\\meetingku\\writable\\session",
+                    "sessionMatchIP": false,
+                    "sessionTimeToUpdate": 300,
+                    "sessionRegenerateDestroy": false,
+                    "cookiePrefix": "",
+                    "cookieDomain": "",
+                    "cookiePath": "/",
+                    "cookieSecure": false,
+                    "cookieHTTPOnly": true,
+                    "cookieSameSite": "Lax",
+                    "allowedHostnames": [
+                        "localhost"
+                    ]
+                }
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\BaseService.php",
+            "line": 312,
+            "function": "codeigniter",
+            "class": "CodeIgniter\\Config\\Services",
+            "type": "::",
+            "args": [
+                {
+                    "baseURL": "http://localhost:8080",
+                    "indexPage": "",
+                    "uriProtocol": "REQUEST_URI",
+                    "defaultLocale": "en",
+                    "negotiateLocale": false,
+                    "supportedLocales": [
+                        "en"
+                    ],
+                    "appTimezone": "Asia/Jakarta",
+                    "charset": "UTF-8",
+                    "proxyIPs": [],
+                    "CSPEnabled": false,
+                    "forceGlobalSecureRequests": false,
+                    "sessionDriver": "CodeIgniter\\Session\\Handlers\\FileHandler",
+                    "sessionCookieName": "ci_session",
+                    "sessionExpiration": 7200,
+                    "sessionSavePath": "E:\\Webdev\\meetingku\\writable\\session",
+                    "sessionMatchIP": false,
+                    "sessionTimeToUpdate": 300,
+                    "sessionRegenerateDestroy": false,
+                    "cookiePrefix": "",
+                    "cookieDomain": "",
+                    "cookiePath": "/",
+                    "cookieSecure": false,
+                    "cookieHTTPOnly": true,
+                    "cookieSameSite": "Lax",
+                    "allowedHostnames": [
+                        "localhost"
+                    ]
+                },
+                false
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\BaseService.php",
+            "line": 251,
+            "function": "__callStatic",
+            "class": "CodeIgniter\\Config\\BaseService",
+            "type": "::",
+            "args": [
+                "codeigniter",
+                [
+                    null,
+                    false
+                ]
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\Services.php",
+            "line": 159,
+            "function": "getSharedInstance",
+            "class": "CodeIgniter\\Config\\BaseService",
+            "type": "::",
+            "args": [
+                "codeigniter",
+                null
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\BaseService.php",
+            "line": 321,
+            "function": "codeigniter",
+            "class": "CodeIgniter\\Config\\Services",
+            "type": "::",
+            "args": []
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Config\\BaseService.php",
+            "line": 202,
+            "function": "__callStatic",
+            "class": "CodeIgniter\\Config\\BaseService",
+            "type": "::",
+            "args": [
+                "codeigniter",
+                []
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Common.php",
+            "line": 1000,
+            "function": "get",
+            "class": "CodeIgniter\\Config\\BaseService",
+            "type": "::",
+            "args": [
+                "codeigniter"
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Boot.php",
+            "line": 320,
+            "function": "service",
+            "args": [
+                "codeigniter"
+            ]
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\vendor\\codeigniter4\\framework\\system\\Boot.php",
+            "line": 101,
+            "function": "initializeCodeIgniter",
+            "class": "CodeIgniter\\Boot",
+            "type": "::",
+            "args": []
+        },
+        {
+            "file": "E:\\Webdev\\meetingku\\spark",
+            "line": 84,
+            "function": "bootSpark",
+            "class": "CodeIgniter\\Boot",
+            "type": "::",
+            "args": [
+                {
+                    "systemDirectory": "E:\\Webdev\\meetingku\\app\\Config/../../vendor/codeigniter4/framework/system",
+                    "appDirectory": "E:\\Webdev\\meetingku\\app\\Config/..",
+                    "writableDirectory": "E:\\Webdev\\meetingku\\app\\Config/../../writable",
+                    "testsDirectory": "E:\\Webdev\\meetingku\\app\\Config/../../tests",
+                    "viewDirectory": "E:\\Webdev\\meetingku\\app\\Config/../Views"
+                }
+            ]
+        }
+    ]
+}

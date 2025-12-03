@@ -42,7 +42,7 @@
 
 <!-- Create Meeting Modal -->
 <div class="modal fade" id="createMeetingModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header border-b border-gray-200 px-6 py-4">
                 <h5 class="text-lg font-medium text-gray-900" id="modalTitle">Buat Meeting</h5>
@@ -53,50 +53,118 @@
             <form action="<?= base_url('meeting/create') ?>" method="POST">
                 <div class="modal-body p-6">
                     <?= csrf_field() ?>
-                    <div class="space-y-4">
-                        <div>
+                    <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                        <div class="sm:col-span-6">
                             <label for="nama_keg" class="block text-sm font-medium text-gray-700">Nama Kegiatan</label>
-                            <input type="text" 
-                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
-                                   id="nama_keg" 
-                                   name="nama_keg" 
-                                   required>
+                            <div class="mt-1">
+                                <input type="text" 
+                                       class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
+                                       id="nama_keg" 
+                                       name="nama_keg" 
+                                       placeholder="Contoh: Rapat Koordinasi Bulanan"
+                                       required>
+                            </div>
                         </div>
-                        <div>
+
+                        <div class="sm:col-span-3">
+                            <label for="jumlah_peserta" class="block text-sm font-medium text-gray-700">Jumlah Peserta</label>
+                            <div class="mt-1">
+                                <input type="number" 
+                                       class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
+                                       id="jumlah_peserta" 
+                                       name="jumlah_peserta" 
+                                       min="1"
+                                       required>
+                            </div>
+                        </div>
+
+                        <div class="sm:col-span-3">
                             <label for="ruangan_id" class="block text-sm font-medium text-gray-700">Ruangan</label>
-                            <select class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
-                                    id="ruangan_id" 
-                                    name="ruangan_id" 
-                                    required>
-                                <?php foreach ($ruangan as $r): ?>
-                                    <option value="<?= $r['id'] ?>">
-                                        <?= esc($r['nama_ruangan']) ?> (<?= $r['tipe'] ?>)
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
+                            <div class="mt-1">
+                                <select class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
+                                        id="ruangan_id" 
+                                        name="ruangan_id" 
+                                        required>
+                                    <?php foreach ($ruangan as $r): ?>
+                                        <option value="<?= $r['id'] ?>" data-tipe="<?= $r['tipe'] ?>">
+                                            <?= esc($r['nama_ruangan']) ?> (<?= $r['tipe'] ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                         </div>
-                        <div>
+
+                        <div class="sm:col-span-3">
                             <label for="waktu_mulai" class="block text-sm font-medium text-gray-700">Waktu Mulai</label>
-                            <input type="datetime-local" 
-                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
-                                   id="waktu_mulai" 
-                                   name="waktu_mulai" 
-                                   step="900"
-                                   required>
+                            <div class="mt-1">
+                                <input type="datetime-local" 
+                                       class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
+                                       id="waktu_mulai" 
+                                       name="waktu_mulai" 
+                                       step="900"
+                                       required>
+                            </div>
                         </div>
-                        <div>
+
+                        <div class="sm:col-span-3">
                             <label for="durasi" class="block text-sm font-medium text-gray-700">Durasi</label>
-                            <select class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
-                                    id="durasi" 
-                                    name="durasi" 
-                                    required>
-                                <option value="60" >1 jam</option>
-                                <option value="120">2 jam</option>
-                                <option value="180">3 jam</option>
-                                <option value="240">4 jam</option>
-                                <option value="Penuh">Satu Hari Penuh</option>
-                            </select>
+                            <div class="mt-1">
+                                <select class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
+                                        id="durasi" 
+                                        name="durasi" 
+                                        required>
+                                    <option value="60" >1 jam</option>
+                                    <option value="120">2 jam</option>
+                                    <option value="180">3 jam</option>
+                                    <option value="240">4 jam</option>
+                                    <option value="Penuh">Satu Hari Penuh</option>
+                                </select>
+                            </div>
                         </div>
+
+                        <div class="sm:col-span-6" id="fasilitas_container">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Fasilitas Rapat</label>
+                            <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                                <?php 
+                                $fasilitas_options = [
+                                    'Microphone', 'Kamera', 'Zoom Meeting', 
+                                    'Snack', 'Makanan Berat', 'Air Minum'
+                                ];
+                                foreach ($fasilitas_options as $f): 
+                                ?>
+                                <div class="relative flex items-start">
+                                    <div class="flex items-center h-5">
+                                        <input id="fasilitas_<?= url_title($f, '-', true) ?>" 
+                                               name="fasilitas[]" 
+                                               value="<?= $f ?>" 
+                                               type="checkbox" 
+                                               class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                                    </div>
+                                    <div class="ml-3 text-sm">
+                                        <label for="fasilitas_<?= url_title($f, '-', true) ?>" class="font-medium text-gray-700"><?= $f ?></label>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                                <div class="relative flex items-start col-span-2 sm:col-span-3">
+                                    <div class="flex items-center h-5">
+                                        <input id="fasilitas_lainnya_checkbox" 
+                                               name="fasilitas[]" 
+                                               value="Lainnya" 
+                                               type="checkbox" 
+                                               class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                                    </div>
+                                    <div class="ml-3 text-sm flex-grow">
+                                        <label for="fasilitas_lainnya_checkbox" class="font-medium text-gray-700">Lainnya</label>
+                                        <input type="text" 
+                                               id="fasilitas_lainnya_text" 
+                                               name="fasilitas_lainnya" 
+                                               class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-1 px-2 hidden" 
+                                               placeholder="Sebutkan fasilitas lainnya...">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <input type="hidden" id="waktu_selesai" name="waktu_selesai">
                     </div>
                 </div>
@@ -133,6 +201,14 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Ruangan</label>
                         <p id="eventRoom" class="mt-1 text-sm text-gray-900"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Jumlah Peserta</label>
+                        <p id="eventPeserta" class="mt-1 text-sm text-gray-900"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Fasilitas</label>
+                        <p id="eventFasilitas" class="mt-1 text-sm text-gray-900"></p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Waktu</label>
@@ -207,7 +283,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 'ruangan' => $meeting['nama_ruangan'],
                 'tipe' => $meeting['tipe'],
                 'status' => $meeting['status'],
-                'pegawai' => $meeting['nama_pegawai'] ?? null
+                'pegawai' => $meeting['nama_pegawai'] ?? null,
+                'jumlah_peserta' => $meeting['jumlah_peserta'] ?? null,
+                'fasilitas' => $meeting['fasilitas'] ? implode(', ', json_decode($meeting['fasilitas'], true) ?? []) : '-',
             ]
         ];
     }, $meetings)) ?>;
@@ -245,6 +323,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('eventTime').textContent = moment(event.start).format('DD MMM YYYY HH:mm') + ' - ' + 
                                                              moment(event.end).format('HH:mm');
             document.getElementById('eventPegawai').textContent = props.pegawai || 'Tidak tersedia';
+            document.getElementById('eventPeserta').textContent = props.jumlah_peserta || 'Tidak tersedia';
+            document.getElementById('eventFasilitas').textContent = props.fasilitas || 'Tidak tersedia';
             
             // Set status with appropriate styling
             var statusElement = document.getElementById('eventStatus');
@@ -273,6 +353,52 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
             flashMessage.style.display = 'none';
         }, 3000);
+    }
+
+    // Handle "Lainnya" checkbox
+    const fasilitasLainnyaCheckbox = document.getElementById('fasilitas_lainnya_checkbox');
+    const fasilitasLainnyaText = document.getElementById('fasilitas_lainnya_text');
+
+    if (fasilitasLainnyaCheckbox && fasilitasLainnyaText) {
+        fasilitasLainnyaCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                fasilitasLainnyaText.classList.remove('hidden');
+                fasilitasLainnyaText.required = true;
+                fasilitasLainnyaText.focus();
+            } else {
+                fasilitasLainnyaText.classList.add('hidden');
+                fasilitasLainnyaText.required = false;
+                fasilitasLainnyaText.value = '';
+            }
+        });
+    }
+
+    // Handle Room Type Change for Facilities Visibility
+    const ruanganSelect = document.getElementById('ruangan_id');
+    const fasilitasContainer = document.getElementById('fasilitas_container');
+
+    function toggleFasilitas() {
+        const selectedOption = ruanganSelect.options[ruanganSelect.selectedIndex];
+        const tipe = selectedOption ? selectedOption.getAttribute('data-tipe') : '';
+        
+        if (tipe === 'Online') {
+            fasilitasContainer.classList.add('hidden');
+            // Optional: Uncheck all facilities if hidden
+            const checkboxes = fasilitasContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+            if (fasilitasLainnyaText) {
+                fasilitasLainnyaText.classList.add('hidden');
+                fasilitasLainnyaText.value = '';
+            }
+        } else {
+            fasilitasContainer.classList.remove('hidden');
+        }
+    }
+
+    if (ruanganSelect && fasilitasContainer) {
+        ruanganSelect.addEventListener('change', toggleFasilitas);
+        // Initial check
+        toggleFasilitas();
     }
 });
 </script>

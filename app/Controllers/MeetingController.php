@@ -32,7 +32,7 @@ class MeetingController extends Controller
         }
 
         $data['meetings'] = $this->meetingModel->getUpcomingMeetings();
-        $data['ruangan'] = $this->ruanganModel->findAll();
+        $data['ruangan'] = $this->ruanganModel->getActiveRooms();
         $data['isAdmin'] = $this->isAdmin();
         return view('meeting/index', $data);
     }
@@ -40,7 +40,7 @@ class MeetingController extends Controller
     public function calendar()
     {
         $data['meetings'] = $this->meetingModel->getNotRejectedMeetingWithDetails();
-        $data['ruangan'] = $this->ruanganModel->findAll();
+        $data['ruangan'] = $this->ruanganModel->getActiveRooms();
         $data['isAdmin'] = session()->get('logged_in') ? $this->isAdmin() : false;
         return view('meeting/calendar', $data);
     }
@@ -49,7 +49,7 @@ class MeetingController extends Controller
     {
         $data['today_meetings'] = $this->meetingModel->getTodayMeetings();
         $data['upcoming_meetings'] = $this->meetingModel->getUpcomingMeetings();
-        $data['ruangan'] = $this->ruanganModel->findAll();
+        $data['ruangan'] = $this->ruanganModel->getActiveRooms();
         $data['isAdmin'] = session()->get('logged_in') ? $this->isAdmin() : false;
         return view('meeting/upcoming', $data);
     }
@@ -74,7 +74,7 @@ class MeetingController extends Controller
         $data['start']    = date('Y-m-d', strtotime($startDate));
         $data['end']      = date('Y-m-d', strtotime($endDate));
         $data['meetings'] = $this->meetingModel->getMeetingsByDateRange($startDate, $endDate);
-        $data['ruangan']  = $this->ruanganModel->findAll();
+        $data['ruangan']  = $this->ruanganModel->getActiveRooms();
         $data['isAdmin']  = true;
 
         return view('meeting/all', $data);
@@ -107,6 +107,7 @@ class MeetingController extends Controller
         // Set validation rules for create
         $this->meetingModel->setValidationRules([
             'nama_keg' => 'required|min_length[3]|max_length[100]',
+            'jumlah_peserta' => 'required|integer|greater_than[0]',
             'ruangan_id' => 'required|integer|is_not_unique[ruangan.id]',
             'pegawai_id' => 'required|integer|is_not_unique[pegawai.id]',
             'waktu_mulai' => 'required|valid_date[Y-m-d H:i:s]',
@@ -114,8 +115,21 @@ class MeetingController extends Controller
             'status' => 'required|in_list[pending,approved,rejected,cancelled]'
         ]);
 
+        $fasilitas = $this->request->getPost('fasilitas');
+        $fasilitasLainnya = $this->request->getPost('fasilitas_lainnya');
+
+        if ($fasilitas && is_array($fasilitas)) {
+            if (($key = array_search('Lainnya', $fasilitas)) !== false) {
+                if (!empty($fasilitasLainnya)) {
+                    $fasilitas[$key] = 'Lainnya: ' . $fasilitasLainnya;
+                }
+            }
+        }
+        
         $data = [
             'nama_keg' => $this->request->getPost('nama_keg'),
+            'jumlah_peserta' => $this->request->getPost('jumlah_peserta'),
+            'fasilitas' => $fasilitas ? json_encode($fasilitas) : null,
             'waktu_mulai' => $waktuMulai,
             'waktu_selesai' => $waktuSelesai,
             'ruangan_id' => $this->request->getPost('ruangan_id'),
@@ -165,6 +179,8 @@ class MeetingController extends Controller
                         '{2}' => $ruangan['nama_ruangan'] . ' - ' . $ruangan['tipe'] ?? '',
                         '{3}' => date('d M Y H:i', strtotime($data['waktu_mulai'])) . ' - ' . date('H:i', strtotime($data['waktu_selesai'])),
                         '{4}' => $pegawai['nama'] ?? '',
+                        '{5}' => $data['jumlah_peserta'] ?? '',
+                        '{6}' => $data['fasilitas'] ? implode(', ', json_decode($data['fasilitas'], true) ?? []) : '-',
                     ];
 
                     $postFields = [
@@ -233,7 +249,7 @@ class MeetingController extends Controller
         }
 
         $data['meeting'] = $meeting;
-        $data['ruangan'] = $this->ruanganModel->findAll();
+        $data['ruangan'] = $this->ruanganModel->getActiveRooms();
         $data['isAdmin'] = $this->isAdmin();
         return view('meeting/edit', $data);
     }
@@ -273,13 +289,27 @@ class MeetingController extends Controller
         // Set validation rules for update
         $this->meetingModel->setValidationRules([
             'nama_keg' => 'required|min_length[3]|max_length[100]',
+            'jumlah_peserta' => 'required|integer|greater_than[0]',
             'ruangan_id' => 'required|integer|is_not_unique[ruangan.id]',
             'waktu_mulai' => 'required|valid_date[Y-m-d H:i:s]',
             'waktu_selesai' => 'required|valid_date[Y-m-d H:i:s]'
         ]);
 
+        $fasilitas = $this->request->getPost('fasilitas');
+        $fasilitasLainnya = $this->request->getPost('fasilitas_lainnya');
+
+        if ($fasilitas && is_array($fasilitas)) {
+            if (($key = array_search('Lainnya', $fasilitas)) !== false) {
+                if (!empty($fasilitasLainnya)) {
+                    $fasilitas[$key] = 'Lainnya: ' . $fasilitasLainnya;
+                }
+            }
+        }
+
         $data = [
             'nama_keg' => $this->request->getPost('nama_keg'),
+            'jumlah_peserta' => $this->request->getPost('jumlah_peserta'),
+            'fasilitas' => $fasilitas ? json_encode($fasilitas) : null,
             'waktu_mulai' => $waktuMulai,
             'waktu_selesai' => $waktuSelesai,
             'ruangan_id' => $this->request->getPost('ruangan_id')
@@ -323,6 +353,8 @@ class MeetingController extends Controller
                         '{2}' => $ruangan['nama_ruangan'] . ' - ' . $ruangan['tipe'] ?? '',
                         '{3}' => date('d M Y H:i', strtotime($data['waktu_mulai'])) . ' - ' . date('H:i', strtotime($data['waktu_selesai'])),
                         '{4}' => $pegawai['nama'] ?? '',
+                        '{5}' => $data['jumlah_peserta'] ?? '',
+                        '{6}' => $data['fasilitas'] ? implode(', ', json_decode($data['fasilitas'], true) ?? []) : '-',
                     ];
 
                     $postFields = [

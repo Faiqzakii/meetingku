@@ -14,6 +14,8 @@ class MeetingModel extends Model
 
     protected $allowedFields = [
         'nama_keg',
+        'jumlah_peserta',
+        'fasilitas',
         'ruangan_id',
         'pegawai_id',
         'waktu_mulai',
@@ -30,6 +32,7 @@ class MeetingModel extends Model
     // Validation rules
     protected $validationRules = [
         'nama_keg' => 'permit_empty|min_length[3]|max_length[100]',
+        'jumlah_peserta' => 'required|integer|greater_than[0]',
         'ruangan_id' => 'permit_empty|integer|is_not_unique[ruangan.id]',
         'pegawai_id' => 'permit_empty|integer|is_not_unique[pegawai.id]',
         'waktu_mulai' => 'permit_empty|valid_date[Y-m-d H:i:s]',
@@ -42,6 +45,11 @@ class MeetingModel extends Model
             'required' => 'Nama kegiatan harus diisi',
             'min_length' => 'Nama kegiatan minimal 3 karakter',
             'max_length' => 'Nama kegiatan maksimal 100 karakter'
+        ],
+        'jumlah_peserta' => [
+            'required' => 'Jumlah peserta harus diisi',
+            'integer' => 'Jumlah peserta harus berupa angka',
+            'greater_than' => 'Jumlah peserta harus lebih dari 0'
         ],
         'ruangan_id' => [
             'required' => 'Ruangan harus dipilih',

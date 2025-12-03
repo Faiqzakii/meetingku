@@ -12,7 +12,7 @@ class RuanganModel extends Model
     protected $returnType = 'array';
     protected $useSoftDeletes = false;
 
-    protected $allowedFields = ['nama_ruangan', 'tipe'];
+    protected $allowedFields = ['nama_ruangan', 'tipe', 'is_active'];
 
     protected $useTimestamps = true;
     protected $createdField = 'created_at';
@@ -46,6 +46,11 @@ class RuanganModel extends Model
             ->countAllResults();
         
         return $approvedMeetings === 0;
+    }
+
+    public function getActiveRooms()
+    {
+        return $this->where('is_active', 1)->findAll();
     }
 
     // Get meetings for a specific room, optionally filtered by date (Y-m-d)

@@ -24,6 +24,7 @@
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Ruangan</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipe</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                 </tr>
             </thead>
@@ -36,6 +37,11 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <?= $room['tipe'] === 'Online' ? 'bg-green-100 text-green-800' : ($room['tipe'] === 'Offline' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800') ?>">
                             <?= esc($room['tipe']) ?>
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <?= $room['is_active'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' ?>">
+                            <?= $room['is_active'] ? 'Aktif' : 'Non-aktif' ?>
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
@@ -98,6 +104,12 @@
                                 <option value="Offline">Offline</option>
                                 <option value="Hybrid">Hybrid</option>
                             </select>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="is_active" name="is_active" type="checkbox" value="1" checked class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="is_active" class="ml-2 block text-sm text-gray-900">
+                                Aktif
+                            </label>
                         </div>
                     </div>
                 </div>
