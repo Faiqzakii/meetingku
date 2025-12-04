@@ -86,6 +86,31 @@ class MeetingController extends Controller
             return redirect()->to('auth/login');
         }
 
+        // Check for form token to prevent double submission
+        $formToken = $this->request->getPost('form_token');
+        if (!$formToken) {
+            log_message('error', 'No form token provided');
+            return redirect()->back()
+                ->with('error', 'Token form tidak valid')
+                ->withInput();
+        }
+
+        // Check if this token has been used before (stored in session)
+        $usedTokens = session()->get('used_form_tokens');
+        if (!is_array($usedTokens)) {
+            $usedTokens = [];
+        }
+        if (in_array($formToken, $usedTokens)) {
+            log_message('warning', 'Duplicate form submission detected with token: ' . $formToken);
+            return redirect()->back()
+                ->with('error', 'Form telah dikirim. Mohon tunggu proses selesai.')
+                ->withInput();
+        }
+
+        // Mark this token as used
+        $usedTokens[] = $formToken;
+        session()->set('used_form_tokens', $usedTokens);
+
         // Debug: Log the POST data
         log_message('debug', 'POST data: ' . print_r($this->request->getPost(), true));
 
@@ -222,9 +247,28 @@ class MeetingController extends Controller
                 log_message('error', 'Saungwa notify exception: ' . $tex->getMessage());
             }
 
+            // Clean up old tokens (keep only last 10 tokens)
+            $currentTokens = session()->get('used_form_tokens');
+            if (!is_array($currentTokens)) {
+                $currentTokens = [];
+            }
+            if (count($currentTokens) > 10) {
+                $currentTokens = array_slice($currentTokens, -10);
+                session()->set('used_form_tokens', $currentTokens);
+            }
+
             return redirect()->back()->with('success', 'Meeting berhasil dibuat');
         } catch (\Exception $e) {
             log_message('error', 'Exception during insert: ' . $e->getMessage());
+            
+            // Remove token from used tokens on error so user can retry
+            $currentTokens = session()->get('used_form_tokens');
+            if (!is_array($currentTokens)) {
+                $currentTokens = [];
+            }
+            $currentTokens = array_diff($currentTokens, [$formToken]);
+            session()->set('used_form_tokens', $currentTokens);
+            
             return redirect()->back()
                 ->with('error', 'Gagal membuat meeting: ' . $e->getMessage())
                 ->withInput();
@@ -270,6 +314,31 @@ class MeetingController extends Controller
         if (!$this->isAdmin() && (int) $meeting['pegawai_id'] !== $currentPegawaiId) {
             return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk mengupdate meeting ini');
         }
+
+        // Check for form token to prevent double submission
+        $formToken = $this->request->getPost('form_token');
+        if (!$formToken) {
+            log_message('error', 'No form token provided for update');
+            return redirect()->back()
+                ->with('error', 'Token form tidak valid')
+                ->withInput();
+        }
+
+        // Check if this token has been used before (stored in session)
+        $usedTokens = session()->get('used_form_tokens');
+        if (!is_array($usedTokens)) {
+            $usedTokens = [];
+        }
+        if (in_array($formToken, $usedTokens)) {
+            log_message('warning', 'Duplicate form submission detected with token: ' . $formToken);
+            return redirect()->back()
+                ->with('error', 'Form telah dikirim. Mohon tunggu proses selesai.')
+                ->withInput();
+        }
+
+        // Mark this token as used
+        $usedTokens[] = $formToken;
+        session()->set('used_form_tokens', $usedTokens);
 
         // Get start time and duration
         $waktuMulai = $this->request->getPost('waktu_mulai');
@@ -394,9 +463,28 @@ class MeetingController extends Controller
             } catch (\Throwable $tex) {
                 log_message('error', 'Saungwa update notify exception: ' . $tex->getMessage());
             }
+            // Clean up old tokens (keep only last 10 tokens)
+            $currentTokens = session()->get('used_form_tokens');
+            if (!is_array($currentTokens)) {
+                $currentTokens = [];
+            }
+            if (count($currentTokens) > 10) {
+                $currentTokens = array_slice($currentTokens, -10);
+                session()->set('used_form_tokens', $currentTokens);
+            }
+
             return redirect()->back()->with('success', 'Meeting berhasil diupdate');
         } catch (\Exception $e) {
             log_message('error', 'Exception during update: ' . $e->getMessage());
+            
+            // Remove token from used tokens on error so user can retry
+            $currentTokens = session()->get('used_form_tokens');
+            if (!is_array($currentTokens)) {
+                $currentTokens = [];
+            }
+            $currentTokens = array_diff($currentTokens, [$formToken]);
+            session()->set('used_form_tokens', $currentTokens);
+            
             return redirect()->back()
                 ->with('error', 'Gagal mengupdate meeting: ' . $e->getMessage())
                 ->withInput();
