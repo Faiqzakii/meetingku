@@ -66,18 +66,7 @@
                             </div>
                         </div>
 
-                        <div class="sm:col-span-3">
-                            <label for="jumlah_peserta" class="block text-sm font-medium text-gray-700">Jumlah Peserta</label>
-                            <div class="mt-1">
-                                <input type="number" 
-                                       class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
-                                       id="jumlah_peserta" 
-                                       name="jumlah_peserta" 
-                                       min="1"
-                                       required>
-                            </div>
-                        </div>
-
+                        
                         <div class="sm:col-span-3">
                             <label for="ruangan_id" class="block text-sm font-medium text-gray-700">Ruangan</label>
                             <div class="mt-1">
@@ -91,6 +80,18 @@
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                            </div>
+                        </div>
+
+                        <div class="sm:col-span-3" id="participants_container">
+                            <label for="jumlah_peserta" class="block text-sm font-medium text-gray-700">Jumlah Peserta</label>
+                            <div class="mt-1">
+                                <input type="number" 
+                                       class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
+                                       id="jumlah_peserta" 
+                                       name="jumlah_peserta" 
+                                       min="1"
+                                       required>
                             </div>
                         </div>
 
@@ -127,7 +128,7 @@
                             <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
                                 <?php 
                                 $fasilitas_options = [
-                                    'Microphone', 'Kamera', 'Zoom Meeting', 
+                                    'Microphone', 'Dokumentasi', 'Zoom (Hybrid)', 
                                     'Snack', 'Makanan Berat', 'Air Minum'
                                 ];
                                 foreach ($fasilitas_options as $f): 
@@ -462,6 +463,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function toggleFasilitas() {
         const selectedOption = ruanganSelect.options[ruanganSelect.selectedIndex];
         const tipe = selectedOption ? selectedOption.getAttribute('data-tipe') : '';
+        const participantsContainer = document.getElementById('participants_container');
+        const participantsInput = document.getElementById('jumlah_peserta');
         
         if (tipe === 'Online') {
             fasilitasContainer.classList.add('hidden');
@@ -472,8 +475,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 fasilitasLainnyaText.classList.add('hidden');
                 fasilitasLainnyaText.value = '';
             }
+
+            // Hide participants container and remove required
+            if (participantsContainer) {
+                participantsContainer.classList.add('hidden');
+            }
+            if (participantsInput) {
+                participantsInput.required = false;
+                participantsInput.value = '';
+            }
         } else {
             fasilitasContainer.classList.remove('hidden');
+            
+            // Show participants container and add required
+            if (participantsContainer) {
+                participantsContainer.classList.remove('hidden');
+            }
+            if (participantsInput) {
+                participantsInput.required = true;
+            }
         }
     }
 

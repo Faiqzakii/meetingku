@@ -129,16 +129,28 @@ class MeetingController extends Controller
             $waktuSelesai = date('Y-m-d H:i:s', strtotime($waktuMulai . ' + ' . $durasi . ' minutes'));
         }
         
+        // Check room type for conditional validation
+        $ruanganId = $this->request->getPost('ruangan_id');
+        $ruangan = $this->ruanganModel->find($ruanganId);
+        $isOnline = ($ruangan && $ruangan['tipe'] === 'Online');
+
         // Set validation rules for create
-        $this->meetingModel->setValidationRules([
+        $validationRules = [
             'nama_keg' => 'required|min_length[3]|max_length[100]',
-            'jumlah_peserta' => 'required|integer|greater_than[0]',
             'ruangan_id' => 'required|integer|is_not_unique[ruangan.id]',
             'pegawai_id' => 'required|integer|is_not_unique[pegawai.id]',
             'waktu_mulai' => 'required|valid_date[Y-m-d H:i:s]',
             'waktu_selesai' => 'required|valid_date[Y-m-d H:i:s]',
             'status' => 'required|in_list[pending,approved,rejected,cancelled]'
-        ]);
+        ];
+
+        if ($isOnline) {
+            $validationRules['jumlah_peserta'] = 'permit_empty';
+        } else {
+            $validationRules['jumlah_peserta'] = 'required|integer|greater_than[0]';
+        }
+
+        $this->meetingModel->setValidationRules($validationRules);
 
         $fasilitas = $this->request->getPost('fasilitas');
         $fasilitasLainnya = $this->request->getPost('fasilitas_lainnya');
@@ -153,7 +165,7 @@ class MeetingController extends Controller
         
         $data = [
             'nama_keg' => $this->request->getPost('nama_keg'),
-            'jumlah_peserta' => $this->request->getPost('jumlah_peserta'),
+            'jumlah_peserta' => $this->request->getPost('jumlah_peserta') ?: null,
             'fasilitas' => $fasilitas ? json_encode($fasilitas) : null,
             'waktu_mulai' => $waktuMulai,
             'waktu_selesai' => $waktuSelesai,
@@ -355,14 +367,26 @@ class MeetingController extends Controller
             $waktuSelesai = date('Y-m-d H:i:s', strtotime($waktuMulai . ' + ' . $durasi . ' minutes'));
         }
         
+        // Check room type for conditional validation
+        $ruanganId = $this->request->getPost('ruangan_id');
+        $ruangan = $this->ruanganModel->find($ruanganId);
+        $isOnline = ($ruangan && $ruangan['tipe'] === 'Online');
+        
         // Set validation rules for update
-        $this->meetingModel->setValidationRules([
+        $validationRules = [
             'nama_keg' => 'required|min_length[3]|max_length[100]',
-            'jumlah_peserta' => 'required|integer|greater_than[0]',
             'ruangan_id' => 'required|integer|is_not_unique[ruangan.id]',
             'waktu_mulai' => 'required|valid_date[Y-m-d H:i:s]',
             'waktu_selesai' => 'required|valid_date[Y-m-d H:i:s]'
-        ]);
+        ];
+
+        if ($isOnline) {
+             $validationRules['jumlah_peserta'] = 'permit_empty';
+        } else {
+             $validationRules['jumlah_peserta'] = 'required|integer|greater_than[0]';
+        }
+
+        $this->meetingModel->setValidationRules($validationRules);
 
         $fasilitas = $this->request->getPost('fasilitas');
         $fasilitasLainnya = $this->request->getPost('fasilitas_lainnya');
@@ -377,7 +401,7 @@ class MeetingController extends Controller
 
         $data = [
             'nama_keg' => $this->request->getPost('nama_keg'),
-            'jumlah_peserta' => $this->request->getPost('jumlah_peserta'),
+            'jumlah_peserta' => $this->request->getPost('jumlah_peserta') ?: null,
             'fasilitas' => $fasilitas ? json_encode($fasilitas) : null,
             'waktu_mulai' => $waktuMulai,
             'waktu_selesai' => $waktuSelesai,
