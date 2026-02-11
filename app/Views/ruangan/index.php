@@ -1,125 +1,144 @@
 <?= $this->extend('layout') ?>
 
 <?= $this->section('content') ?>
-<div class="sm:flex sm:items-center sm:justify-between mt-4 mb-8">
+<div class="sm:flex sm:items-center sm:justify-between mt-2 mb-6">
     <div>
-        <h2 class="text-2xl font-bold text-gray-900">Manajemen Ruangan</h2>
+        <h2 class="section-title">
+            <i class="fas fa-door-open mr-2 text-orange-500"></i>Data Ruangan
+        </h2>
+        <p class="text-sm text-gray-500 mt-1">Kelola ruangan dan jadwalnya</p>
     </div>
-    <?php if ($isAdmin): ?>
-    <div class="sm:mt-0">
-        <button type="button" 
-                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                data-bs-toggle="modal" 
-                data-bs-target="#createRuanganModal">
-            <i class="fas fa-plus mr-2"></i> Tambah Ruangan
+    <?php if (session()->get('is_admin')): ?>
+    <div class="mt-4 sm:mt-0">
+        <button type="button" class="btn-primary-gradient" data-bs-toggle="modal" data-bs-target="#addRuanganModal">
+            <i class="fas fa-plus"></i> Tambah Ruangan
         </button>
     </div>
     <?php endif; ?>
 </div>
 
-<div class="bg-white shadow-sm rounded-lg overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Ruangan</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipe</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                <?php foreach ($ruangan as $room): ?>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <?= esc($room['nama_ruangan']) ?>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <?= $room['tipe'] === 'Online' ? 'bg-green-100 text-green-800' : ($room['tipe'] === 'Offline' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800') ?>">
-                            <?= esc($room['tipe']) ?>
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <?= $room['is_active'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' ?>">
-                            <?= $room['is_active'] ? 'Aktif' : 'Non-aktif' ?>
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        <a href="<?= base_url('ruangan/' . $room['id'] . '/meetings') ?>" 
-                           class="text-indigo-600 hover:text-indigo-900">
-                            <i class="fas fa-calendar-alt mr-1"></i> Lihat Jadwal
+<?php if (empty($ruangan)): ?>
+    <div class="card-modern p-8">
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <i class="fas fa-building"></i>
+            </div>
+            <p class="empty-state-title">Belum ada data ruangan</p>
+            <p class="empty-state-desc">Tambahkan ruangan pertama untuk memulai</p>
+        </div>
+    </div>
+<?php else: ?>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <?php foreach ($ruangan as $r): ?>
+            <div class="card-modern group transition-all hover:shadow-lg hover:-translate-y-0.5">
+                <!-- Top gradient accent by type -->
+                <?php 
+                    $typeGradient = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
+                    $typeIcon = 'fa-building';
+                    $typeLabel = 'Offline';
+                    if ($r['tipe'] === 'Online') {
+                        $typeGradient = 'linear-gradient(135deg, #06b6d4, #3b82f6)';
+                        $typeIcon = 'fa-globe';
+                        $typeLabel = 'Online';
+                    } else if ($r['tipe'] === 'Hybrid') {
+                        $typeGradient = 'linear-gradient(135deg, #8b5cf6, #ec4899)';
+                        $typeIcon = 'fa-arrows-alt';
+                        $typeLabel = 'Hybrid';
+                    }
+                ?>
+                <div style="height:4px; background: <?= $typeGradient ?>;"></div>
+                
+                <div class="p-5">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <div style="width:2.5rem;height:2.5rem;border-radius:0.625rem;background:<?= $typeGradient ?>;display:flex;align-items:center;justify-content:center;color:white;font-size:0.875rem;">
+                                <i class="fas <?= $typeIcon ?>"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-900"><?= esc($r['nama_ruangan']) ?></h3>
+                                <span class="text-xs font-medium text-gray-500"><?= $typeLabel ?></span>
+                            </div>
+                        </div>
+                        <div>
+                            <?php if (($r['status'] ?? 'active') === 'active'): ?>
+                                <span class="badge-status badge-approved" style="font-size:0.6875rem;">Aktif</span>
+                            <?php else: ?>
+                                <span class="badge-status badge-rejected" style="font-size:0.6875rem;">Nonaktif</span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 mt-4">
+                        <a href="<?= base_url('meeting/room/' . $r['id']) ?>" 
+                           class="btn-outline-custom flex-1 justify-center" style="padding:0.5rem 0.75rem; font-size:0.8125rem;">
+                            <i class="fas fa-calendar-alt"></i> Jadwal
                         </a>
-                        <?php if ($isAdmin): ?>
-                            <a href="<?= base_url('ruangan/edit/' . $room['id']) ?>" 
-                               class="text-blue-600 hover:text-blue-900">
-                                <i class="fas fa-edit mr-1"></i> Edit
+                        <?php if (session()->get('is_admin')): ?>
+                            <a href="<?= base_url('ruangan/edit/' . $r['id']) ?>" 
+                               class="btn-outline-custom" style="padding:0.5rem 0.75rem; font-size:0.8125rem;">
+                                <i class="fas fa-edit"></i>
                             </a>
-                            <form action="<?= base_url('ruangan/delete/' . $room['id']) ?>" 
-                                  method="POST" 
-                                  class="inline-block"
-                                  onsubmit="return confirm('Apakah Anda yakin ingin menghapus ruangan ini?');">
+                            <form action="<?= base_url('ruangan/delete/' . $r['id']) ?>" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus ruangan ini?');" class="inline-block">
                                 <?= csrf_field() ?>
-                                <button type="submit" class="text-red-600 hover:text-red-900">
-                                    <i class="fas fa-trash-alt mr-1"></i> Hapus
+                                <button type="submit" class="btn-outline-custom" style="padding:0.5rem 0.75rem; font-size:0.8125rem; color:#ef4444; border-color:#fecaca;">
+                                    <i class="fas fa-trash-alt"></i>
                                 </button>
                             </form>
                         <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
     </div>
-</div>
+<?php endif; ?>
 
-<!-- Create Ruangan Modal -->
-<div class="modal fade" id="createRuanganModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+<!-- Add Ruangan Modal -->
+<div class="modal fade" id="addRuanganModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header border-b border-gray-200 px-6 py-4">
-                <h5 class="text-lg font-medium text-gray-900" id="modalTitle">Tambah Ruangan</h5>
-                <button type="button" class="text-gray-400 hover:text-gray-500" data-bs-dismiss="modal" aria-label="Close">
-                    <i class="fas fa-times"></i>
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle mr-2 text-orange-500"></i>Tambah Ruangan
+                </h5>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-bs-dismiss="modal" aria-label="Close">
+                    <i class="fas fa-times text-lg"></i>
                 </button>
             </div>
             <form action="<?= base_url('ruangan/create') ?>" method="POST">
-                <div class="modal-body p-6">
+                <div class="modal-body">
                     <?= csrf_field() ?>
                     <div class="space-y-4">
                         <div>
-                            <label for="nama_ruangan" class="block text-sm font-medium text-gray-700">Nama Ruangan</label>
-                            <input type="text" 
-                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
-                                   id="nama_ruangan" 
-                                   name="nama_ruangan" 
-                                   required>
+                            <label for="add_nama_ruangan" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                                <i class="fas fa-door-open mr-1 text-orange-400 text-xs"></i> Nama Ruangan
+                            </label>
+                            <input type="text" class="input-modern" id="add_nama_ruangan" name="nama_ruangan" placeholder="Nama ruangan" required>
                         </div>
                         <div>
-                            <label for="tipe" class="block text-sm font-medium text-gray-700">Tipe</label>
-                            <select class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
-                                    id="tipe" 
-                                    name="tipe" 
-                                    required>
-                                <option value="Online">Online</option>
+                            <label for="add_tipe" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                                <i class="fas fa-tags mr-1 text-orange-400 text-xs"></i> Tipe
+                            </label>
+                            <select class="input-modern dropdown-modern" id="add_tipe" name="tipe" required>
                                 <option value="Offline">Offline</option>
+                                <option value="Online">Online</option>
                                 <option value="Hybrid">Hybrid</option>
                             </select>
                         </div>
-                        <div class="flex items-center">
-                            <input id="is_active" name="is_active" type="checkbox" value="1" checked class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                            <label for="is_active" class="ml-2 block text-sm text-gray-900">
-                                Aktif
+                        <div>
+                            <label for="add_status" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                                <i class="fas fa-toggle-on mr-1 text-orange-400 text-xs"></i> Status
                             </label>
+                            <select class="input-modern dropdown-modern" id="add_status" name="status" required>
+                                <option value="active">Aktif</option>
+                                <option value="inactive">Nonaktif</option>
+                            </select>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-gray-50 px-6 py-3 flex justify-end space-x-3">
-                    <button type="button" 
-                            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" 
-                            data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" 
-                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        Simpan
+                <div class="modal-footer flex justify-end gap-3">
+                    <button type="button" class="btn-outline-custom" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn-primary-gradient">
+                        <i class="fas fa-save"></i> Simpan
                     </button>
                 </div>
             </form>
@@ -127,30 +146,33 @@
     </div>
 </div>
 
-<!-- Flash Messages -->
-<?php if (session()->getFlashdata('success')): ?>
-    <div class="fixed bottom-4 right-4 px-4 py-2 bg-green-500 text-white rounded shadow-lg" id="flashMessage">
-        <?= session()->getFlashdata('success') ?>
-    </div>
-<?php endif; ?>
-
-<?php if (session()->getFlashdata('error')): ?>
-    <div class="fixed bottom-4 right-4 px-4 py-2 bg-red-500 text-white rounded shadow-lg" id="flashMessage">
-        <?= session()->getFlashdata('error') ?>
-    </div>
-<?php endif; ?>
+<!-- Toast Flash Messages -->
+<div class="toast-container">
+    <?php if (session()->getFlashdata('success')): ?>
+        <div class="toast-notification toast-success" id="flashToast">
+            <div class="toast-icon"><i class="fas fa-check"></i></div>
+            <span><?= session()->getFlashdata('success') ?></span>
+            <button class="toast-close" onclick="this.parentElement.classList.add('toast-hiding');setTimeout(()=>this.parentElement.remove(),300)"><i class="fas fa-times"></i></button>
+        </div>
+    <?php endif; ?>
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="toast-notification toast-error" id="flashToast">
+            <div class="toast-icon"><i class="fas fa-exclamation"></i></div>
+            <span><?= session()->getFlashdata('error') ?></span>
+            <button class="toast-close" onclick="this.parentElement.classList.add('toast-hiding');setTimeout(()=>this.parentElement.remove(),300)"><i class="fas fa-times"></i></button>
+        </div>
+    <?php endif; ?>
+</div>
 
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
 <script>
-// Auto-hide flash messages after 3 seconds
 document.addEventListener('DOMContentLoaded', function() {
-    const flashMessage = document.getElementById('flashMessage');
-    if (flashMessage) {
-        setTimeout(function() {
-            flashMessage.style.display = 'none';
-        }, 3000);
+    // Auto-hide toast
+    var toast = document.getElementById('flashToast');
+    if (toast) {
+        setTimeout(function() { toast.classList.add('toast-hiding'); setTimeout(function(){ toast.remove(); }, 300); }, 4000);
     }
 });
 </script>

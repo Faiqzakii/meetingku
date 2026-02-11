@@ -1,13 +1,16 @@
 <?= $this->extend('layout') ?>
 
 <?= $this->section('content') ?>
-<div class="sm:flex sm:items-center sm:justify-between mt-4 mb-8">
+<div class="sm:flex sm:items-center sm:justify-between mt-2 mb-6">
     <div>
-        <h2 class="text-2xl font-bold text-gray-900">Jadwal Pertemuan</h2>
+        <h2 class="section-title">
+            <i class="fas fa-calendar-alt mr-2 text-orange-500"></i>Jadwal Pertemuan
+        </h2>
+        <p class="text-sm text-gray-500 mt-1">Lihat dan kelola jadwal meeting di satu tempat</p>
     </div>
-    <div class="sm:flex sm:items-center gap-4">
-        <select id="ruanganFilter" class="block w-48 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            <option value="">Semua Ruangan</option>
+    <div class="flex flex-wrap items-center gap-3 mt-4 sm:mt-0">
+        <select id="ruanganFilter" class="input-modern dropdown-modern" style="width:auto; min-width:180px;">
+            <option value="">📍 Semua Ruangan</option>
             <?php foreach ($ruangan as $r): ?>
                 <option value="<?= $r['id'] ?>">
                     <?= esc($r['nama_ruangan']) ?> (<?= $r['tipe'] ?>)
@@ -16,27 +19,35 @@
         </select>
         <?php if (session()->get('logged_in')): ?>
             <button type="button" 
-                    class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    class="btn-primary-gradient"
                     data-bs-toggle="modal" 
                     data-bs-target="#createMeetingModal">
-                <div class="flex items-center justify-center">
-                    <i class="fas fa-plus mr-2"></i>
-                    <span>Buat Meeting</span>
-                </div>
+                <i class="fas fa-plus"></i>
+                <span>Buat Meeting</span>
             </button>
         <?php else: ?>
-            <a href="<?= base_url('auth/login') ?>" 
-               class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                <div class="flex items-center justify-center">
-                    <i class="fas fa-plus mr-2"></i>
-                    <span>Buat Meeting</span>
-                </div>
+            <a href="<?= base_url('auth/login') ?>" class="btn-primary-gradient">
+                <i class="fas fa-plus"></i>
+                <span>Buat Meeting</span>
             </a>
         <?php endif; ?>
     </div>
 </div>
 
-<div class="bg-white shadow-sm rounded-lg overflow-hidden p-6">
+<!-- Status Legend -->
+<div class="flex flex-wrap items-center gap-4 mb-4 px-1">
+    <span class="flex items-center gap-2 text-xs font-medium text-gray-500">
+        <span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Disetujui
+    </span>
+    <span class="flex items-center gap-2 text-xs font-medium text-gray-500">
+        <span class="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span> Menunggu
+    </span>
+    <span class="flex items-center gap-2 text-xs font-medium text-gray-500">
+        <span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Ditolak
+    </span>
+</div>
+
+<div class="card-modern-elevated p-4 sm:p-6">
     <div id="calendar"></div>
 </div>
 
@@ -44,124 +55,132 @@
 <div class="modal fade" id="createMeetingModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header border-b border-gray-200 px-6 py-4">
-                <h5 class="text-lg font-medium text-gray-900" id="modalTitle">Buat Meeting</h5>
-                <button type="button" class="text-gray-400 hover:text-gray-500" data-bs-dismiss="modal" aria-label="Close">
-                    <i class="fas fa-times"></i>
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="fas fa-plus-circle mr-2 text-orange-500"></i>Buat Meeting Baru
+                </h5>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-bs-dismiss="modal" aria-label="Close">
+                    <i class="fas fa-times text-lg"></i>
                 </button>
             </div>
             <form action="<?= base_url('meeting/create') ?>" method="POST" id="createMeetingForm">
-                <div class="modal-body p-6">
+                <div class="modal-body">
                     <?= csrf_field() ?>
-                    <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                    <div class="grid grid-cols-1 gap-y-5 gap-x-4 sm:grid-cols-6">
                         <div class="sm:col-span-6">
-                            <label for="nama_keg" class="block text-sm font-medium text-gray-700">Nama Kegiatan</label>
-                            <div class="mt-1">
-                                <input type="text" 
-                                       class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
-                                       id="nama_keg" 
-                                       name="nama_keg" 
-                                       placeholder="Contoh: Rapat Koordinasi Bulanan"
-                                       required>
-                            </div>
+                            <label for="nama_keg" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                                <i class="fas fa-bookmark mr-1 text-orange-400 text-xs"></i> Nama Kegiatan
+                            </label>
+                            <input type="text" 
+                                   class="input-modern" 
+                                   id="nama_keg" 
+                                   name="nama_keg" 
+                                   placeholder="Contoh: Rapat Koordinasi Bulanan"
+                                   required>
                         </div>
 
-                        
                         <div class="sm:col-span-3">
-                            <label for="ruangan_id" class="block text-sm font-medium text-gray-700">Ruangan</label>
-                            <div class="mt-1">
-                                <select class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
-                                        id="ruangan_id" 
-                                        name="ruangan_id" 
-                                        required>
-                                    <?php foreach ($ruangan as $r): ?>
-                                        <option value="<?= $r['id'] ?>" data-tipe="<?= $r['tipe'] ?>">
-                                            <?= esc($r['nama_ruangan']) ?> (<?= $r['tipe'] ?>)
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                            <label for="ruangan_id" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                                <i class="fas fa-door-open mr-1 text-orange-400 text-xs"></i> Ruangan
+                            </label>
+                            <select class="input-modern dropdown-modern" 
+                                    id="ruangan_id" 
+                                    name="ruangan_id" 
+                                    required>
+                                <?php foreach ($ruangan as $r): ?>
+                                    <option value="<?= $r['id'] ?>" data-tipe="<?= $r['tipe'] ?>">
+                                        <?= esc($r['nama_ruangan']) ?> (<?= $r['tipe'] ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
 
                         <div class="sm:col-span-3" id="participants_container">
-                            <label for="jumlah_peserta" class="block text-sm font-medium text-gray-700">Jumlah Peserta</label>
-                            <div class="mt-1">
-                                <input type="number" 
-                                       class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
-                                       id="jumlah_peserta" 
-                                       name="jumlah_peserta" 
-                                       min="1"
-                                       required>
-                            </div>
+                            <label for="jumlah_peserta" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                                <i class="fas fa-users mr-1 text-orange-400 text-xs"></i> Jumlah Peserta
+                            </label>
+                            <input type="number" 
+                                   class="input-modern" 
+                                   id="jumlah_peserta" 
+                                   name="jumlah_peserta" 
+                                   min="1"
+                                   placeholder="0"
+                                   required>
                         </div>
 
                         <div class="sm:col-span-3">
-                            <label for="waktu_mulai" class="block text-sm font-medium text-gray-700">Waktu Mulai</label>
-                            <div class="mt-1">
-                                <input type="datetime-local" 
-                                       class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
-                                       id="waktu_mulai" 
-                                       name="waktu_mulai" 
-                                       step="900"
-                                       required>
-                            </div>
+                            <label for="waktu_mulai" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                                <i class="fas fa-clock mr-1 text-orange-400 text-xs"></i> Waktu Mulai
+                            </label>
+                            <input type="datetime-local" 
+                                   class="input-modern" 
+                                   id="waktu_mulai" 
+                                   name="waktu_mulai" 
+                                   step="900"
+                                   required>
                         </div>
 
                         <div class="sm:col-span-3">
-                            <label for="durasi" class="block text-sm font-medium text-gray-700">Durasi</label>
-                            <div class="mt-1">
-                                <select class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
-                                        id="durasi" 
-                                        name="durasi" 
-                                        required>
-                                    <option value="60" >1 jam</option>
-                                    <option value="120">2 jam</option>
-                                    <option value="180">3 jam</option>
-                                    <option value="240">4 jam</option>
-                                    <option value="Penuh">Satu Hari Penuh</option>
-                                </select>
-                            </div>
+                            <label for="durasi" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                                <i class="fas fa-hourglass-half mr-1 text-orange-400 text-xs"></i> Durasi
+                            </label>
+                            <select class="input-modern dropdown-modern" 
+                                    id="durasi" 
+                                    name="durasi" 
+                                    required>
+                                <option value="60" >1 jam</option>
+                                <option value="120">2 jam</option>
+                                <option value="180">3 jam</option>
+                                <option value="240">4 jam</option>
+                                <option value="Penuh">Satu Hari Penuh</option>
+                            </select>
                         </div>
 
                         <div class="sm:col-span-6" id="fasilitas_container">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Fasilitas Rapat</label>
-                            <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">
+                                <i class="fas fa-concierge-bell mr-1 text-orange-400 text-xs"></i> Fasilitas Rapat
+                            </label>
+                            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
                                 <?php 
                                 $fasilitas_options = [
-                                    'Microphone', 'Dokumentasi', 'Zoom (Hybrid)', 
-                                    'Snack', 'Makanan Berat', 'Air Minum'
+                                    ['icon' => 'fa-microphone', 'name' => 'Microphone'],
+                                    ['icon' => 'fa-camera', 'name' => 'Dokumentasi'],
+                                    ['icon' => 'fa-video', 'name' => 'Zoom (Hybrid)'],
+                                    ['icon' => 'fa-cookie-bite', 'name' => 'Snack'],
+                                    ['icon' => 'fa-utensils', 'name' => 'Makanan Berat'],
+                                    ['icon' => 'fa-glass-water', 'name' => 'Air Minum'],
                                 ];
                                 foreach ($fasilitas_options as $f): 
                                 ?>
-                                <div class="relative flex items-start">
-                                    <div class="flex items-center h-5">
-                                        <input id="fasilitas_<?= url_title($f, '-', true) ?>" 
-                                               name="fasilitas[]" 
-                                               value="<?= $f ?>" 
-                                               type="checkbox" 
-                                               class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
-                                    </div>
-                                    <div class="ml-3 text-sm">
-                                        <label for="fasilitas_<?= url_title($f, '-', true) ?>" class="font-medium text-gray-700"><?= $f ?></label>
-                                    </div>
-                                </div>
+                                <label for="fasilitas_<?= url_title($f['name'], '-', true) ?>" 
+                                       class="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-200 cursor-pointer hover:border-orange-300 hover:bg-orange-50 transition-all"
+                                       style="font-size:0.8125rem;">
+                                    <input id="fasilitas_<?= url_title($f['name'], '-', true) ?>" 
+                                           name="fasilitas[]" 
+                                           value="<?= $f['name'] ?>" 
+                                           type="checkbox" 
+                                           class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                                    <i class="fas <?= $f['icon'] ?> text-orange-400 text-xs"></i>
+                                    <span class="font-medium text-gray-700"><?= $f['name'] ?></span>
+                                </label>
                                 <?php endforeach; ?>
-                                <div class="relative flex items-start col-span-2 sm:col-span-3">
-                                    <div class="flex items-center h-5">
-                                        <input id="fasilitas_lainnya_checkbox" 
-                                               name="fasilitas[]" 
-                                               value="Lainnya" 
-                                               type="checkbox" 
-                                               class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
-                                    </div>
-                                    <div class="ml-3 text-sm flex-grow">
-                                        <label for="fasilitas_lainnya_checkbox" class="font-medium text-gray-700">Lainnya</label>
-                                        <input type="text" 
-                                               id="fasilitas_lainnya_text" 
-                                               name="fasilitas_lainnya" 
-                                               class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-1 px-2 hidden" 
-                                               placeholder="Sebutkan fasilitas lainnya...">
-                                    </div>
+                                <label for="fasilitas_lainnya_checkbox"
+                                       class="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-200 cursor-pointer hover:border-orange-300 hover:bg-orange-50 transition-all col-span-2 sm:col-span-3"
+                                       style="font-size:0.8125rem;">
+                                    <input id="fasilitas_lainnya_checkbox" 
+                                           name="fasilitas[]" 
+                                           value="Lainnya" 
+                                           type="checkbox" 
+                                           class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                                    <i class="fas fa-ellipsis-h text-orange-400 text-xs"></i>
+                                    <span class="font-medium text-gray-700">Lainnya</span>
+                                </label>
+                                <div class="col-span-2 sm:col-span-3">
+                                    <input type="text" 
+                                           id="fasilitas_lainnya_text" 
+                                           name="fasilitas_lainnya" 
+                                           class="input-modern hidden" 
+                                           placeholder="Sebutkan fasilitas lainnya...">
                                 </div>
                             </div>
                         </div>
@@ -169,15 +188,11 @@
                         <input type="hidden" id="waktu_selesai" name="waktu_selesai">
                     </div>
                 </div>
-                <div class="modal-footer bg-gray-50 px-6 py-3 flex justify-end space-x-3">
-                    <button type="button" 
-                            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" 
-                            data-bs-dismiss="modal">Batal</button>
-                    <button type="submit"
-                            id="submitBtn"
-                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <div class="modal-footer flex justify-end gap-3">
+                    <button type="button" class="btn-outline-custom" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" id="submitBtn" class="btn-primary-gradient">
                         <span id="submitText">Simpan</span>
-                        <span id="submitSpinner" class="hidden ml-2">
+                        <span id="submitSpinner" class="hidden">
                             <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -194,65 +209,133 @@
 <div class="modal fade" id="eventDetailsModal" tabindex="-1" aria-labelledby="eventDetailsModalTitle" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header border-b border-gray-200 px-6 py-4">
-                <h5 class="text-lg font-medium text-gray-900" id="eventDetailsModalTitle">Detail Meeting</h5>
-                <button type="button" class="text-gray-400 hover:text-gray-500" data-bs-dismiss="modal" aria-label="Close">
-                    <i class="fas fa-times"></i>
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventDetailsModalTitle">
+                    <i class="fas fa-info-circle mr-2 text-orange-500"></i>Detail Meeting
+                </h5>
+                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-bs-dismiss="modal" aria-label="Close">
+                    <i class="fas fa-times text-lg"></i>
                 </button>
             </div>
-            <div class="modal-body p-6">
+            <div class="modal-body">
                 <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Nama Kegiatan</label>
-                        <p id="eventTitle" class="mt-1 text-sm text-gray-900"></p>
+                    <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                        <i class="fas fa-bookmark text-orange-400 mt-0.5"></i>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide">Nama Kegiatan</label>
+                            <p id="eventTitle" class="text-sm font-semibold text-gray-900 mt-0.5"></p>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Ruangan</label>
-                        <p id="eventRoom" class="mt-1 text-sm text-gray-900"></p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <i class="fas fa-door-open text-orange-400 mt-0.5"></i>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide">Ruangan</label>
+                                <p id="eventRoom" class="text-sm text-gray-900 mt-0.5"></p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <i class="fas fa-users text-orange-400 mt-0.5"></i>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide">Peserta</label>
+                                <p id="eventPeserta" class="text-sm text-gray-900 mt-0.5"></p>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Jumlah Peserta</label>
-                        <p id="eventPeserta" class="mt-1 text-sm text-gray-900"></p>
+                    <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                        <i class="fas fa-concierge-bell text-orange-400 mt-0.5"></i>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide">Fasilitas</label>
+                            <p id="eventFasilitas" class="text-sm text-gray-900 mt-0.5"></p>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Fasilitas</label>
-                        <p id="eventFasilitas" class="mt-1 text-sm text-gray-900"></p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <i class="fas fa-clock text-orange-400 mt-0.5"></i>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide">Waktu</label>
+                                <p id="eventTime" class="text-sm text-gray-900 mt-0.5"></p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <i class="fas fa-user text-orange-400 mt-0.5"></i>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide">Pemohon</label>
+                                <p id="eventPegawai" class="text-sm text-gray-900 mt-0.5"></p>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Waktu</label>
-                        <p id="eventTime" class="mt-1 text-sm text-gray-900"></p>
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <i class="fas fa-flag text-orange-400"></i>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</label>
+                            <p id="eventStatus" class="mt-0.5"></p>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Pemohon</label>
-                        <p id="eventPegawai" class="mt-1 text-sm text-gray-900"></p>
+                    <!-- Audit trail (admin only) -->
+                    <?php if (session()->get('is_admin')): ?>
+                    <div id="eventAuditSection" class="hidden border-t pt-3 mt-1" style="border-color:#e2e8f0;">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"><i class="fas fa-history mr-1"></i>Riwayat</p>
+                        <div class="space-y-2">
+                            <div id="auditStatusRow" class="hidden flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-md p-2">
+                                <i class="fas fa-gavel text-orange-300 mt-0.5"></i>
+                                <span id="auditStatusText"></span>
+                            </div>
+                            <div id="auditEditRow" class="hidden flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-md p-2">
+                                <i class="fas fa-pen text-orange-300 mt-0.5"></i>
+                                <span id="auditEditText"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Status</label>
-                        <p id="eventStatus" class="mt-1"></p>
-                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
-            <div class="modal-footer bg-gray-50 px-6 py-3">
-                <button type="button" 
-                        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" 
-                        data-bs-dismiss="modal">Tutup</button>
+            <div class="modal-footer flex justify-between">
+                <div id="eventAdminActions" class="hidden flex items-center gap-2">
+                    <form id="approveForm" method="POST" class="inline-block">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="status" value="approved">
+                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.875rem; font-size:0.8125rem; color:#059669; border-color:#a7f3d0;">
+                            <i class="fas fa-check"></i> Setujui
+                        </button>
+                    </form>
+                    <form id="rejectForm" method="POST" class="inline-block">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="status" value="rejected">
+                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.875rem; font-size:0.8125rem; color:#ef4444; border-color:#fecaca;">
+                            <i class="fas fa-times"></i> Tolak
+                        </button>
+                    </form>
+                </div>
+                <div class="ml-auto">
+                    <button type="button" class="btn-outline-custom" data-bs-dismiss="modal">Tutup</button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Flash Messages -->
-<?php if (session()->getFlashdata('success')): ?>
-    <div class="fixed bottom-4 right-4 px-4 py-2 bg-green-500 text-white rounded shadow-lg" id="flashMessage">
-        <?= session()->getFlashdata('success') ?>
-    </div>
-<?php endif; ?>
-
-<?php if (session()->getFlashdata('error')): ?>
-    <div class="fixed bottom-4 right-4 px-4 py-2 bg-red-500 text-white rounded shadow-lg" id="flashMessage">
-        <?= session()->getFlashdata('error') ?>
-    </div>
-<?php endif; ?>
+<!-- Toast Flash Messages -->
+<div class="toast-container">
+    <?php if (session()->getFlashdata('success')): ?>
+        <div class="toast-notification toast-success" id="flashToast">
+            <div class="toast-icon"><i class="fas fa-check"></i></div>
+            <span><?= session()->getFlashdata('success') ?></span>
+            <button class="toast-close" onclick="this.parentElement.classList.add('toast-hiding');setTimeout(()=>this.parentElement.remove(),300)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    <?php endif; ?>
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="toast-notification toast-error" id="flashToast">
+            <div class="toast-icon"><i class="fas fa-exclamation"></i></div>
+            <span><?= session()->getFlashdata('error') ?></span>
+            <button class="toast-close" onclick="this.parentElement.classList.add('toast-hiding');setTimeout(()=>this.parentElement.remove(),300)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    <?php endif; ?>
+</div>
 
 <?= $this->endSection() ?>
 
@@ -268,13 +351,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function addTokenToForm() {
         const form = document.getElementById('createMeetingForm');
         if (form) {
-            // Remove existing token if any
             const existingToken = form.querySelector('input[name="form_token"]');
-            if (existingToken) {
-                existingToken.remove();
-            }
-            
-            // Add new token
+            if (existingToken) existingToken.remove();
             const tokenInput = document.createElement('input');
             tokenInput.type = 'hidden';
             tokenInput.name = 'form_token';
@@ -292,15 +370,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (form && submitBtn) {
             form.addEventListener('submit', function(e) {
-                // Add token to form before submission
                 addTokenToForm();
-                
-                // Disable submit button and show loading
                 submitBtn.disabled = true;
                 submitText.textContent = 'Menyimpan...';
                 submitSpinner.classList.remove('hidden');
-                
-                // Re-enable after 5 seconds as a fallback
                 setTimeout(function() {
                     submitBtn.disabled = false;
                     submitText.textContent = 'Simpan';
@@ -319,10 +392,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const submitBtn = document.getElementById('submitBtn');
                 const submitText = document.getElementById('submitText');
                 const submitSpinner = document.getElementById('submitSpinner');
-                
                 if (form) {
                     form.reset();
-                    // Reset submit button
                     submitBtn.disabled = false;
                     submitText.textContent = 'Simpan';
                     submitSpinner.classList.add('hidden');
@@ -331,14 +402,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Initialize form protection
     handleFormSubmit();
     resetFormOnModalClose();
+
     // Handle duration change to auto-compute end time
     function updateEndTime() {
         var startTime = document.getElementById('waktu_mulai').value;
         var duration = parseInt(document.getElementById('durasi').value);
-        
         if (startTime) {
             var endTime = new Date(startTime);
             endTime.setMinutes(endTime.getMinutes() + duration);
@@ -346,7 +416,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Add event listeners
     document.getElementById('waktu_mulai').addEventListener('change', updateEndTime);
     document.getElementById('durasi').addEventListener('change', updateEndTime);
 
@@ -369,15 +438,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 'pegawai' => $meeting['nama_pegawai'] ?? null,
                 'jumlah_peserta' => $meeting['jumlah_peserta'] ?? null,
                 'fasilitas' => $meeting['fasilitas'] ? implode(', ', json_decode($meeting['fasilitas'], true) ?? []) : '-',
+                'status_changed_by_name' => $meeting['status_changed_by_name'] ?? null,
+                'status_changed_at' => $meeting['status_changed_at'] ?? null,
+                'last_edited_by_name' => $meeting['last_edited_by_name'] ?? null,
+                'last_edited_at' => $meeting['last_edited_at'] ?? null,
             ]
         ];
     }, $meetings)) ?>;
 
     // Filter events based on selected ruangan
     function filterEvents(ruanganId) {
-        if (!ruanganId) {
-            return allEvents;
-        }
+        if (!ruanganId) return allEvents;
         return allEvents.filter(function(event) {
             return event.extendedProps.ruangan_id == ruanganId;
         });
@@ -400,7 +471,6 @@ document.addEventListener('DOMContentLoaded', function() {
             var event = info.event;
             var props = event.extendedProps;
             
-            // Set modal content
             document.getElementById('eventTitle').textContent = event.title;
             document.getElementById('eventRoom').textContent = props.ruangan + ' (' + props.tipe + ')';
             document.getElementById('eventTime').textContent = moment(event.start).format('DD MMM YYYY HH:mm') + ' - ' + 
@@ -409,15 +479,51 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('eventPeserta').textContent = props.jumlah_peserta || 'Tidak tersedia';
             document.getElementById('eventFasilitas').textContent = props.fasilitas || 'Tidak tersedia';
             
-            // Set status with appropriate styling
             var statusElement = document.getElementById('eventStatus');
-            var statusClass = props.status === 'approved' ? 'bg-green-100 text-green-800' : 
-                            (props.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800');
-            statusElement.innerHTML = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + 
-                                    statusClass + '">' + props.status.toUpperCase() + '</span>';
+            var badgeClass = props.status === 'approved' ? 'badge-approved' : 
+                            (props.status === 'pending' ? 'badge-pending' : 'badge-rejected');
+            statusElement.innerHTML = '<span class="badge-status ' + badgeClass + '">' + props.status.toUpperCase() + '</span>';
             
-            // Show modal using Bootstrap
+            // Show admin approve/reject buttons if admin and status is pending
+            var adminActions = document.getElementById('eventAdminActions');
+            var isAdmin = <?= session()->get('is_admin') ? 'true' : 'false' ?>;
+            if (adminActions) {
+                if (isAdmin && props.status === 'pending') {
+                    adminActions.classList.remove('hidden');
+                    var statusUrl = '<?= base_url('meeting/status/') ?>' + event.id;
+                    document.getElementById('approveForm').action = statusUrl;
+                    document.getElementById('rejectForm').action = statusUrl;
+                } else {
+                    adminActions.classList.add('hidden');
+                }
+            }
+            
             var eventModal = new bootstrap.Modal(document.getElementById('eventDetailsModal'));
+
+            // Populate audit trail (admin only)
+            var auditSection = document.getElementById('eventAuditSection');
+            if (auditSection) {
+                var hasAudit = false;
+                var statusRow = document.getElementById('auditStatusRow');
+                var editRow = document.getElementById('auditEditRow');
+                if (props.status_changed_by_name && props.status_changed_at) {
+                    var statusLabel = props.status === 'approved' ? 'Disetujui' : (props.status === 'rejected' ? 'Ditolak' : 'Status diubah');
+                    document.getElementById('auditStatusText').innerHTML = '<strong>' + statusLabel + '</strong> oleh <strong>' + props.status_changed_by_name + '</strong> pada ' + moment(props.status_changed_at).format('DD MMM YYYY HH:mm');
+                    statusRow.classList.remove('hidden');
+                    hasAudit = true;
+                } else {
+                    statusRow.classList.add('hidden');
+                }
+                if (props.last_edited_by_name && props.last_edited_at) {
+                    document.getElementById('auditEditText').innerHTML = '<strong>Diedit</strong> oleh <strong>' + props.last_edited_by_name + '</strong> pada ' + moment(props.last_edited_at).format('DD MMM YYYY HH:mm');
+                    editRow.classList.remove('hidden');
+                    hasAudit = true;
+                } else {
+                    editRow.classList.add('hidden');
+                }
+                auditSection.classList.toggle('hidden', !hasAudit);
+            }
+
             eventModal.show();
         }
     });
@@ -430,18 +536,18 @@ document.addEventListener('DOMContentLoaded', function() {
         calendar.addEventSource(filterEvents(ruanganId));
     });
 
-    // Auto-hide flash messages
-    const flashMessage = document.getElementById('flashMessage');
-    if (flashMessage) {
+    // Auto-hide toast
+    var toast = document.getElementById('flashToast');
+    if (toast) {
         setTimeout(function() {
-            flashMessage.style.display = 'none';
-        }, 3000);
+            toast.classList.add('toast-hiding');
+            setTimeout(function(){ toast.remove(); }, 300);
+        }, 4000);
     }
 
     // Handle "Lainnya" checkbox
     const fasilitasLainnyaCheckbox = document.getElementById('fasilitas_lainnya_checkbox');
     const fasilitasLainnyaText = document.getElementById('fasilitas_lainnya_text');
-
     if (fasilitasLainnyaCheckbox && fasilitasLainnyaText) {
         fasilitasLainnyaCheckbox.addEventListener('change', function() {
             if (this.checked) {
@@ -468,38 +574,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (tipe === 'Online') {
             fasilitasContainer.classList.add('hidden');
-            // Optional: Uncheck all facilities if hidden
             const checkboxes = fasilitasContainer.querySelectorAll('input[type="checkbox"]');
             checkboxes.forEach(cb => cb.checked = false);
             if (fasilitasLainnyaText) {
                 fasilitasLainnyaText.classList.add('hidden');
                 fasilitasLainnyaText.value = '';
             }
-
-            // Hide participants container and remove required
-            if (participantsContainer) {
-                participantsContainer.classList.add('hidden');
-            }
-            if (participantsInput) {
-                participantsInput.required = false;
-                participantsInput.value = '';
-            }
+            if (participantsContainer) participantsContainer.classList.add('hidden');
+            if (participantsInput) { participantsInput.required = false; participantsInput.value = ''; }
         } else {
             fasilitasContainer.classList.remove('hidden');
-            
-            // Show participants container and add required
-            if (participantsContainer) {
-                participantsContainer.classList.remove('hidden');
-            }
-            if (participantsInput) {
-                participantsInput.required = true;
-            }
+            if (participantsContainer) participantsContainer.classList.remove('hidden');
+            if (participantsInput) participantsInput.required = true;
         }
     }
 
     if (ruanganSelect && fasilitasContainer) {
         ruanganSelect.addEventListener('change', toggleFasilitas);
-        // Initial check
         toggleFasilitas();
     }
 });

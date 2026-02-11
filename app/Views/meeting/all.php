@@ -1,109 +1,147 @@
 <?= $this->extend('layout') ?>
 
 <?= $this->section('content') ?>
-<div class="space-y-6">
-    <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-bold text-gray-900">Semua Kegiatan</h2>
-        <form method="GET" action="<?= base_url('meeting/all') ?>" class="flex items-center space-x-2">
-            <div>
-                <label for="start" class="block text-sm font-medium text-gray-700">Start</label>
-                <input type="date" id="start" name="start" value="<?= esc($start) ?>" class="mt-1 block w-48 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
-            </div>
-            <div>
-                <label for="end" class="block text-sm font-medium text-gray-700">End</label>
-                <input type="date" id="end" name="end" value="<?= esc($end) ?>" class="mt-1 block w-48 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
-            </div>
-            <div class="pt-6">
-                <button type="submit" class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700">
-                    <i class="fas fa-filter mr-2"></i> Filter
-                </button>
-            </div>
-        </form>
-    </div>
+<div class="mt-2 mb-6">
+    <h2 class="section-title">
+        <i class="fas fa-list mr-2 text-orange-500"></i>Semua Kegiatan
+    </h2>
+    <p class="text-sm text-gray-500 mt-1">Lihat semua riwayat meeting berdasarkan periode</p>
+</div>
 
-    <div class="bg-white shadow-sm rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Kegiatan</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ruangan</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    <?php if (empty($meetings)): ?>
-                        <tr>
-                            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Tidak ada kegiatan pada rentang waktu ini</td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach ($meetings as $meeting): ?>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-normal break-words text-sm font-medium text-gray-900">
-                                    <?= esc($meeting['nama_keg']) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <?= esc($meeting['nama_ruangan']) ?> (<?= esc($meeting['tipe']) ?>)
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <?= date('d M Y H:i', strtotime($meeting['waktu_mulai'])) ?> - 
-                                    <?= date('H:i', strtotime($meeting['waktu_selesai'])) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                        <?= $meeting['status'] === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                                            ($meeting['status'] === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800') ?>">
-                                        <?= strtoupper($meeting['status']) ?>
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                                    <button type="button" class="expand-trigger inline-flex gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 justify-end">
-                                        Aksi
-                                        <svg class="-mr-1 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr class="details-row hidden">
-                                <td colspan="5" class="px-6 py-4 whitespace-normal break-words text-sm">
-                                    <div class="flex items-center space-x-4 justify-end">
-                                        <a href="<?= base_url('meeting/edit/' . $meeting['id']) ?>" class="text-gray-700 inline-flex items-center px-3 py-2 text-sm hover:bg-gray-50 rounded">
-                                            <i class="fas fa-edit mr-2"></i> Edit
-                                        </a>
-                                        <form action="<?= base_url('meeting/delete/' . $meeting['id']) ?>" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus meeting ini?');" class="inline-block">
-                                            <?= csrf_field() ?>
-                                            <button type="submit" class="text-gray-700 inline-flex items-center px-3 py-2 text-sm hover:bg-gray-50 rounded">
-                                                <i class="fas fa-trash-alt mr-2"></i> Hapus
-                                            </button>
-                                        </form>
-                                        <?php if ($meeting['status'] === 'pending'): ?>
-                                        <form action="<?= base_url('meeting/status/' . $meeting['id']) ?>" method="POST" class="inline-block">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="status" value="approved">
-                                            <button type="submit" class="text-gray-700 inline-flex items-center px-3 py-2 text-sm hover:bg-gray-50 rounded">
-                                                <i class="fas fa-check mr-2"></i> Setuju
-                                            </button>
-                                        </form>
-                                        <form action="<?= base_url('meeting/status/' . $meeting['id']) ?>" method="POST" class="inline-block">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="status" value="rejected">
-                                            <button type="submit" class="text-gray-700 inline-flex items-center px-3 py-2 text-sm hover:bg-gray-50 rounded">
-                                                <i class="fas fa-times mr-2"></i> Tolak
-                                            </button>
-                                        </form>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+<!-- Filter Card -->
+<div class="card-modern p-4 mb-6">
+    <form action="<?= base_url('meeting/all') ?>" method="GET" class="flex flex-wrap items-end gap-4">
+        <div>
+            <label for="start_date" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                <i class="fas fa-calendar mr-1 text-orange-400"></i> Dari Tanggal
+            </label>
+            <input type="date" 
+                   class="input-modern" 
+                   id="start_date" 
+                   name="start_date" 
+                   value="<?= esc($startDate ?? date('Y-m-01')) ?>"
+                   style="min-width:160px;">
         </div>
+        <div>
+            <label for="end_date" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                <i class="fas fa-calendar mr-1 text-orange-400"></i> Sampai Tanggal
+            </label>
+            <input type="date" 
+                   class="input-modern" 
+                   id="end_date" 
+                   name="end_date" 
+                   value="<?= esc($endDate ?? date('Y-m-t')) ?>"
+                   style="min-width:160px;">
+        </div>
+        <button type="submit" class="btn-primary-gradient">
+            <i class="fas fa-search"></i> Tampilkan
+        </button>
+    </form>
+</div>
+
+<!-- Meetings Table -->
+<div class="card-modern">
+    <div class="overflow-x-auto">
+        <table class="min-w-full table-modern">
+            <thead>
+                <tr>
+                    <th class="text-left">Nama Kegiatan</th>
+                    <th class="text-left">Ruangan</th>
+                    <th class="text-left">Waktu</th>
+                    <th class="text-left">Status</th>
+                    <?php if (session()->get('logged_in')): ?>
+                        <th class="text-right" style="width:120px;">Aksi</th>
+                    <?php endif; ?>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($meetings)): ?>
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                                <p class="empty-state-title">Tidak ada meeting ditemukan</p>
+                                <p class="empty-state-desc">Coba ubah filter tanggal untuk melihat data lainnya</p>
+                            </div>
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($meetings as $meeting): ?>
+                        <tr>
+                            <td class="font-semibold text-gray-900">
+                                <?= esc($meeting['nama_keg']) ?>
+                            </td>
+                            <td class="text-gray-600">
+                                <i class="fas fa-door-open text-orange-300 mr-1 text-xs"></i>
+                                <?= esc($meeting['nama_ruangan']) ?> 
+                                <span class="text-gray-400">(<?= $meeting['tipe'] ?>)</span>
+                            </td>
+                            <td class="text-gray-600">
+                                <i class="fas fa-clock text-orange-300 mr-1 text-xs"></i>
+                                <?= date('d M Y H:i', strtotime($meeting['waktu_mulai'])) ?> - 
+                                <?= date('H:i', strtotime($meeting['waktu_selesai'])) ?>
+                            </td>
+                            <td>
+                                <span class="badge-status badge-<?= $meeting['status'] ?>">
+                                    <?= strtoupper($meeting['status']) ?>
+                                </span>
+                            </td>
+                            <?php if (session()->get('logged_in')): ?>
+                                <td class="text-right">
+                                    <?php 
+                                        $isAdmin = session()->get('is_admin');
+                                        $canOwnOrAdmin = ((int)($meeting['pegawai_id'] ?? 0) === (int)session()->get('pegawai_id')) || $isAdmin;
+                                    ?>
+                                    <?php if ($canOwnOrAdmin): ?>
+                                        <button type="button" class="expand-trigger btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem;">
+                                            <i class="fas fa-ellipsis-h"></i>
+                                        </button>
+                                    <?php endif; ?>
+                                </td>
+                            <?php endif; ?>
+                        </tr>
+                        <?php if (session()->get('logged_in') && $canOwnOrAdmin): ?>
+                        <tr class="details-row hidden">
+                            <td colspan="5" style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+                                <div class="flex items-center gap-2 justify-end py-1">
+                                    <a href="<?= base_url('meeting/edit/' . $meeting['id']) ?>" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem;">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <form action="<?= base_url('meeting/delete/' . $meeting['id']) ?>" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus meeting ini?');" class="inline-block">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#ef4444; border-color:#fecaca;">
+                                            <i class="fas fa-trash-alt"></i> Hapus
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
     </div>
+</div>
+
+<!-- Toast Flash Messages -->
+<div class="toast-container">
+    <?php if (session()->getFlashdata('success')): ?>
+        <div class="toast-notification toast-success" id="flashToast">
+            <div class="toast-icon"><i class="fas fa-check"></i></div>
+            <span><?= session()->getFlashdata('success') ?></span>
+            <button class="toast-close" onclick="this.parentElement.classList.add('toast-hiding');setTimeout(()=>this.parentElement.remove(),300)"><i class="fas fa-times"></i></button>
+        </div>
+    <?php endif; ?>
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="toast-notification toast-error" id="flashToast">
+            <div class="toast-icon"><i class="fas fa-exclamation"></i></div>
+            <span><?= session()->getFlashdata('error') ?></span>
+            <button class="toast-close" onclick="this.parentElement.classList.add('toast-hiding');setTimeout(()=>this.parentElement.remove(),300)"><i class="fas fa-times"></i></button>
+        </div>
+    <?php endif; ?>
 </div>
 
 <?= $this->endSection() ?>
@@ -111,6 +149,7 @@
 <?= $this->section('scripts') ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Expandable row toggle
     document.addEventListener('click', function(e) {
         var btn = e.target.closest('.expand-trigger');
         if (!btn) return;
@@ -118,9 +157,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!row) return;
         var details = row.nextElementSibling;
         if (!details || !details.classList.contains('details-row')) return;
-        document.querySelectorAll('.details-row').forEach(function(dr){ if (!dr.classList.contains('hidden')) dr.classList.add('hidden'); });
+        document.querySelectorAll('.details-row').forEach(function(dr){ if (dr !== details && !dr.classList.contains('hidden')) dr.classList.add('hidden'); });
         details.classList.toggle('hidden');
     });
+
+    // Auto-hide toast
+    var toast = document.getElementById('flashToast');
+    if (toast) {
+        setTimeout(function() { toast.classList.add('toast-hiding'); setTimeout(function(){ toast.remove(); }, 300); }, 4000);
+    }
 });
 </script>
 <?= $this->endSection() ?>

@@ -21,6 +21,10 @@ class MeetingModel extends Model
         'waktu_mulai',
         'waktu_selesai',
         'status',
+        'status_changed_by',
+        'status_changed_at',
+        'last_edited_by',
+        'last_edited_at',
         'created_at',
         'updated_at'
     ];
@@ -111,7 +115,9 @@ class MeetingModel extends Model
             ->where('meeting.id', $meetingId)
             ->join('ruangan', 'ruangan.id = meeting.ruangan_id')
             ->join('pegawai', 'pegawai.id = meeting.pegawai_id', 'left')
-            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id')
+            ->join('pegawai as status_pegawai', 'status_pegawai.id = meeting.status_changed_by', 'left')
+            ->join('pegawai as edit_pegawai', 'edit_pegawai.id = meeting.last_edited_by', 'left')
+            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
             ->get()
             ->getRowArray();
     }
@@ -147,7 +153,9 @@ class MeetingModel extends Model
         return $this->db->table('meeting')
             ->join('ruangan', 'ruangan.id = meeting.ruangan_id')
             ->join('pegawai', 'pegawai.id = meeting.pegawai_id', 'left')
-            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin')
+            ->join('pegawai as status_pegawai', 'status_pegawai.id = meeting.status_changed_by', 'left')
+            ->join('pegawai as edit_pegawai', 'edit_pegawai.id = meeting.last_edited_by', 'left')
+            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
             ->where('status !=', 'rejected')
             ->orderBy('waktu_mulai', 'ASC')
             ->get()

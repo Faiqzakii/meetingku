@@ -1,321 +1,309 @@
 <?= $this->extend('layout') ?>
 
 <?= $this->section('content') ?>
-<div class="sm:flex sm:items-center sm:justify-between mb-8">
-    <div>
-        <h2 class="text-2xl font-bold text-gray-900">Edit Meeting</h2>
-    </div>
-</div>
+<!-- Breadcrumb -->
+<nav class="flex items-center gap-2 text-sm text-gray-500 mb-5 mt-2">
+    <a href="<?= base_url('/upcoming') ?>" class="hover:text-orange-600 transition-colors">
+        <i class="fas fa-arrow-left mr-1"></i> Kembali ke Daftar
+    </a>
+    <span class="text-gray-300">/</span>
+    <span class="text-gray-700 font-medium">Edit Meeting</span>
+</nav>
 
-<div class="bg-white shadow-sm rounded-lg overflow-hidden">
-    <form action="<?= base_url('meeting/update/' . $meeting['id']) ?>" method="POST" class="p-6" id="editMeetingForm">
-        <?= csrf_field() ?>
-        <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-            <div class="sm:col-span-6">
-                <label for="nama_keg" class="block text-sm font-medium text-gray-700">Nama Kegiatan</label>
-                <div class="mt-1">
+<div class="max-w-3xl mx-auto">
+    <div class="card-modern-elevated">
+        <!-- Top gradient accent -->
+        <div style="height:4px; background: var(--gradient-primary);"></div>
+        
+        <div class="p-4 sm:p-6 border-b" style="border-color:#f1f5f9; background:linear-gradient(to bottom, #fafaff, white);">
+            <h2 class="section-title text-lg">
+                <i class="fas fa-edit mr-2 text-orange-500"></i>Edit Meeting
+            </h2>
+            <p class="text-sm text-gray-500 mt-1">Perbarui informasi meeting yang sudah ada</p>
+        </div>
+
+        <form action="<?= base_url('meeting/update/' . $meeting['id']) ?>" method="POST" class="p-4 sm:p-6" id="editMeetingForm">
+            <?= csrf_field() ?>
+            <div class="grid grid-cols-1 gap-y-5 gap-x-4 sm:grid-cols-6">
+                <!-- Nama Kegiatan -->
+                <div class="sm:col-span-6">
+                    <label for="nama_keg" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        <i class="fas fa-bookmark mr-1 text-orange-400 text-xs"></i> Nama Kegiatan
+                    </label>
                     <input type="text" 
-                           class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
+                           class="input-modern" 
                            id="nama_keg" 
-                           name="nama_keg" 
-                           value="<?= old('nama_keg', $meeting['nama_keg']) ?>"
+                           name="nama_keg"
+                           value="<?= old('nama_keg', $meeting['nama_keg']) ?>" 
                            required>
                 </div>
-            </div>
 
-            
-
-            <div class="sm:col-span-3">
-                <label for="ruangan_id" class="block text-sm font-medium text-gray-700">Ruangan</label>
-                <div class="mt-1">
-                    <select class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
+                <!-- Ruangan -->
+                <div class="sm:col-span-3">
+                    <label for="ruangan_id" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        <i class="fas fa-door-open mr-1 text-orange-400 text-xs"></i> Ruangan
+                    </label>
+                    <select class="input-modern dropdown-modern" 
                             id="ruangan_id" 
                             name="ruangan_id" 
                             required>
                         <?php foreach ($ruangan as $r): ?>
-                            <option value="<?= $r['id'] ?>" data-tipe="<?= $r['tipe'] ?>" <?= $r['id'] == $meeting['ruangan_id'] ? 'selected' : '' ?>>
+                            <option value="<?= $r['id'] ?>" 
+                                    data-tipe="<?= $r['tipe'] ?>" 
+                                    <?= $r['id'] == $meeting['ruangan_id'] ? 'selected' : '' ?>>
                                 <?= esc($r['nama_ruangan']) ?> (<?= $r['tipe'] ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-            </div>
 
-            <div class="sm:col-span-3" id="participants_container">
-                <label for="jumlah_peserta" class="block text-sm font-medium text-gray-700">Jumlah Peserta</label>
-                <div class="mt-1">
+                <!-- Jumlah Peserta -->
+                <div class="sm:col-span-3" id="participants_container">
+                    <label for="jumlah_peserta" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        <i class="fas fa-users mr-1 text-orange-400 text-xs"></i> Jumlah Peserta
+                    </label>
                     <input type="number" 
-                           class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
+                           class="input-modern" 
                            id="jumlah_peserta" 
-                           name="jumlah_peserta" 
-                           value="<?= old('jumlah_peserta', $meeting['jumlah_peserta'] ?? '') ?>"
-                           min="1"
+                           name="jumlah_peserta"
+                           value="<?= old('jumlah_peserta', $meeting['jumlah_peserta'] ?? '') ?>" 
+                           min="1" 
                            required>
                 </div>
-            </div>
 
-            <div class="sm:col-span-3">
-                <label for="waktu_mulai" class="block text-sm font-medium text-gray-700">Waktu Mulai</label>
-                <div class="mt-1">
+                <!-- Divider -->
+                <div class="sm:col-span-6">
+                    <div style="border-top:1px solid #f1f5f9;" class="my-1"></div>
+                </div>
+
+                <!-- Waktu Mulai -->
+                <div class="sm:col-span-3">
+                    <label for="waktu_mulai" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        <i class="fas fa-clock mr-1 text-orange-400 text-xs"></i> Waktu Mulai
+                    </label>
                     <input type="datetime-local" 
-                           class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
+                           class="input-modern" 
                            id="waktu_mulai" 
-                           name="waktu_mulai" 
+                           name="waktu_mulai"
+                           value="<?= date('Y-m-d\TH:i', strtotime($meeting['waktu_mulai'])) ?>" 
                            step="900"
-                           value="<?= date('Y-m-d\TH:i', strtotime($meeting['waktu_mulai'])) ?>"
                            required>
                 </div>
-            </div>
 
-            <div class="sm:col-span-3">
-                <label for="durasi" class="block text-sm font-medium text-gray-700">Durasi</label>
-                <div class="mt-1">
-                    <select class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-2 px-3" 
+                <!-- Durasi -->
+                <div class="sm:col-span-3">
+                    <label for="durasi" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        <i class="fas fa-hourglass-half mr-1 text-orange-400 text-xs"></i> Durasi
+                    </label>
+                    <?php
+                        $defaultDurasi = 60;
+                        if (isset($meeting['waktu_mulai'], $meeting['waktu_selesai'])) {
+                            $start = new DateTime($meeting['waktu_mulai']);
+                            $end = new DateTime($meeting['waktu_selesai']);
+                            $diff = $start->diff($end);
+                            $diffMinutes = ($diff->h * 60) + $diff->i + ($diff->days * 24 * 60);
+                            if ($diffMinutes >= 480) {
+                                $defaultDurasi = 'Penuh';
+                            } else {
+                                $defaultDurasi = $diffMinutes;
+                            }
+                        }
+                    ?>
+                    <select class="input-modern dropdown-modern" 
                             id="durasi" 
                             name="durasi" 
                             required>
-                            <option value="60" >1 jam</option>
-                            <option value="120">2 jam</option>
-                            <option value="180">3 jam</option>
-                            <option value="240">4 jam</option>
-                            <option value="Penuh">Satu Hari Penuh</option>
+                        <option value="60" <?= $defaultDurasi == 60  ? 'selected' : '' ?>>1 jam</option>
+                        <option value="120" <?= $defaultDurasi == 120 ? 'selected' : '' ?>>2 jam</option>
+                        <option value="180" <?= $defaultDurasi == 180 ? 'selected' : '' ?>>3 jam</option>
+                        <option value="240" <?= $defaultDurasi == 240 ? 'selected' : '' ?>>4 jam</option>
+                        <option value="Penuh" <?= $defaultDurasi === 'Penuh' ? 'selected' : '' ?>>Satu Hari Penuh</option>
                     </select>
                 </div>
-            </div>
 
-            <div class="sm:col-span-6" id="fasilitas_container">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Fasilitas Rapat</label>
-                <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                <!-- Divider -->
+                <div class="sm:col-span-6">
+                    <div style="border-top:1px solid #f1f5f9;" class="my-1"></div>
+                </div>
+
+                <!-- Fasilitas -->
+                <div class="sm:col-span-6" id="fasilitas_container">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2.5">
+                        <i class="fas fa-concierge-bell mr-1 text-orange-400 text-xs"></i> Fasilitas Rapat
+                    </label>
                     <?php 
-                    $fasilitas_options = [
-                        'Microphone', 'Dokumentasi', 'Zoom (Hybrid)', 
-                        'Snack', 'Makanan Berat', 'Air Minum'
-                    ];
-                    $selected_fasilitas = json_decode($meeting['fasilitas'] ?? '[]', true) ?? [];
-                    
-                    // Check for "Lainnya"
-                    $lainnya_value = '';
-                    $lainnya_checked = false;
-                    foreach ($selected_fasilitas as $sf) {
-                        if (strpos($sf, 'Lainnya: ') === 0) {
-                            $lainnya_value = substr($sf, 9); // Remove "Lainnya: "
-                            $lainnya_checked = true;
-                        } elseif ($sf === 'Lainnya') {
-                             $lainnya_checked = true;
+                        $fasilitasArr = [];
+                        if (!empty($meeting['fasilitas'])) {
+                            $fasilitasArr = json_decode($meeting['fasilitas'], true) ?? [];
                         }
-                    }
-
-                    foreach ($fasilitas_options as $f): 
+                        $fasilitas_options = [
+                            ['icon' => 'fa-microphone', 'name' => 'Microphone'],
+                            ['icon' => 'fa-camera', 'name' => 'Dokumentasi'],
+                            ['icon' => 'fa-video', 'name' => 'Zoom (Hybrid)'],
+                            ['icon' => 'fa-cookie-bite', 'name' => 'Snack'],
+                            ['icon' => 'fa-utensils', 'name' => 'Makanan Berat'],
+                            ['icon' => 'fa-glass-water', 'name' => 'Air Minum'],
+                        ];
+                        $knownFasilitas = array_column($fasilitas_options, 'name');
+                        $lainnyaValue = '';
+                        $hasLainnya = false;
+                        foreach ($fasilitasArr as $f) {
+                            if (!in_array($f, $knownFasilitas) && strtolower($f) !== 'lainnya') {
+                                $lainnyaValue = $f;
+                                $hasLainnya = true;
+                            } else if (strtolower($f) === 'lainnya') {
+                                $hasLainnya = true;
+                            }
+                        }
                     ?>
-                    <div class="relative flex items-start">
-                        <div class="flex items-center h-5">
-                            <input id="fasilitas_<?= url_title($f, '-', true) ?>" 
+                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        <?php foreach ($fasilitas_options as $f): ?>
+                        <label for="fasilitas_edit_<?= url_title($f['name'], '-', true) ?>"
+                               class="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-200 cursor-pointer hover:border-orange-300 hover:bg-orange-50 transition-all"
+                               style="font-size:0.8125rem;">
+                            <input id="fasilitas_edit_<?= url_title($f['name'], '-', true) ?>"
                                    name="fasilitas[]" 
-                                   value="<?= $f ?>" 
+                                   value="<?= $f['name'] ?>" 
                                    type="checkbox" 
-                                   <?= in_array($f, $selected_fasilitas) ? 'checked' : '' ?>
-                                   class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
-                        </div>
-                        <div class="ml-3 text-sm">
-                            <label for="fasilitas_<?= url_title($f, '-', true) ?>" class="font-medium text-gray-700"><?= $f ?></label>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                    <div class="relative flex items-start col-span-2 sm:col-span-3">
-                        <div class="flex items-center h-5">
+                                   class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                                   <?= in_array($f['name'], $fasilitasArr) ? 'checked' : '' ?>>
+                            <i class="fas <?= $f['icon'] ?> text-orange-400 text-xs"></i>
+                            <span class="font-medium text-gray-700"><?= $f['name'] ?></span>
+                        </label>
+                        <?php endforeach; ?>
+                        <label for="fasilitas_lainnya_checkbox"
+                               class="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-200 cursor-pointer hover:border-orange-300 hover:bg-orange-50 transition-all col-span-2 sm:col-span-3"
+                               style="font-size:0.8125rem;">
                             <input id="fasilitas_lainnya_checkbox" 
                                    name="fasilitas[]" 
                                    value="Lainnya" 
                                    type="checkbox" 
-                                   <?= $lainnya_checked ? 'checked' : '' ?>
-                                   class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
-                        </div>
-                        <div class="ml-3 text-sm flex-grow">
-                            <label for="fasilitas_lainnya_checkbox" class="font-medium text-gray-700">Lainnya</label>
+                                   class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                                   <?= $hasLainnya ? 'checked' : '' ?>>
+                            <i class="fas fa-ellipsis-h text-orange-400 text-xs"></i>
+                            <span class="font-medium text-gray-700">Lainnya</span>
+                        </label>
+                        <div class="col-span-2 sm:col-span-3">
                             <input type="text" 
                                    id="fasilitas_lainnya_text" 
                                    name="fasilitas_lainnya" 
-                                   value="<?= esc($lainnya_value) ?>"
-                                   class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-400 rounded-md shadow-sm py-1 px-2 <?= $lainnya_checked ? '' : 'hidden' ?>" 
-                                   placeholder="Sebutkan fasilitas lainnya...">
+                                   class="input-modern <?= !$hasLainnya ? 'hidden' : '' ?>" 
+                                   placeholder="Sebutkan fasilitas lainnya..."
+                                   value="<?= esc($lainnyaValue) ?>">
                         </div>
                     </div>
                 </div>
+
+                <input type="hidden" id="waktu_selesai" name="waktu_selesai" value="<?= date('Y-m-d\TH:i', strtotime($meeting['waktu_selesai'])) ?>">
             </div>
 
-            <input type="hidden" id="waktu_selesai" name="waktu_selesai">
-        </div>
-        <div class="mt-6 flex justify-end space-x-3">
-            <a href="<?= base_url('meeting/upcoming') ?>" 
-               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                Batal
-            </a>
-            <button type="submit"
-                    id="submitBtn"
-                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                <span id="submitText">Simpan</span>
-                <span id="submitSpinner" class="hidden ml-2">
-                    <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                </span>
-            </button>
-        </div>
-    </form>
+            <!-- Action buttons -->
+            <div class="flex justify-end gap-3 mt-8 pt-5" style="border-top:1px solid #f1f5f9;">
+                <a href="<?= base_url('/upcoming') ?>" class="btn-outline-custom">
+                    <i class="fas fa-times"></i> Batal
+                </a>
+                <button type="submit" id="editSubmitBtn" class="btn-primary-gradient">
+                    <i class="fas fa-save"></i>
+                    <span id="editSubmitText">Simpan Perubahan</span>
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
-<?php if (session()->getFlashdata('error')): ?>
-    <div class="fixed bottom-4 right-4 px-4 py-2 bg-red-500 text-white rounded shadow-lg" id="flashMessage">
-        <?= session()->getFlashdata('error') ?>
-    </div>
-<?php endif; ?>
+<!-- Toast Flash Messages -->
+<div class="toast-container">
+    <?php if (session()->getFlashdata('success')): ?>
+        <div class="toast-notification toast-success" id="flashToast">
+            <div class="toast-icon"><i class="fas fa-check"></i></div>
+            <span><?= session()->getFlashdata('success') ?></span>
+            <button class="toast-close" onclick="this.parentElement.classList.add('toast-hiding');setTimeout(()=>this.parentElement.remove(),300)"><i class="fas fa-times"></i></button>
+        </div>
+    <?php endif; ?>
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="toast-notification toast-error" id="flashToast">
+            <div class="toast-icon"><i class="fas fa-exclamation"></i></div>
+            <span><?= session()->getFlashdata('error') ?></span>
+            <button class="toast-close" onclick="this.parentElement.classList.add('toast-hiding');setTimeout(()=>this.parentElement.remove(),300)"><i class="fas fa-times"></i></button>
+        </div>
+    <?php endif; ?>
+</div>
 
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Generate unique form token
-    function generateFormToken() {
-        return 'token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    }
-    
-    // Add hidden token field to form
-    function addTokenToForm() {
-        const form = document.getElementById('editMeetingForm');
-        if (form) {
-            // Remove existing token if any
-            const existingToken = form.querySelector('input[name="form_token"]');
-            if (existingToken) {
-                existingToken.remove();
-            }
-            
-            // Add new token
-            const tokenInput = document.createElement('input');
-            tokenInput.type = 'hidden';
-            tokenInput.name = 'form_token';
-            tokenInput.value = generateFormToken();
-            form.appendChild(tokenInput);
-        }
-    }
-    
-    // Handle form submission to prevent double submit
-    function handleFormSubmit() {
-        const form = document.getElementById('editMeetingForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const submitText = document.getElementById('submitText');
-        const submitSpinner = document.getElementById('submitSpinner');
-        
-        if (form && submitBtn) {
-            form.addEventListener('submit', function(e) {
-                // Add token to form before submission
-                addTokenToForm();
-                
-                // Disable submit button and show loading
-                submitBtn.disabled = true;
-                submitText.textContent = 'Menyimpan...';
-                submitSpinner.classList.remove('hidden');
-                
-                // Re-enable after 5 seconds as a fallback
-                setTimeout(function() {
-                    submitBtn.disabled = false;
-                    submitText.textContent = 'Simpan';
-                    submitSpinner.classList.add('hidden');
-                }, 5000);
-            });
-        }
-    }
-    
-    // Initialize form protection
-    handleFormSubmit();
-    // Handle duration change to auto-compute end time
+    // Duration / end time calculation
     function updateEndTime() {
-        var startTime = document.getElementById('waktu_mulai').value;
-        var duration = parseInt(document.getElementById('durasi').value);
-        
-        if (startTime) {
-            var endTime = new Date(startTime);
+        var startEl = document.getElementById('waktu_mulai');
+        var durasiEl = document.getElementById('durasi');
+        if (!startEl || !durasiEl) return;
+        var duration = parseInt(durasiEl.value);
+        if (startEl.value && !isNaN(duration)) {
+            var endTime = new Date(startEl.value);
             endTime.setMinutes(endTime.getMinutes() + duration);
             document.getElementById('waktu_selesai').value = endTime.toISOString().slice(0, 16);
         }
     }
-
-    // Add event listeners
     document.getElementById('waktu_mulai').addEventListener('change', updateEndTime);
     document.getElementById('durasi').addEventListener('change', updateEndTime);
 
-    // Auto-hide flash messages
-    const flashMessage = document.getElementById('flashMessage');
-    if (flashMessage) {
-        setTimeout(function() {
-            flashMessage.style.display = 'none';
-        }, 3000);
-    }
-
-    // Handle "Lainnya" checkbox
-    const fasilitasLainnyaCheckbox = document.getElementById('fasilitas_lainnya_checkbox');
-    const fasilitasLainnyaText = document.getElementById('fasilitas_lainnya_text');
-
-    if (fasilitasLainnyaCheckbox && fasilitasLainnyaText) {
-        fasilitasLainnyaCheckbox.addEventListener('change', function() {
+    // Lainnya toggle
+    const lainnyaCheckbox = document.getElementById('fasilitas_lainnya_checkbox');
+    const lainnyaText = document.getElementById('fasilitas_lainnya_text');
+    if (lainnyaCheckbox && lainnyaText) {
+        lainnyaCheckbox.addEventListener('change', function() {
             if (this.checked) {
-                fasilitasLainnyaText.classList.remove('hidden');
-                fasilitasLainnyaText.required = true;
-                fasilitasLainnyaText.focus();
+                lainnyaText.classList.remove('hidden');
+                lainnyaText.focus();
             } else {
-                fasilitasLainnyaText.classList.add('hidden');
-                fasilitasLainnyaText.required = false;
-                fasilitasLainnyaText.value = '';
+                lainnyaText.classList.add('hidden');
+                lainnyaText.value = '';
             }
         });
     }
 
-    // Handle Room Type Change for Facilities Visibility
+    // Room type toggle
     const ruanganSelect = document.getElementById('ruangan_id');
     const fasilitasContainer = document.getElementById('fasilitas_container');
-
+    const participantsContainer = document.getElementById('participants_container');
+    const participantsInput = document.getElementById('jumlah_peserta');
+    
     function toggleFasilitas() {
         const selectedOption = ruanganSelect.options[ruanganSelect.selectedIndex];
         const tipe = selectedOption ? selectedOption.getAttribute('data-tipe') : '';
-        const participantsContainer = document.getElementById('participants_container');
-        const participantsInput = document.getElementById('jumlah_peserta');
-        
         if (tipe === 'Online') {
             fasilitasContainer.classList.add('hidden');
-            // Optional: Uncheck all facilities if hidden
-            const checkboxes = fasilitasContainer.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(cb => cb.checked = false);
-            if (fasilitasLainnyaText) {
-                fasilitasLainnyaText.classList.add('hidden');
-                fasilitasLainnyaText.value = '';
-            }
-
-            // Hide participants container and remove required
-            if (participantsContainer) {
-                participantsContainer.classList.add('hidden');
-            }
-            if (participantsInput) {
-                participantsInput.required = false;
-                participantsInput.value = '';
-            }
+            if (participantsContainer) participantsContainer.classList.add('hidden');
+            if (participantsInput) { participantsInput.required = false; participantsInput.value = ''; }
         } else {
             fasilitasContainer.classList.remove('hidden');
-
-            // Show participants container and add required
-            if (participantsContainer) {
-                participantsContainer.classList.remove('hidden');
-            }
-            if (participantsInput) {
-                participantsInput.required = true;
-            }
+            if (participantsContainer) participantsContainer.classList.remove('hidden');
+            if (participantsInput) participantsInput.required = true;
         }
     }
-
     if (ruanganSelect && fasilitasContainer) {
         ruanganSelect.addEventListener('change', toggleFasilitas);
-        // Initial check
         toggleFasilitas();
+    }
+
+    // Prevent double submit
+    const form = document.getElementById('editMeetingForm');
+    const submitBtn = document.getElementById('editSubmitBtn');
+    const submitText = document.getElementById('editSubmitText');
+    if (form && submitBtn) {
+        form.addEventListener('submit', function() {
+            submitBtn.disabled = true;
+            submitText.textContent = 'Menyimpan...';
+            setTimeout(function() { submitBtn.disabled = false; submitText.textContent = 'Simpan Perubahan'; }, 5000);
+        });
+    }
+
+    // Auto-hide toast
+    var toast = document.getElementById('flashToast');
+    if (toast) {
+        setTimeout(function() { toast.classList.add('toast-hiding'); setTimeout(function(){ toast.remove(); }, 300); }, 4000);
     }
 });
 </script>

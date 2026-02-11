@@ -123,3 +123,4 @@ nb-configuration.xml
 
 /results/
 /phpunit*.xml
+/public/writable

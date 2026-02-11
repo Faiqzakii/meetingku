@@ -60,19 +60,18 @@ class MeetingController extends Controller
             return redirect()->to('auth/login');
         }
 
-        $startParam = $this->request->getGet('start');
-        $endParam   = $this->request->getGet('end');
+        $startParam = $this->request->getGet('start_date');
+        $endParam   = $this->request->getGet('end_date');
 
         // Default to this week
         $monday = date('Y-m-d 00:00:00', strtotime('monday this week'));
         $sunday = date('Y-m-d 23:59:59', strtotime('sunday this week'));
-
         $startDate = $startParam ? date('Y-m-d 00:00:00', strtotime($startParam)) : $monday;
         $endDate   = $endParam ? date('Y-m-d 23:59:59', strtotime($endParam)) : $sunday;
 
         $data = [];
-        $data['start']    = date('Y-m-d', strtotime($startDate));
-        $data['end']      = date('Y-m-d', strtotime($endDate));
+        $data['startDate'] = date('Y-m-d', strtotime($startDate));
+        $data['endDate']   = date('Y-m-d', strtotime($endDate));
         $data['meetings'] = $this->meetingModel->getMeetingsByDateRange($startDate, $endDate);
         $data['ruangan']  = $this->ruanganModel->getActiveRooms();
         $data['isAdmin']  = true;
@@ -198,42 +197,41 @@ class MeetingController extends Controller
             // Debug: Log successful insert
             log_message('info', 'Meeting created successfully with ID: ' . $result);
             
-            // Send notification via Saungwa if configured
+            // Send notification via WhatsApp if configured
             try {
-                $saungwaEnabled   = env('saungwa.enabled', true);
-                $saungwaUrl       = env('saungwa.url', 'https://app.saungwa.com/api/create-message');
-                $saungwaAppKey    = env('saungwa.appkey');
-                $saungwaAuthKey   = env('saungwa.authkey');
-                $saungwaTo        = env('saungwa.to');
-                $saungwaTemplate  = env('saungwa.template_id');
+                $whatsappEnabled = env('whatsapp.enabled', true);
+                $whatsappUrl     = env('whatsapp.url', 'http://47.84.198.103:8181/send-message');
+                $whatsappApiKey  = env('whatsapp.api_key');
+                $whatsappTo      = env('whatsapp.to');
 
-                if ($saungwaEnabled && $saungwaAppKey && $saungwaAuthKey && $saungwaTo && $saungwaTemplate) {
+                if ($whatsappEnabled && $whatsappUrl && $whatsappApiKey && $whatsappTo) {
                     $ruangan = $this->ruanganModel->find($data['ruangan_id']);
                     $pegawai = $this->pegawaiModel->find($data['pegawai_id']);
 
-                    $variables = [
-                        '{1}' => $data['nama_keg'],
-                        '{2}' => $ruangan['nama_ruangan'] . ' - ' . $ruangan['tipe'] ?? '',
-                        '{3}' => date('d M Y H:i', strtotime($data['waktu_mulai'])) . ' - ' . date('H:i', strtotime($data['waktu_selesai'])),
-                        '{4}' => $pegawai['nama'] ?? '',
-                        '{5}' => $data['jumlah_peserta'] ?? '',
-                        '{6}' => $data['fasilitas'] ? implode(', ', json_decode($data['fasilitas'], true) ?? []) : '-',
-                    ];
+                    $namaKegiatan = $data['nama_keg'];
+                    $tempat       = ($ruangan['nama_ruangan'] ?? '') . ' - ' . ($ruangan['tipe'] ?? '');
+                    $waktu        = date('d M Y H:i', strtotime($data['waktu_mulai'])) . ' - ' . date('H:i', strtotime($data['waktu_selesai']));
+                    $oleh         = $pegawai['nama'] ?? '';
+                    $jmlPeserta   = $data['jumlah_peserta'] ?? '';
+                    $fasilitasStr = $data['fasilitas'] ? implode(', ', json_decode($data['fasilitas'], true) ?? []) : '-';
 
-                    $postFields = [
-                        'appkey'      => $saungwaAppKey,
-                        'authkey'     => $saungwaAuthKey,
-                        'to'          => $saungwaTo,
-                        'template_id' => $saungwaTemplate,
-                    ];
-                    // Flatten variables for form-data submit
-                    foreach ($variables as $k => $v) {
-                        $postFields["variables[$k]"] = $v;
-                    }
+                    $message = "*[Meetingku]*\n" .
+                               "Terdapat pengajuan meeting baru\n\n" .
+                               "*Nama Kegiatan*: $namaKegiatan\n" .
+                               "*Tempat*: $tempat\n" .
+                               "*Jumlah Peserta*: $jmlPeserta\n" .
+                               "*Waktu*: $waktu\n" .
+                               "*Fasilitas*: $fasilitasStr\n" .
+                               "*Oleh*: $oleh";
+
+                    $payload = json_encode([
+                        'to'      => $whatsappTo,
+                        'message' => $message
+                    ]);
 
                     $ch = curl_init();
                     curl_setopt_array($ch, [
-                        CURLOPT_URL            => $saungwaUrl,
+                        CURLOPT_URL            => $whatsappUrl,
                         CURLOPT_RETURNTRANSFER => true,
                         CURLOPT_ENCODING       => '',
                         CURLOPT_MAXREDIRS      => 10,
@@ -241,22 +239,26 @@ class MeetingController extends Controller
                         CURLOPT_FOLLOWLOCATION => true,
                         CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
                         CURLOPT_CUSTOMREQUEST  => 'POST',
-                        CURLOPT_POSTFIELDS     => $postFields,
+                        CURLOPT_POSTFIELDS     => $payload,
+                        CURLOPT_HTTPHEADER     => [
+                            'Content-Type: application/json',
+                            'X-API-KEY: ' . $whatsappApiKey
+                        ],
                     ]);
                     $response = curl_exec($ch);
                     $curlErr  = curl_error($ch);
                     curl_close($ch);
 
                     if ($curlErr) {
-                        log_message('error', 'Saungwa notify failed: ' . $curlErr);
+                        log_message('error', 'WhatsApp notify failed: ' . $curlErr);
                     } else {
-                        log_message('info', 'Saungwa notify response: ' . $response);
+                        log_message('info', 'WhatsApp notify response: ' . $response);
                     }
                 } else {
-                    log_message('debug', 'Saungwa not configured or disabled; skipping notify.');
+                    log_message('debug', 'WhatsApp not configured or disabled; skipping notify.');
                 }
             } catch (\Throwable $tex) {
-                log_message('error', 'Saungwa notify exception: ' . $tex->getMessage());
+                log_message('error', 'WhatsApp notify exception: ' . $tex->getMessage());
             }
 
             // Clean up old tokens (keep only last 10 tokens)
@@ -405,7 +407,9 @@ class MeetingController extends Controller
             'fasilitas' => $fasilitas ? json_encode($fasilitas) : null,
             'waktu_mulai' => $waktuMulai,
             'waktu_selesai' => $waktuSelesai,
-            'ruangan_id' => $this->request->getPost('ruangan_id')
+            'ruangan_id' => $this->request->getPost('ruangan_id'),
+            'last_edited_by' => (int) session()->get('pegawai_id'),
+            'last_edited_at' => date('Y-m-d H:i:s'),
         ];
 
         // Debug: Log the data being updated
@@ -428,41 +432,41 @@ class MeetingController extends Controller
 
             log_message('info', 'Successfully updated meeting ' . $id);
 
-            // Send notification for update via Saungwa if configured
+            // Send notification for update via WhatsApp if configured
             try {
-                $saungwaEnabled   = env('saungwa.enabled', true);
-                $saungwaUrl       = env('saungwa.url', 'https://app.saungwa.com/api/create-message');
-                $saungwaAppKey    = env('saungwa.appkey');
-                $saungwaAuthKey   = env('saungwa.authkey');
-                $saungwaTo        = env('saungwa.to');
-                $saungwaTemplate  = env('saungwa.template_id_update'); // different template for update
+                $whatsappEnabled = env('whatsapp.enabled', true);
+                $whatsappUrl     = env('whatsapp.url', 'http://47.84.198.103:8181/send-message');
+                $whatsappApiKey  = env('whatsapp.api_key');
+                $whatsappTo      = env('whatsapp.to');
 
-                if ($saungwaEnabled && $saungwaAppKey && $saungwaAuthKey && $saungwaTo && $saungwaTemplate) {
+                if ($whatsappEnabled && $whatsappUrl && $whatsappApiKey && $whatsappTo) {
                     $ruangan = $this->ruanganModel->find($data['ruangan_id']);
                     $pegawai = $this->pegawaiModel->find($meeting['pegawai_id']);
 
-                    $variables = [
-                        '{1}' => $data['nama_keg'],
-                        '{2}' => $ruangan['nama_ruangan'] . ' - ' . $ruangan['tipe'] ?? '',
-                        '{3}' => date('d M Y H:i', strtotime($data['waktu_mulai'])) . ' - ' . date('H:i', strtotime($data['waktu_selesai'])),
-                        '{4}' => $pegawai['nama'] ?? '',
-                        '{5}' => $data['jumlah_peserta'] ?? '',
-                        '{6}' => $data['fasilitas'] ? implode(', ', json_decode($data['fasilitas'], true) ?? []) : '-',
-                    ];
+                    $namaKegiatan = $data['nama_keg'];
+                    $tempat       = ($ruangan['nama_ruangan'] ?? '') . ' - ' . ($ruangan['tipe'] ?? '');
+                    $waktu        = date('d M Y H:i', strtotime($data['waktu_mulai'])) . ' - ' . date('H:i', strtotime($data['waktu_selesai']));
+                    $oleh         = $pegawai['nama'] ?? '';
+                    $jmlPeserta   = $data['jumlah_peserta'] ?? '';
+                    $fasilitasStr = $data['fasilitas'] ? implode(', ', json_decode($data['fasilitas'], true) ?? []) : '-';
 
-                    $postFields = [
-                        'appkey'      => $saungwaAppKey,
-                        'authkey'     => $saungwaAuthKey,
-                        'to'          => $saungwaTo,
-                        'template_id' => $saungwaTemplate,
-                    ];
-                    foreach ($variables as $k => $v) {
-                        $postFields["variables[$k]"] = $v;
-                    }
+                    $message = "*[Meetingku]*\n" .
+                               "Terdapat edit detail meeting\n\n" .
+                               "*Nama Kegiatan*: $namaKegiatan\n" .
+                               "*Tempat*: $tempat\n" .
+                               "*Jumlah Peserta*: $jmlPeserta\n" .
+                               "*Waktu*: $waktu\n" .
+                               "*Fasilitas*: $fasilitasStr\n" .
+                               "*Oleh*: $oleh";
+
+                    $payload = json_encode([
+                        'to'      => $whatsappTo,
+                        'message' => $message
+                    ]);
 
                     $ch = curl_init();
                     curl_setopt_array($ch, [
-                        CURLOPT_URL            => $saungwaUrl,
+                        CURLOPT_URL            => $whatsappUrl,
                         CURLOPT_RETURNTRANSFER => true,
                         CURLOPT_ENCODING       => '',
                         CURLOPT_MAXREDIRS      => 10,
@@ -470,22 +474,26 @@ class MeetingController extends Controller
                         CURLOPT_FOLLOWLOCATION => true,
                         CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
                         CURLOPT_CUSTOMREQUEST  => 'POST',
-                        CURLOPT_POSTFIELDS     => $postFields,
+                        CURLOPT_POSTFIELDS     => $payload,
+                        CURLOPT_HTTPHEADER     => [
+                            'Content-Type: application/json',
+                            'X-API-KEY: ' . $whatsappApiKey
+                        ],
                     ]);
                     $response = curl_exec($ch);
                     $curlErr  = curl_error($ch);
                     curl_close($ch);
 
                     if ($curlErr) {
-                        log_message('error', 'Saungwa update notify failed: ' . $curlErr);
+                        log_message('error', 'WhatsApp update notify failed: ' . $curlErr);
                     } else {
-                        log_message('info', 'Saungwa update notify response: ' . $response);
+                        log_message('info', 'WhatsApp update notify response: ' . $response);
                     }
                 } else {
-                    log_message('debug', 'Saungwa update not configured or disabled; skipping notify.');
+                    log_message('debug', 'WhatsApp update not configured or disabled; skipping notify.');
                 }
             } catch (\Throwable $tex) {
-                log_message('error', 'Saungwa update notify exception: ' . $tex->getMessage());
+                log_message('error', 'WhatsApp update notify exception: ' . $tex->getMessage());
             }
             // Clean up old tokens (keep only last 10 tokens)
             $currentTokens = session()->get('used_form_tokens');
@@ -565,7 +573,11 @@ class MeetingController extends Controller
                 'status' => 'required|in_list[pending,approved,rejected,cancelled]'
             ]);
 
-            $result = $this->meetingModel->update($id, ['status' => $status]);
+            $result = $this->meetingModel->update($id, [
+                'status' => $status,
+                'status_changed_by' => (int) session()->get('pegawai_id'),
+                'status_changed_at' => date('Y-m-d H:i:s'),
+            ]);
             if ($result === false) {
                 log_message('error', 'Failed to update meeting status: ' . print_r($this->meetingModel->errors(), true));
                 return redirect()->back()
