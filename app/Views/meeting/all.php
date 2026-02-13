@@ -105,6 +105,32 @@
                         <?php if (session()->get('logged_in') && $canOwnOrAdmin): ?>
                         <tr class="details-row hidden">
                             <td colspan="5" style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+                                <?php if ($isAdmin): ?>
+                                <div class="px-2 pt-2 pb-1">
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5"><i class="fas fa-history mr-1"></i>Log Aktivitas</p>
+                                    <div class="space-y-1 mb-2">
+                                        <div class="flex items-start gap-2 text-xs text-gray-500">
+                                            <i class="fas fa-plus-circle text-orange-300 mt-0.5" style="min-width:14px;"></i>
+                                            <span><strong>Di-input</strong> oleh <strong><?= esc($meeting['nama_pegawai'] ?? '-') ?></strong> pada <?= $meeting['created_at'] ? date('d M Y H:i', strtotime($meeting['created_at'])) : '-' ?></span>
+                                        </div>
+                                        <?php if (!empty($meeting['last_edited_by_name']) && !empty($meeting['last_edited_at'])): ?>
+                                        <div class="flex items-start gap-2 text-xs text-gray-500">
+                                            <i class="fas fa-pen text-orange-300 mt-0.5" style="min-width:14px;"></i>
+                                            <span><strong>Diedit</strong> oleh <strong><?= esc($meeting['last_edited_by_name']) ?></strong> pada <?= date('d M Y H:i', strtotime($meeting['last_edited_at'])) ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($meeting['status_changed_by_name']) && !empty($meeting['status_changed_at'])): ?>
+                                        <div class="flex items-start gap-2 text-xs text-gray-500">
+                                            <i class="fas fa-gavel text-orange-300 mt-0.5" style="min-width:14px;"></i>
+                                            <?php 
+                                                $statusLabel = $meeting['status'] === 'approved' ? 'Disetujui' : ($meeting['status'] === 'rejected' ? 'Ditolak' : 'Status diubah');
+                                            ?>
+                                            <span><strong><?= $statusLabel ?></strong> oleh <strong><?= esc($meeting['status_changed_by_name']) ?></strong> pada <?= date('d M Y H:i', strtotime($meeting['status_changed_at'])) ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
                                 <div class="flex items-center gap-2 justify-end py-1">
                                     <a href="<?= base_url('meeting/edit/' . $meeting['id']) ?>" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem;">
                                         <i class="fas fa-edit"></i> Edit

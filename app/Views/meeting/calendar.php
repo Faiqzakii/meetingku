@@ -285,6 +285,10 @@
                                 <i class="fas fa-pen text-orange-300 mt-0.5"></i>
                                 <span id="auditEditText"></span>
                             </div>
+                            <div id="auditCreatedRow" class="hidden flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-md p-2">
+                                <i class="fas fa-plus-circle text-orange-300 mt-0.5"></i>
+                                <span id="auditCreatedText"></span>
+                            </div>
                         </div>
                     </div>
                     <?php endif; ?>
@@ -442,6 +446,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'status_changed_at' => $meeting['status_changed_at'] ?? null,
                 'last_edited_by_name' => $meeting['last_edited_by_name'] ?? null,
                 'last_edited_at' => $meeting['last_edited_at'] ?? null,
+                'created_at' => $meeting['created_at'] ?? null,
             ]
         ];
     }, $meetings)) ?>;
@@ -520,6 +525,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     hasAudit = true;
                 } else {
                     editRow.classList.add('hidden');
+                }
+                var createdRow = document.getElementById('auditCreatedRow');
+                if (props.pegawai && props.created_at) {
+                    document.getElementById('auditCreatedText').innerHTML = '<strong>Di-input</strong> oleh <strong>' + props.pegawai + '</strong> pada ' + moment(props.created_at).format('DD MMM YYYY HH:mm');
+                    createdRow.classList.remove('hidden');
+                    hasAudit = true;
+                } else {
+                    createdRow.classList.add('hidden');
                 }
                 auditSection.classList.toggle('hidden', !hasAudit);
             }

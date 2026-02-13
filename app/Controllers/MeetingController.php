@@ -505,7 +505,7 @@ class MeetingController extends Controller
                 session()->set('used_form_tokens', $currentTokens);
             }
 
-            return redirect()->back()->with('success', 'Meeting berhasil diupdate');
+            return redirect()->to('/upcoming')->with('success', 'Meeting berhasil diupdate');
         } catch (\Exception $e) {
             log_message('error', 'Exception during update: ' . $e->getMessage());
             
