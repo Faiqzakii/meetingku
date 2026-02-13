@@ -852,7 +852,7 @@ class MeetingController extends Controller
                            "*Tempat*: $tempat\n" .
                            "*Waktu*: $waktu\n\n" .
                            "🔗 *Link Join (Peserta)*:\n" . ($meeting['zoom_join_url'] ?? '-') . "\n\n" .
-                           "ℹ️ _Link Host tersedia 1 jam sebelum meeting di aplikasi._";
+                           "ℹ️ _Link Host tersedia 1 jam sebelum meeting pada website meetingku._";
             } elseif ($type === 'zoom_updated') {
                 $message = "*[Meetingku]*\n" .
                            "📝 Jadwal Zoom meeting telah diubah\n\n" .

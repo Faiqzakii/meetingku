@@ -630,12 +630,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 auditSection.classList.toggle('hidden', !hasAudit);
             }
 
-            // Show Zoom links
+            // Show Zoom links (only for admin or meeting owner)
             var zoomSection = document.getElementById('eventZoomSection');
             if (zoomSection) {
                 var isOnlineOrHybrid = props.tipe === 'Online' || props.tipe === 'Hybrid';
                 var hasZoom = props.zoom_meeting_id && props.zoom_meeting_id !== '';
-                if (isOnlineOrHybrid && props.status === 'approved' && hasZoom) {
+                var currentPegawaiId = <?= (int) session()->get('pegawai_id') ?>;
+                var isOwner = parseInt(props.pegawai_id) === currentPegawaiId;
+                var canSeeZoom = isAdmin || isOwner;
+                if (isOnlineOrHybrid && props.status === 'approved' && hasZoom && canSeeZoom) {
                     zoomSection.classList.remove('hidden');
                     document.getElementById('zoomJoinLink').href = props.zoom_join_url || '#';
                     var hostForm = document.getElementById('zoomHostForm');

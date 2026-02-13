@@ -128,25 +128,23 @@
                                                 $isOnlineOrHybrid = in_array($meeting['tipe'] ?? '', ['Online', 'Hybrid']);
                                                 $hasZoom = !empty($meeting['zoom_meeting_id']);
                                             ?>
-                                            <?php if ($isOnlineOrHybrid && $meeting['status'] === 'approved'): ?>
+                                            <?php if ($isOnlineOrHybrid && $meeting['status'] === 'approved' && $canOwnOrAdmin): ?>
                                                 <?php if ($hasZoom): ?>
                                                     <a href="<?= esc($meeting['zoom_join_url']) ?>" target="_blank" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe;">
                                                         <i class="fas fa-video"></i> Join Zoom
                                                     </a>
-                                                    <?php if ($canOwnOrAdmin): ?>
-                                                        <?php $withinOneHour = time() >= (strtotime($meeting['waktu_mulai']) - 3600); ?>
-                                                        <?php if ($withinOneHour): ?>
-                                                            <form action="<?= base_url('meeting/refresh-zoom/' . $meeting['id']) ?>" method="POST" class="inline-block" target="_blank">
-                                                                <?= csrf_field() ?>
-                                                                <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host (generate link baru)">
-                                                                    <i class="fas fa-play-circle"></i> Host
-                                                                </button>
-                                                            </form>
-                                                        <?php else: ?>
-                                                            <span class="text-xs text-gray-400 italic" title="Link Host tersedia 1 jam sebelum meeting">
-                                                                <i class="fas fa-lock text-gray-300"></i> Host (H-1 jam)
-                                                            </span>
-                                                        <?php endif; ?>
+                                                    <?php $withinOneHour = time() >= (strtotime($meeting['waktu_mulai']) - 3600); ?>
+                                                    <?php if ($withinOneHour): ?>
+                                                        <form action="<?= base_url('meeting/refresh-zoom/' . $meeting['id']) ?>" method="POST" class="inline-block" target="_blank">
+                                                            <?= csrf_field() ?>
+                                                            <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host (generate link baru)">
+                                                                <i class="fas fa-play-circle"></i> Host
+                                                            </button>
+                                                        </form>
+                                                    <?php else: ?>
+                                                        <span class="text-xs text-gray-400 italic" title="Link Host tersedia 1 jam sebelum meeting">
+                                                            <i class="fas fa-lock text-gray-300"></i> Host (H-1 jam)
+                                                        </span>
                                                     <?php endif; ?>
                                                 <?php elseif ($isAdmin): ?>
                                                     <form action="<?= base_url('meeting/send-zoom/' . $meeting['id']) ?>" method="POST" class="inline-block" onsubmit="return confirm('Buat Zoom meeting dan kirim link ke pegawai?');">
@@ -307,25 +305,23 @@
                                                 $isOnlineOrHybrid = in_array($meeting['tipe'] ?? '', ['Online', 'Hybrid']);
                                                 $hasZoom = !empty($meeting['zoom_meeting_id']);
                                             ?>
-                                            <?php if ($isOnlineOrHybrid && $meeting['status'] === 'approved'): ?>
+                                            <?php if ($isOnlineOrHybrid && $meeting['status'] === 'approved' && $canOwnOrAdmin): ?>
                                                 <?php if ($hasZoom): ?>
                                                     <a href="<?= esc($meeting['zoom_join_url']) ?>" target="_blank" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe;">
                                                         <i class="fas fa-video"></i> Join Zoom
                                                     </a>
-                                                    <?php if ($canOwnOrAdmin): ?>
-                                                        <?php $withinOneHour = time() >= (strtotime($meeting['waktu_mulai']) - 3600); ?>
-                                                        <?php if ($withinOneHour): ?>
-                                                            <form action="<?= base_url('meeting/refresh-zoom/' . $meeting['id']) ?>" method="POST" class="inline-block" target="_blank">
-                                                                <?= csrf_field() ?>
-                                                                <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host (generate link baru)">
-                                                                    <i class="fas fa-play-circle"></i> Host
-                                                                </button>
-                                                            </form>
-                                                        <?php else: ?>
-                                                            <span class="text-xs text-gray-400 italic" title="Link Host tersedia 1 jam sebelum meeting">
-                                                                <i class="fas fa-lock text-gray-300"></i> Host (H-1 jam)
-                                                            </span>
-                                                        <?php endif; ?>
+                                                    <?php $withinOneHour = time() >= (strtotime($meeting['waktu_mulai']) - 3600); ?>
+                                                    <?php if ($withinOneHour): ?>
+                                                        <form action="<?= base_url('meeting/refresh-zoom/' . $meeting['id']) ?>" method="POST" class="inline-block" target="_blank">
+                                                            <?= csrf_field() ?>
+                                                            <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host (generate link baru)">
+                                                                <i class="fas fa-play-circle"></i> Host
+                                                            </button>
+                                                        </form>
+                                                    <?php else: ?>
+                                                        <span class="text-xs text-gray-400 italic" title="Link Host tersedia 1 jam sebelum meeting">
+                                                            <i class="fas fa-lock text-gray-300"></i> Host (H-1 jam)
+                                                        </span>
                                                     <?php endif; ?>
                                                 <?php elseif ($isAdmin): ?>
                                                     <form action="<?= base_url('meeting/send-zoom/' . $meeting['id']) ?>" method="POST" class="inline-block" onsubmit="return confirm('Buat Zoom meeting dan kirim link ke pegawai?');">
@@ -500,17 +496,15 @@ document.addEventListener('DOMContentLoaded', function() {
                             var isOnlineOrHybrid = meeting.tipe === 'Online' || meeting.tipe === 'Hybrid';
                             var hasZoom = meeting.zoom_meeting_id && meeting.zoom_meeting_id !== '';
                             var zoomHtml = '';
-                            if (isOnlineOrHybrid && meeting.status === 'approved') {
+                            if (isOnlineOrHybrid && meeting.status === 'approved' && canOwnOrAdmin) {
                                 if (hasZoom) {
                                     zoomHtml += '<a href="' + meeting.zoom_join_url + '" target="_blank" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe;"><i class="fas fa-video"></i> Join Zoom</a>';
-                                    if (canOwnOrAdmin) {
-                                        var meetStart = new Date(meeting.waktu_mulai).getTime();
-                                        var nowMs = Date.now();
-                                        if (nowMs >= (meetStart - 3600000)) {
-                                            zoomHtml += '<form action="' + baseUrl + '/meeting/refresh-zoom/' + meeting.id + '" method="POST" class="inline-block" target="_blank"><input type="hidden" name="csrf_test_name" value="' + csrf + '"><button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host (generate link baru)"><i class="fas fa-play-circle"></i> Host</button></form>';
-                                        } else {
-                                            zoomHtml += '<span class="text-xs text-gray-400 italic" title="Link Host tersedia 1 jam sebelum meeting"><i class="fas fa-lock text-gray-300"></i> Host (H-1 jam)</span>';
-                                        }
+                                    var meetStart = new Date(meeting.waktu_mulai).getTime();
+                                    var nowMs = Date.now();
+                                    if (nowMs >= (meetStart - 3600000)) {
+                                        zoomHtml += '<form action="' + baseUrl + '/meeting/refresh-zoom/' + meeting.id + '" method="POST" class="inline-block" target="_blank"><input type="hidden" name="csrf_test_name" value="' + csrf + '"><button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host (generate link baru)"><i class="fas fa-play-circle"></i> Host</button></form>';
+                                    } else {
+                                        zoomHtml += '<span class="text-xs text-gray-400 italic" title="Link Host tersedia 1 jam sebelum meeting"><i class="fas fa-lock text-gray-300"></i> Host (H-1 jam)</span>';
                                     }
                                 } else if (isAdmin) {
                                     zoomHtml += '<form action="' + baseUrl + '/meeting/send-zoom/' + meeting.id + '" method="POST" class="inline-block" onsubmit="return confirm(\'Buat Zoom meeting dan kirim link ke pegawai?\');"><input type="hidden" name="csrf_test_name" value="' + csrf + '"><button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe; font-weight:600;">\ud83d\ude80 Kirim Zoom</button></form>';
