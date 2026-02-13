@@ -20,6 +20,8 @@ $routes->get('meeting/edit/(:num)', 'MeetingController::edit/$1');
 $routes->post('meeting/update/(:num)', 'MeetingController::update/$1');
 $routes->post('meeting/delete/(:num)', 'MeetingController::delete/$1');
 $routes->post('meeting/status/(:num)', 'MeetingController::updateStatus/$1');
+$routes->post('meeting/send-zoom/(:num)', 'MeetingController::sendZoom/$1');
+$routes->post('meeting/refresh-zoom/(:num)', 'MeetingController::refreshZoom/$1');
 
 // Pegawai Routes
 $routes->get('pegawai', 'PegawaiController::index');

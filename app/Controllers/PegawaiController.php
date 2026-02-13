@@ -41,6 +41,7 @@ class PegawaiController extends Controller
         $data = [
             'nama' => $this->request->getPost('nama'),
             'nip' => $this->request->getPost('nip'),
+            'no_hp' => $this->request->getPost('no_hp'),
             'username' => $this->request->getPost('username'),
             'password' => $this->request->getPost('password'),
             'is_admin' => $this->request->getPost('is_admin') ? 1 : 0
@@ -110,6 +111,12 @@ class PegawaiController extends Controller
             $data['is_admin'] = $isAdmin;
         }
 
+        // Update no_hp
+        $no_hp = $input['no_hp'] ?? '';
+        if ($no_hp !== ($existingPegawai['no_hp'] ?? '')) {
+            $data['no_hp'] = $no_hp;
+        }
+
         // Only update password if a new one is provided
         if ($password = ($input['password'] ?? false)) {
             $data['password'] = $password;
@@ -175,9 +182,10 @@ class PegawaiController extends Controller
                 $data = [
                     'nama' => trim($row[0]),
                     'nip' => trim($row[1]),
-                    'username' => trim($row[2]),
-                    'password' => trim($row[3]),
-                    'is_admin' => isset($row[4]) && strtolower(trim($row[4])) === 'ya' ? 1 : 0
+                    'no_hp' => isset($row[2]) ? trim($row[2]) : '',
+                    'username' => trim($row[3]),
+                    'password' => trim($row[4]),
+                    'is_admin' => isset($row[5]) && strtolower(trim($row[5])) === 'ya' ? 1 : 0
                 ];
 
                 if ($this->pegawaiModel->insert($data) === false) {
@@ -211,19 +219,21 @@ class PegawaiController extends Controller
         // Set headers
         $sheet->setCellValue('A1', 'Nama');
         $sheet->setCellValue('B1', 'NIP');
-        $sheet->setCellValue('C1', 'Username');
-        $sheet->setCellValue('D1', 'Password');
-        $sheet->setCellValue('E1', 'Admin (Ya/Tidak)');
+        $sheet->setCellValue('C1', 'No HP');
+        $sheet->setCellValue('D1', 'Username');
+        $sheet->setCellValue('E1', 'Password');
+        $sheet->setCellValue('F1', 'Admin (Ya/Tidak)');
         
         // Add example row
         $sheet->setCellValue('A2', 'John Doe');
         $sheet->setCellValue('B2', '198501012010011001');
-        $sheet->setCellValue('C2', 'johndoe');
-        $sheet->setCellValue('D2', 'password123');
-        $sheet->setCellValue('E2', 'Tidak');
+        $sheet->setCellValue('C2', '08123456789');
+        $sheet->setCellValue('D2', 'johndoe');
+        $sheet->setCellValue('E2', 'password123');
+        $sheet->setCellValue('F2', 'Tidak');
         
         // Auto-size columns
-        foreach (range('A', 'E') as $col) {
+        foreach (range('A', 'F') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
         

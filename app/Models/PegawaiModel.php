@@ -15,6 +15,7 @@ class PegawaiModel extends Model
     protected $allowedFields = [
         'nama',
         'nip',
+        'no_hp',
         'username',
         'password',
         'is_admin',

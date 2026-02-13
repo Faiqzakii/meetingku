@@ -21,6 +21,9 @@ class MeetingModel extends Model
         'waktu_mulai',
         'waktu_selesai',
         'status',
+        'zoom_meeting_id',
+        'zoom_join_url',
+        'zoom_start_url',
         'status_changed_by',
         'status_changed_at',
         'last_edited_by',
@@ -132,7 +135,7 @@ class MeetingModel extends Model
             ->join('pegawai', 'pegawai.id = meeting.pegawai_id', 'left')
             ->join('pegawai as status_pegawai', 'status_pegawai.id = meeting.status_changed_by', 'left')
             ->join('pegawai as edit_pegawai', 'edit_pegawai.id = meeting.last_edited_by', 'left')
-            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
+            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin, pegawai.no_hp as pegawai_no_hp, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
             ->orderBy('waktu_mulai', 'ASC')
             ->get()
             ->getResultArray();
@@ -157,7 +160,7 @@ class MeetingModel extends Model
             ->join('pegawai', 'pegawai.id = meeting.pegawai_id', 'left')
             ->join('pegawai as status_pegawai', 'status_pegawai.id = meeting.status_changed_by', 'left')
             ->join('pegawai as edit_pegawai', 'edit_pegawai.id = meeting.last_edited_by', 'left')
-            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
+            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin, pegawai.no_hp as pegawai_no_hp, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
             ->where('status !=', 'rejected')
             ->orderBy('waktu_mulai', 'ASC')
             ->get()
@@ -177,7 +180,7 @@ class MeetingModel extends Model
             ->join('pegawai', 'pegawai.id = meeting.pegawai_id', 'left')
             ->join('pegawai as status_pegawai', 'status_pegawai.id = meeting.status_changed_by', 'left')
             ->join('pegawai as edit_pegawai', 'edit_pegawai.id = meeting.last_edited_by', 'left')
-            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
+            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin, pegawai.no_hp as pegawai_no_hp, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
             ->orderBy('waktu_mulai', 'ASC')
             ->get()
             ->getResultArray();
@@ -193,9 +196,30 @@ class MeetingModel extends Model
             ->join('pegawai', 'pegawai.id = meeting.pegawai_id', 'left')
             ->join('pegawai as status_pegawai', 'status_pegawai.id = meeting.status_changed_by', 'left')
             ->join('pegawai as edit_pegawai', 'edit_pegawai.id = meeting.last_edited_by', 'left')
-            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
+            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin, pegawai.no_hp as pegawai_no_hp, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
             ->orderBy('waktu_mulai', 'ASC')
             ->get()
             ->getResultArray();
+    }
+
+    /**
+     * Get approved meetings that already have Zoom and overlap with given time range.
+     * Used to warn admin about concurrent Zoom conflicts (Pro = 1 concurrent meeting).
+     */
+    public function getConflictingZoomMeetings(string $startTime, string $endTime, ?int $excludeId = null): array
+    {
+        $builder = $this->db->table('meeting')
+            ->select('meeting.id, meeting.nama_keg, meeting.waktu_mulai, meeting.waktu_selesai, meeting.zoom_meeting_id')
+            ->where('meeting.status', 'approved')
+            ->where('meeting.zoom_meeting_id IS NOT NULL')
+            ->where('meeting.zoom_meeting_id !=', '')
+            ->where('meeting.waktu_mulai <', $endTime)
+            ->where('meeting.waktu_selesai >', $startTime);
+
+        if ($excludeId) {
+            $builder->where('meeting.id !=', $excludeId);
+        }
+
+        return $builder->get()->getResultArray();
     }
 }

@@ -31,6 +31,15 @@
                        required>
             </div>
             <div>
+                <label for="no_hp" class="block text-sm font-medium text-gray-700">Nomor Telepon</label>
+                <input type="text" 
+                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" 
+                       id="no_hp" 
+                       name="no_hp"
+                       value="<?= old('no_hp', $pegawai['no_hp'] ?? '') ?>"
+                       placeholder="Contoh: 08123456789">
+            </div>
+            <div>
                 <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
                 <input type="text" 
                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" 
@@ -58,12 +67,11 @@
             </div>
             <div class="flex justify-end space-x-3">
                 <a href="<?= base_url('pegawai') ?>" 
-                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                   class="btn-outline-custom" style="padding:0.5rem 1rem;">
                     Batal
                 </a>
-                <button type="submit" 
-                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
-                    Simpan
+                <button type="submit" class="btn-primary-gradient">
+                    <i class="fas fa-save"></i> Simpan
                 </button>
             </div>
         </div>

@@ -109,15 +109,33 @@
                         </div>
 
                         <div class="sm:col-span-3">
-                            <label for="waktu_mulai" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                                <i class="fas fa-clock mr-1 text-orange-400 text-xs"></i> Waktu Mulai
+                            <label for="tanggal_mulai" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                                <i class="fas fa-calendar mr-1 text-orange-400 text-xs"></i> Tanggal
                             </label>
-                            <input type="datetime-local" 
+                            <input type="date" 
                                    class="input-modern" 
-                                   id="waktu_mulai" 
-                                   name="waktu_mulai" 
-                                   step="900"
+                                   id="tanggal_mulai" 
                                    required>
+                        </div>
+
+                        <div class="sm:col-span-3">
+                            <label for="jam_mulai" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                                <i class="fas fa-clock mr-1 text-orange-400 text-xs"></i> Jam Mulai
+                            </label>
+                            <select class="input-modern dropdown-modern" 
+                                    id="jam_mulai" 
+                                    required>
+                                <?php
+                                for ($h = 7; $h <= 17; $h++) {
+                                    for ($m = 0; $m < 60; $m += 15) {
+                                        if ($h == 17 && $m > 0) break;
+                                        $val = sprintf('%02d:%02d', $h, $m);
+                                        echo "<option value=\"$val\">$val</option>\n";
+                                    }
+                                }
+                                ?>
+                            </select>
+                            <input type="hidden" id="waktu_mulai" name="waktu_mulai">
                         </div>
 
                         <div class="sm:col-span-3">
@@ -207,7 +225,7 @@
 
 <!-- Event Details Modal -->
 <div class="modal fade" id="eventDetailsModal" tabindex="-1" aria-labelledby="eventDetailsModalTitle" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="eventDetailsModalTitle">
@@ -272,6 +290,24 @@
                             <p id="eventStatus" class="mt-0.5"></p>
                         </div>
                     </div>
+                    <!-- Zoom Links Section -->
+                    <div id="eventZoomSection" class="hidden border-t pt-3 mt-1" style="border-color:#e2e8f0;">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"><i class="fas fa-video mr-1"></i>Zoom Meeting</p>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <a id="zoomJoinLink" href="#" target="_blank" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe;">
+                                <i class="fas fa-video"></i> Join Zoom
+                            </a>
+                            <form id="zoomHostForm" method="POST" class="inline-block hidden" target="_blank">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host (generate link baru)">
+                                    <i class="fas fa-play-circle"></i> Host
+                                </button>
+                            </form>
+                            <span id="zoomHostLocked" class="text-xs text-gray-400 italic hidden" title="Link Host tersedia 1 jam sebelum meeting">
+                                <i class="fas fa-lock text-gray-300"></i> Host (H-1 jam)
+                            </span>
+                        </div>
+                    </div>
                     <!-- Audit trail (admin only) -->
                     <?php if (session()->get('is_admin')): ?>
                     <div id="eventAuditSection" class="hidden border-t pt-3 mt-1" style="border-color:#e2e8f0;">
@@ -295,7 +331,7 @@
                 </div>
             </div>
             <div class="modal-footer flex justify-between">
-                <div id="eventAdminActions" class="hidden flex items-center gap-2">
+                <div id="eventAdminActions" class="hidden flex items-center gap-2 flex-wrap">
                     <form id="approveForm" method="POST" class="inline-block">
                         <?= csrf_field() ?>
                         <input type="hidden" name="status" value="approved">
@@ -308,6 +344,12 @@
                         <input type="hidden" name="status" value="rejected">
                         <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.875rem; font-size:0.8125rem; color:#ef4444; border-color:#fecaca;">
                             <i class="fas fa-times"></i> Tolak
+                        </button>
+                    </form>
+                    <form id="sendZoomForm" method="POST" class="inline-block hidden" onsubmit="return confirm('Buat Zoom meeting dan kirim link ke pegawai?');">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.875rem; font-size:0.8125rem; color:#2563eb; border-color:#bfdbfe; font-weight:600;">
+                            🚀 Kirim Zoom
                         </button>
                     </form>
                 </div>
@@ -350,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function generateFormToken() {
         return 'token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
-    
+
     // Add hidden token field to form
     function addTokenToForm() {
         const form = document.getElementById('createMeetingForm');
@@ -374,6 +416,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (form && submitBtn) {
             form.addEventListener('submit', function(e) {
+                combineDateTime();
                 addTokenToForm();
                 submitBtn.disabled = true;
                 submitText.textContent = 'Menyimpan...';
@@ -409,18 +452,34 @@ document.addEventListener('DOMContentLoaded', function() {
     handleFormSubmit();
     resetFormOnModalClose();
 
-    // Handle duration change to auto-compute end time
-    function updateEndTime() {
-        var startTime = document.getElementById('waktu_mulai').value;
-        var duration = parseInt(document.getElementById('durasi').value);
-        if (startTime) {
-            var endTime = new Date(startTime);
-            endTime.setMinutes(endTime.getMinutes() + duration);
-            document.getElementById('waktu_selesai').value = endTime.toISOString().slice(0, 16);
+    // Combine date + time into hidden waktu_mulai
+    function combineDateTime() {
+        var tanggal = document.getElementById('tanggal_mulai').value;
+        var jam = document.getElementById('jam_mulai').value;
+        if (tanggal && jam) {
+            document.getElementById('waktu_mulai').value = tanggal + 'T' + jam;
         }
     }
 
-    document.getElementById('waktu_mulai').addEventListener('change', updateEndTime);
+    // Handle duration change to auto-compute end time
+    function updateEndTime() {
+        combineDateTime();
+        var startTime = document.getElementById('waktu_mulai').value;
+        var durasi = document.getElementById('durasi').value;
+        if (startTime && durasi !== 'Penuh') {
+            var duration = parseInt(durasi);
+            var endTime = new Date(startTime);
+            endTime.setMinutes(endTime.getMinutes() + duration);
+            document.getElementById('waktu_selesai').value = endTime.toISOString().slice(0, 16);
+        } else if (startTime && durasi === 'Penuh') {
+            var d = new Date(startTime);
+            d.setHours(17, 0, 0, 0);
+            document.getElementById('waktu_selesai').value = d.toISOString().slice(0, 16);
+        }
+    }
+
+    document.getElementById('tanggal_mulai').addEventListener('change', updateEndTime);
+    document.getElementById('jam_mulai').addEventListener('change', updateEndTime);
     document.getElementById('durasi').addEventListener('change', updateEndTime);
 
     // Store all events
@@ -440,6 +499,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'tipe' => $meeting['tipe'],
                 'status' => $meeting['status'],
                 'pegawai' => $meeting['nama_pegawai'] ?? null,
+                'pegawai_id' => $meeting['pegawai_id'] ?? null,
                 'jumlah_peserta' => $meeting['jumlah_peserta'] ?? null,
                 'fasilitas' => $meeting['fasilitas'] ? implode(', ', json_decode($meeting['fasilitas'], true) ?? []) : '-',
                 'status_changed_by_name' => $meeting['status_changed_by_name'] ?? null,
@@ -447,6 +507,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 'last_edited_by_name' => $meeting['last_edited_by_name'] ?? null,
                 'last_edited_at' => $meeting['last_edited_at'] ?? null,
                 'created_at' => $meeting['created_at'] ?? null,
+                'zoom_meeting_id' => $meeting['zoom_meeting_id'] ?? null,
+                'zoom_join_url' => $meeting['zoom_join_url'] ?? null,
+                'zoom_start_url' => $meeting['zoom_start_url'] ?? null,
             ]
         ];
     }, $meetings)) ?>;
@@ -471,6 +534,12 @@ document.addEventListener('DOMContentLoaded', function() {
         slotDuration: '00:15:00',
         slotMinTime: '07:00:00',
         slotMaxTime: '18:00:00',
+        displayEventEnd: true,
+        eventTimeFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        },
         events: allEvents,
         eventClick: function(info) {
             var event = info.event;
@@ -489,18 +558,42 @@ document.addEventListener('DOMContentLoaded', function() {
                             (props.status === 'pending' ? 'badge-pending' : 'badge-rejected');
             statusElement.innerHTML = '<span class="badge-status ' + badgeClass + '">' + props.status.toUpperCase() + '</span>';
             
-            // Show admin approve/reject buttons if admin and status is pending
+            // Show admin actions based on status
             var adminActions = document.getElementById('eventAdminActions');
             var isAdmin = <?= session()->get('is_admin') ? 'true' : 'false' ?>;
             if (adminActions) {
+                var approveForm = document.getElementById('approveForm');
+                var rejectForm = document.getElementById('rejectForm');
+                var sendZoomForm = document.getElementById('sendZoomForm');
+                var showContainer = false;
+
+                // Show approve/reject only for pending
                 if (isAdmin && props.status === 'pending') {
-                    adminActions.classList.remove('hidden');
                     var statusUrl = '<?= base_url('meeting/status/') ?>' + event.id;
-                    document.getElementById('approveForm').action = statusUrl;
-                    document.getElementById('rejectForm').action = statusUrl;
+                    approveForm.action = statusUrl;
+                    rejectForm.action = statusUrl;
+                    approveForm.classList.remove('hidden');
+                    rejectForm.classList.remove('hidden');
+                    showContainer = true;
                 } else {
-                    adminActions.classList.add('hidden');
+                    approveForm.classList.add('hidden');
+                    rejectForm.classList.add('hidden');
                 }
+
+                // Show "Kirim Zoom" only for approved + Online/Hybrid + no zoom yet
+                if (sendZoomForm) {
+                    var isOnlineOrHybrid = props.tipe === 'Online' || props.tipe === 'Hybrid';
+                    var hasZoom = props.zoom_meeting_id && props.zoom_meeting_id !== '';
+                    if (isAdmin && props.status === 'approved' && isOnlineOrHybrid && !hasZoom) {
+                        sendZoomForm.classList.remove('hidden');
+                        sendZoomForm.action = '<?= base_url('meeting/send-zoom/') ?>' + event.id;
+                        showContainer = true;
+                    } else {
+                        sendZoomForm.classList.add('hidden');
+                    }
+                }
+
+                adminActions.classList.toggle('hidden', !showContainer);
             }
             
             var eventModal = new bootstrap.Modal(document.getElementById('eventDetailsModal'));
@@ -535,6 +628,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     createdRow.classList.add('hidden');
                 }
                 auditSection.classList.toggle('hidden', !hasAudit);
+            }
+
+            // Show Zoom links
+            var zoomSection = document.getElementById('eventZoomSection');
+            if (zoomSection) {
+                var isOnlineOrHybrid = props.tipe === 'Online' || props.tipe === 'Hybrid';
+                var hasZoom = props.zoom_meeting_id && props.zoom_meeting_id !== '';
+                if (isOnlineOrHybrid && props.status === 'approved' && hasZoom) {
+                    zoomSection.classList.remove('hidden');
+                    document.getElementById('zoomJoinLink').href = props.zoom_join_url || '#';
+                    var hostForm = document.getElementById('zoomHostForm');
+                    var hostLocked = document.getElementById('zoomHostLocked');
+                    var meetStart = new Date(event.start).getTime();
+                    var nowMs = Date.now();
+                    if (nowMs >= (meetStart - 3600000)) {
+                        hostForm.action = '<?= base_url('meeting/refresh-zoom/') ?>' + event.id;
+                        hostForm.classList.remove('hidden');
+                        hostLocked.classList.add('hidden');
+                    } else {
+                        hostForm.classList.add('hidden');
+                        hostLocked.classList.remove('hidden');
+                    }
+                } else {
+                    zoomSection.classList.add('hidden');
+                }
             }
 
             eventModal.show();

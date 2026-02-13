@@ -128,6 +128,12 @@
                             <input type="text" class="input-modern" id="add_nip" name="nip" placeholder="Nomor Induk Pegawai" required>
                         </div>
                         <div>
+                            <label for="add_no_hp" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                                <i class="fas fa-phone mr-1 text-orange-400 text-xs"></i> Nomor Telepon
+                            </label>
+                            <input type="text" class="input-modern" id="add_no_hp" name="no_hp" placeholder="Contoh: 08123456789">
+                        </div>
+                        <div>
                             <label for="add_username" class="block text-sm font-semibold text-gray-700 mb-1.5">
                                 <i class="fas fa-at mr-1 text-orange-400 text-xs"></i> Username
                             </label>
