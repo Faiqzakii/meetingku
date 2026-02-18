@@ -203,11 +203,9 @@ class MeetingController extends Controller
             // Send notification via WhatsApp if configured
             try {
                 $whatsappEnabled = env('whatsapp.enabled', true);
-                $whatsappUrl     = env('whatsapp.url', 'http://47.84.198.103:8181/send-message');
-                $whatsappApiKey  = env('whatsapp.api_key');
                 $whatsappTo      = env('whatsapp.to');
 
-                if ($whatsappEnabled && $whatsappUrl && $whatsappApiKey && $whatsappTo) {
+                if ($whatsappEnabled && $whatsappTo) {
                     $ruangan = $this->ruanganModel->find($data['ruangan_id']);
                     $pegawai = $this->pegawaiModel->find($data['pegawai_id']);
 
@@ -227,36 +225,7 @@ class MeetingController extends Controller
                                "*Fasilitas*: $fasilitasStr\n" .
                                "*Oleh*: $oleh";
 
-                    $payload = json_encode([
-                        'to'      => $whatsappTo,
-                        'message' => $message
-                    ]);
-
-                    $ch = curl_init();
-                    curl_setopt_array($ch, [
-                        CURLOPT_URL            => $whatsappUrl,
-                        CURLOPT_RETURNTRANSFER => true,
-                        CURLOPT_ENCODING       => '',
-                        CURLOPT_MAXREDIRS      => 10,
-                        CURLOPT_TIMEOUT        => 10,
-                        CURLOPT_FOLLOWLOCATION => true,
-                        CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-                        CURLOPT_CUSTOMREQUEST  => 'POST',
-                        CURLOPT_POSTFIELDS     => $payload,
-                        CURLOPT_HTTPHEADER     => [
-                            'Content-Type: application/json',
-                            'X-API-KEY: ' . $whatsappApiKey
-                        ],
-                    ]);
-                    $response = curl_exec($ch);
-                    $curlErr  = curl_error($ch);
-                    curl_close($ch);
-
-                    if ($curlErr) {
-                        log_message('error', 'WhatsApp notify failed: ' . $curlErr);
-                    } else {
-                        log_message('info', 'WhatsApp notify response: ' . $response);
-                    }
+                    $this->sendWhatsAppMessage($whatsappTo, $message);
                 } else {
                     log_message('debug', 'WhatsApp not configured or disabled; skipping notify.');
                 }
@@ -481,11 +450,9 @@ class MeetingController extends Controller
             // Send notification for update via WhatsApp if configured
             try {
                 $whatsappEnabled = env('whatsapp.enabled', true);
-                $whatsappUrl     = env('whatsapp.url', 'http://47.84.198.103:8181/send-message');
-                $whatsappApiKey  = env('whatsapp.api_key');
                 $whatsappTo      = env('whatsapp.to');
 
-                if ($whatsappEnabled && $whatsappUrl && $whatsappApiKey && $whatsappTo) {
+                if ($whatsappEnabled && $whatsappTo) {
                     $ruangan = $this->ruanganModel->find($data['ruangan_id']);
                     $pegawai = $this->pegawaiModel->find($meeting['pegawai_id']);
 
@@ -505,36 +472,7 @@ class MeetingController extends Controller
                                "*Fasilitas*: $fasilitasStr\n" .
                                "*Oleh*: $oleh";
 
-                    $payload = json_encode([
-                        'to'      => $whatsappTo,
-                        'message' => $message
-                    ]);
-
-                    $ch = curl_init();
-                    curl_setopt_array($ch, [
-                        CURLOPT_URL            => $whatsappUrl,
-                        CURLOPT_RETURNTRANSFER => true,
-                        CURLOPT_ENCODING       => '',
-                        CURLOPT_MAXREDIRS      => 10,
-                        CURLOPT_TIMEOUT        => 10,
-                        CURLOPT_FOLLOWLOCATION => true,
-                        CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-                        CURLOPT_CUSTOMREQUEST  => 'POST',
-                        CURLOPT_POSTFIELDS     => $payload,
-                        CURLOPT_HTTPHEADER     => [
-                            'Content-Type: application/json',
-                            'X-API-KEY: ' . $whatsappApiKey
-                        ],
-                    ]);
-                    $response = curl_exec($ch);
-                    $curlErr  = curl_error($ch);
-                    curl_close($ch);
-
-                    if ($curlErr) {
-                        log_message('error', 'WhatsApp update notify failed: ' . $curlErr);
-                    } else {
-                        log_message('info', 'WhatsApp update notify response: ' . $response);
-                    }
+                    $this->sendWhatsAppMessage($whatsappTo, $message);
                 } else {
                     log_message('debug', 'WhatsApp update not configured or disabled; skipping notify.');
                 }
@@ -825,10 +763,8 @@ class MeetingController extends Controller
     {
         try {
             $whatsappEnabled = env('whatsapp.enabled', true);
-            $whatsappUrl     = env('whatsapp.url');
-            $whatsappApiKey  = env('whatsapp.api_key');
 
-            if (!$whatsappEnabled || !$whatsappUrl || !$whatsappApiKey) {
+            if (!$whatsappEnabled) {
                 log_message('debug', 'WhatsApp not configured; skipping Zoom notification.');
                 return;
             }
@@ -874,48 +810,127 @@ class MeetingController extends Controller
             $recipients = [];
             if (!empty($pegawai['no_hp'])) {
                 $recipients[] = $pegawai['no_hp'];
-            }
-            // Also send to admin WhatsApp
-            $adminTo = env('whatsapp.to');
-            if ($adminTo && !in_array($adminTo, $recipients)) {
-                $recipients[] = $adminTo;
+            } else {
+                // Fallback to admin number only if pegawai has no phone
+                $adminTo = env('whatsapp.to');
+                if ($adminTo) {
+                    $recipients[] = $adminTo;
+                }
             }
 
             foreach ($recipients as $to) {
-                $payload = json_encode([
-                    'to'      => $to,
-                    'message' => $message
-                ]);
-
-                $ch = curl_init();
-                curl_setopt_array($ch, [
-                    CURLOPT_URL            => $whatsappUrl,
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_ENCODING       => '',
-                    CURLOPT_MAXREDIRS      => 10,
-                    CURLOPT_TIMEOUT        => 10,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-                    CURLOPT_CUSTOMREQUEST  => 'POST',
-                    CURLOPT_POSTFIELDS     => $payload,
-                    CURLOPT_HTTPHEADER     => [
-                        'Content-Type: application/json',
-                        'X-API-KEY: ' . $whatsappApiKey
-                    ],
-                ]);
-                $response = curl_exec($ch);
-                $curlErr  = curl_error($ch);
-                curl_close($ch);
-
-                if ($curlErr) {
-                    log_message('error', 'WhatsApp Zoom notify failed to ' . $to . ': ' . $curlErr);
-                } else {
-                    log_message('info', 'WhatsApp Zoom notify sent to ' . $to . ': ' . $response);
-                }
+                $this->sendWhatsAppMessage($to, $message);
             }
         } catch (\Throwable $tex) {
             log_message('error', 'WhatsApp Zoom notify exception: ' . $tex->getMessage());
         }
+    }
+
+    /**
+     * Send a WhatsApp message with automatic fallback.
+     * Tries primary endpoint first; if it fails, falls back to Whapify.id.
+     *
+     * @param string $to   Recipient phone number (format 628xxx from DB)
+     * @param string $message  Message text
+     * @return bool  True if sent successfully via either endpoint
+     */
+    protected function sendWhatsAppMessage(string $to, string $message): bool
+    {
+        // --- 1. Try primary endpoint ---
+        $primaryUrl    = env('whatsapp.url');
+        $primaryApiKey = env('whatsapp.api_key');
+
+        if ($primaryUrl && $primaryApiKey) {
+            $payload = json_encode([
+                'to'      => $to,
+                'message' => $message,
+            ]);
+
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL            => $primaryUrl,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING       => '',
+                CURLOPT_MAXREDIRS      => 10,
+                CURLOPT_TIMEOUT        => 10,
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST  => 'POST',
+                CURLOPT_POSTFIELDS     => $payload,
+                CURLOPT_HTTPHEADER     => [
+                    'Content-Type: application/json',
+                    'X-API-KEY: ' . $primaryApiKey,
+                ],
+            ]);
+            $response = curl_exec($ch);
+            $curlErr  = curl_error($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if (!$curlErr && $httpCode >= 200 && $httpCode < 300) {
+                log_message('info', 'WhatsApp sent via primary to ' . $to . ': ' . $response);
+                return true;
+            }
+
+            log_message('warning', 'WhatsApp primary failed (HTTP ' . $httpCode . ') to ' . $to . ': ' . ($curlErr ?: $response));
+        } else {
+            log_message('warning', 'WhatsApp primary not configured; skipping to fallback.');
+        }
+
+        // --- 2. Fallback to Whapify.id ---
+        $fallbackUrl     = env('whatsapp.fallback_url');
+        $fallbackSecret  = env('whatsapp.fallback_secret');
+        $fallbackAccount = env('whatsapp.fallback_account');
+
+        if (!$fallbackUrl || !$fallbackSecret || !$fallbackAccount) {
+            log_message('error', 'WhatsApp fallback (Whapify) not configured. Message to ' . $to . ' not sent.');
+            return false;
+        }
+
+        // Convert phone number: DB stores 628xxx, Whapify expects 08xxx
+        $recipient = $to;
+        if (str_starts_with($recipient, '62')) {
+            $recipient = '0' . substr($recipient, 2);
+        }
+
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL            => $fallbackUrl,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => [
+                'secret'    => $fallbackSecret,
+                'account'   => $fallbackAccount,
+                'recipient' => $recipient,
+                'type'      => 'text',
+                'message'   => $message,
+            ],
+            // multipart/form-data is set automatically by cURL when POSTFIELDS is an array
+        ]);
+        $response = curl_exec($ch);
+        $curlErr  = curl_error($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($curlErr) {
+            log_message('error', 'WhatsApp fallback (Whapify) cURL error to ' . $to . ': ' . $curlErr);
+            return false;
+        }
+
+        // Whapify returns {"status":200,"message":"...","data":{"messageId":"..."}}
+        $decoded = json_decode($response, true);
+        if (isset($decoded['status']) && (int) $decoded['status'] === 200) {
+            log_message('info', 'WhatsApp sent via fallback (Whapify) to ' . $to . ': ' . $response);
+            return true;
+        }
+
+        log_message('error', 'WhatsApp fallback (Whapify) failed (HTTP ' . $httpCode . ') to ' . $to . ': ' . $response);
+        return false;
     }
 }
 
