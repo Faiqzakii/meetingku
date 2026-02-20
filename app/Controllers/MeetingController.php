@@ -535,12 +535,21 @@ class MeetingController extends Controller
             }
         }
 
-        if ($this->meetingModel->delete($id) === false) {
-            return redirect()->back()->with('error', 'Gagal menghapus meeting');
+        try {
+            if ($this->meetingModel->delete($id) === false) {
+                $errors = $this->meetingModel->errors();
+                log_message('error', 'Failed to delete meeting ID ' . $id . ': ' . print_r($errors, true));
+                return redirect()->back()->with('error', 'Gagal menghapus meeting: ' . implode(', ', $errors));
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Exception during meeting deletion ID ' . $id . ': ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat menghapus meeting: ' . $e->getMessage());
         }
 
         return redirect()->back()->with('success', 'Meeting berhasil dihapus');
     }
+
+
 
     public function updateStatus($id = null)
     {

@@ -174,13 +174,7 @@
                                                         <i class="fas fa-check"></i> Setuju
                                                     </button>
                                                 </form>
-                                                <form action="<?= base_url('meeting/status/' . $meeting['id']) ?>" method="POST" class="inline-block">
-                                                    <?= csrf_field() ?>
-                                                    <input type="hidden" name="status" value="rejected">
-                                                    <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#ef4444; border-color:#fecaca;">
-                                                        <i class="fas fa-times"></i> Tolak
-                                                    </button>
-                                                </form>
+
                                             <?php endif; ?>
 
                                         </div>
@@ -351,13 +345,7 @@
                                                         <i class="fas fa-check"></i> Setuju
                                                     </button>
                                                 </form>
-                                                <form action="<?= base_url('meeting/status/' . $meeting['id']) ?>" method="POST" class="inline-block">
-                                                    <?= csrf_field() ?>
-                                                    <input type="hidden" name="status" value="rejected">
-                                                    <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#ef4444; border-color:#fecaca;">
-                                                        <i class="fas fa-times"></i> Tolak
-                                                    </button>
-                                                </form>
+
                                             <?php endif; ?>
                                         </div>
                                     </td>
@@ -528,13 +516,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             <input type="hidden" name="status" value="approved">
                             <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#059669; border-color:#a7f3d0;">
                                 <i class="fas fa-check"></i> Setuju
-                            </button>
-                        </form>
-                        <form action="${baseUrl}/meeting/status/${meeting.id}" method="POST" class="inline-block">
-                            <input type="hidden" name="csrf_test_name" value="${csrf}">
-                            <input type="hidden" name="status" value="rejected">
-                            <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#ef4444; border-color:#fecaca;">
-                                <i class="fas fa-times"></i> Tolak
                             </button>
                         </form>` : ''}
                     </div>

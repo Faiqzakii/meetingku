@@ -339,20 +339,25 @@
                             <i class="fas fa-check"></i> Setujui
                         </button>
                     </form>
-                    <form id="rejectForm" method="POST" class="inline-block">
-                        <?= csrf_field() ?>
-                        <input type="hidden" name="status" value="rejected">
-                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.875rem; font-size:0.8125rem; color:#ef4444; border-color:#fecaca;">
-                            <i class="fas fa-times"></i> Tolak
-                        </button>
-                    </form>
+
                     <form id="sendZoomForm" method="POST" class="inline-block hidden" onsubmit="return confirm('Buat Zoom meeting dan kirim link ke pegawai?');">
                         <?= csrf_field() ?>
                         <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.875rem; font-size:0.8125rem; color:#2563eb; border-color:#bfdbfe; font-weight:600;">
                             🚀 Kirim Zoom
                         </button>
                     </form>
+                    </form>
                 </div>
+                
+                <div id="eventOwnerActions" class="hidden flex items-center gap-2 flex-wrap ml-2">
+                    <form id="deleteForm" method="POST" class="inline-block hidden" onsubmit="return confirm('Apakah Anda yakin ingin menghapus meeting ini?');">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.875rem; font-size:0.8125rem; color:#ef4444; border-color:#fecaca;">
+                            <i class="fas fa-trash-alt"></i> Hapus
+                        </button>
+                    </form>
+                </div>
+
                 <div class="ml-auto">
                     <button type="button" class="btn-outline-custom" data-bs-dismiss="modal">Tutup</button>
                 </div>
@@ -563,7 +568,6 @@ document.addEventListener('DOMContentLoaded', function() {
             var isAdmin = <?= session()->get('is_admin') ? 'true' : 'false' ?>;
             if (adminActions) {
                 var approveForm = document.getElementById('approveForm');
-                var rejectForm = document.getElementById('rejectForm');
                 var sendZoomForm = document.getElementById('sendZoomForm');
                 var showContainer = false;
 
@@ -571,13 +575,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (isAdmin && props.status === 'pending') {
                     var statusUrl = '<?= base_url('meeting/status/') ?>' + event.id;
                     approveForm.action = statusUrl;
-                    rejectForm.action = statusUrl;
                     approveForm.classList.remove('hidden');
-                    rejectForm.classList.remove('hidden');
                     showContainer = true;
                 } else {
                     approveForm.classList.add('hidden');
-                    rejectForm.classList.add('hidden');
                 }
 
                 // Show "Kirim Zoom" only for approved + Online/Hybrid + no zoom yet
@@ -594,6 +595,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 adminActions.classList.toggle('hidden', !showContainer);
+            }
+
+            // Owner Actions (Delete)
+            var ownerActions = document.getElementById('eventOwnerActions');
+            var currentPegawaiId = <?= (int)session()->get('pegawai_id') ?>;
+            var isOwner = parseInt(props.pegawai_id) === currentPegawaiId;
+            var isAdmin = <?= session()->get('is_admin') ? 'true' : 'false' ?>;
+
+            if (ownerActions) {
+                var deleteForm = document.getElementById('deleteForm');
+                
+                deleteForm.classList.add('hidden');
+                ownerActions.classList.add('hidden');
+
+                if (isOwner || isAdmin) {
+                    // Direct Delete
+                    deleteForm.action = '<?= base_url('meeting/delete/') ?>' + event.id;
+                    deleteForm.classList.remove('hidden');
+                    ownerActions.classList.remove('hidden');
+                }
             }
             
             var eventModal = new bootstrap.Modal(document.getElementById('eventDetailsModal'));
