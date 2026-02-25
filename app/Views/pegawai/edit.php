@@ -65,6 +65,16 @@
                     <option value="true" <?= old('is_admin', $pegawai['is_admin']) ? 'selected' : '' ?>>Admin</option>
                 </select>
             </div>
+            <div class="flex items-center space-x-6">
+                <label class="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                    <input type="checkbox" name="terima_notif_offline" value="true" class="mr-2 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded" <?= old('terima_notif_offline', $pegawai['terima_notif_offline']) ? 'checked' : '' ?>>
+                    Terima Notifikasi Meeting Offline
+                </label>
+                <label class="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                    <input type="checkbox" name="terima_notif_zoom" value="true" class="mr-2 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded" <?= old('terima_notif_zoom', $pegawai['terima_notif_zoom']) ? 'checked' : '' ?>>
+                    Terima Notifikasi Meeting Zoom
+                </label>
+            </div>
             <div class="flex justify-end space-x-3">
                 <a href="<?= base_url('pegawai') ?>" 
                    class="btn-outline-custom" style="padding:0.5rem 1rem;">

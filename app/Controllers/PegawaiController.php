@@ -44,7 +44,9 @@ class PegawaiController extends Controller
             'no_hp' => $this->request->getPost('no_hp'),
             'username' => $this->request->getPost('username'),
             'password' => $this->request->getPost('password'),
-            'is_admin' => $this->request->getPost('is_admin') ? 1 : 0
+            'is_admin' => $this->request->getPost('is_admin') ? 1 : 0,
+            'terima_notif_offline' => $this->request->getPost('terima_notif_offline') ? 1 : 0,
+            'terima_notif_zoom' => $this->request->getPost('terima_notif_zoom') ? 1 : 0
         ];
 
         if ($this->pegawaiModel->insert($data) === false) {
@@ -109,6 +111,16 @@ class PegawaiController extends Controller
         $isAdmin = ($input['is_admin'] ?? 'false') === 'true' ? 1 : 0;
         if ($isAdmin !== (int)$existingPegawai['is_admin']) {
             $data['is_admin'] = $isAdmin;
+        }
+
+        $notifOffline = ($input['terima_notif_offline'] ?? 'false') === 'true' ? 1 : 0;
+        if ($notifOffline !== (int)$existingPegawai['terima_notif_offline']) {
+            $data['terima_notif_offline'] = $notifOffline;
+        }
+
+        $notifZoom = ($input['terima_notif_zoom'] ?? 'false') === 'true' ? 1 : 0;
+        if ($notifZoom !== (int)$existingPegawai['terima_notif_zoom']) {
+            $data['terima_notif_zoom'] = $notifZoom;
         }
 
         // Update no_hp
@@ -185,7 +197,9 @@ class PegawaiController extends Controller
                     'no_hp' => isset($row[2]) ? trim($row[2]) : '',
                     'username' => trim($row[3]),
                     'password' => trim($row[4]),
-                    'is_admin' => isset($row[5]) && strtolower(trim($row[5])) === 'ya' ? 1 : 0
+                    'is_admin' => isset($row[5]) && strtolower(trim($row[5])) === 'ya' ? 1 : 0,
+                    'terima_notif_offline' => isset($row[6]) && strtolower(trim($row[6])) === 'ya' ? 1 : 0,
+                    'terima_notif_zoom' => isset($row[7]) && strtolower(trim($row[7])) === 'ya' ? 1 : 0
                 ];
 
                 if ($this->pegawaiModel->insert($data) === false) {
@@ -223,6 +237,8 @@ class PegawaiController extends Controller
         $sheet->setCellValue('D1', 'Username');
         $sheet->setCellValue('E1', 'Password');
         $sheet->setCellValue('F1', 'Admin (Ya/Tidak)');
+        $sheet->setCellValue('G1', 'Notif Offline (Ya/Tidak)');
+        $sheet->setCellValue('H1', 'Notif Zoom (Ya/Tidak)');
         
         // Add example row
         $sheet->setCellValue('A2', 'John Doe');
@@ -231,9 +247,11 @@ class PegawaiController extends Controller
         $sheet->setCellValue('D2', 'johndoe');
         $sheet->setCellValue('E2', 'password123');
         $sheet->setCellValue('F2', 'Tidak');
+        $sheet->setCellValue('G2', 'Tidak');
+        $sheet->setCellValue('H2', 'Tidak');
         
         // Auto-size columns
-        foreach (range('A', 'F') as $col) {
+        foreach (range('A', 'H') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
         

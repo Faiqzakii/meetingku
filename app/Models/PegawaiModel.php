@@ -19,6 +19,8 @@ class PegawaiModel extends Model
         'username',
         'password',
         'is_admin',
+        'terima_notif_offline',
+        'terima_notif_zoom',
         'created_at',
         'updated_at'
     ];
@@ -34,14 +36,18 @@ class PegawaiModel extends Model
         'nip' => 'required|min_length[18]|max_length[18]|is_unique[pegawai.nip]',
         'username' => 'required|min_length[3]|max_length[50]|is_unique[pegawai.username]',
         'password' => 'required|min_length[3]',
-        'is_admin' => 'permit_empty|in_list[0,1]'
+        'is_admin' => 'permit_empty|in_list[0,1]',
+        'terima_notif_offline' => 'permit_empty|in_list[0,1]',
+        'terima_notif_zoom' => 'permit_empty|in_list[0,1]'
     ];
     protected $validationRulesUpdate = [
         'nama' => 'if_exist|min_length[3]|max_length[100]',
         'nip' => 'if_exist|min_length[18]|max_length[18]|is_unique[pegawai.nip,id,{id}]',
         'username' => 'if_exist|min_length[3]|max_length[50]|is_unique[pegawai.username,id,{id}]',
         'password' => 'if_exist|min_length[3]',
-        'is_admin' => 'if_exist|in_list[0,1]'
+        'is_admin' => 'if_exist|in_list[0,1]',
+        'terima_notif_offline' => 'if_exist|in_list[0,1]',
+        'terima_notif_zoom' => 'if_exist|in_list[0,1]'
     ];
 
     public function insert($data = null, bool $returnID = true)

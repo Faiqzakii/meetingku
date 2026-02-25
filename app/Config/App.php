@@ -67,7 +67,7 @@ class App extends BaseConfig
      * Application Timezone
      * --------------------------------------------------------------------------
      */
-    public string $appTimezone = 'Asia/Jakarta';
+    public string $appTimezone = 'Asia/Makassar';
 
     /**
      * --------------------------------------------------------------------------

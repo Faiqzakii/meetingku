@@ -203,9 +203,8 @@ class MeetingController extends Controller
             // Send notification via WhatsApp if configured
             try {
                 $whatsappEnabled = env('whatsapp.enabled', true);
-                $whatsappTo      = env('whatsapp.to');
 
-                if ($whatsappEnabled && $whatsappTo) {
+                if ($whatsappEnabled) {
                     $ruangan = $this->ruanganModel->find($data['ruangan_id']);
                     $pegawai = $this->pegawaiModel->find($data['pegawai_id']);
 
@@ -225,7 +224,36 @@ class MeetingController extends Controller
                                "*Fasilitas*: $fasilitasStr\n" .
                                "*Oleh*: $oleh";
 
-                    $this->sendWhatsAppMessage($whatsappTo, $message);
+                    $isOnline = in_array($ruangan['tipe'] ?? '', ['Online', 'Hybrid']);
+                    $wantsZoom = false;
+                    if ($data['fasilitas']) {
+                        $fasilitasArr = json_decode($data['fasilitas'], true) ?? [];
+                        foreach ($fasilitasArr as $fasilitasItem) {
+                            if (stripos($fasilitasItem, 'Zoom') !== false) {
+                                $wantsZoom = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if ($isOnline) {
+                        $admins = $this->pegawaiModel->where('terima_notif_zoom', 1)->findAll();
+                    } elseif ($wantsZoom) {
+                        $admins = $this->pegawaiModel
+                            ->groupStart()
+                                ->where('terima_notif_offline', 1)
+                                ->orWhere('terima_notif_zoom', 1)
+                            ->groupEnd()
+                            ->findAll();
+                    } else {
+                        $admins = $this->pegawaiModel->where('terima_notif_offline', 1)->findAll();
+                    }
+                    
+                    foreach ($admins as $admin) {
+                        if (!empty($admin['no_hp'])) {
+                            $this->sendWhatsAppMessage($admin['no_hp'], $message);
+                        }
+                    }
                 } else {
                     log_message('debug', 'WhatsApp not configured or disabled; skipping notify.');
                 }
@@ -450,9 +478,8 @@ class MeetingController extends Controller
             // Send notification for update via WhatsApp if configured
             try {
                 $whatsappEnabled = env('whatsapp.enabled', true);
-                $whatsappTo      = env('whatsapp.to');
 
-                if ($whatsappEnabled && $whatsappTo) {
+                if ($whatsappEnabled) {
                     $ruangan = $this->ruanganModel->find($data['ruangan_id']);
                     $pegawai = $this->pegawaiModel->find($meeting['pegawai_id']);
 
@@ -472,7 +499,36 @@ class MeetingController extends Controller
                                "*Fasilitas*: $fasilitasStr\n" .
                                "*Oleh*: $oleh";
 
-                    $this->sendWhatsAppMessage($whatsappTo, $message);
+                    $isOnline = in_array($ruangan['tipe'] ?? '', ['Online', 'Hybrid']);
+                    $wantsZoom = false;
+                    if ($data['fasilitas']) {
+                        $fasilitasArr = json_decode($data['fasilitas'], true) ?? [];
+                        foreach ($fasilitasArr as $fasilitasItem) {
+                            if (stripos($fasilitasItem, 'Zoom') !== false) {
+                                $wantsZoom = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if ($isOnline) {
+                        $admins = $this->pegawaiModel->where('terima_notif_zoom', 1)->findAll();
+                    } elseif ($wantsZoom) {
+                        $admins = $this->pegawaiModel
+                            ->groupStart()
+                                ->where('terima_notif_offline', 1)
+                                ->orWhere('terima_notif_zoom', 1)
+                            ->groupEnd()
+                            ->findAll();
+                    } else {
+                        $admins = $this->pegawaiModel->where('terima_notif_offline', 1)->findAll();
+                    }
+                    
+                    foreach ($admins as $admin) {
+                        if (!empty($admin['no_hp'])) {
+                            $this->sendWhatsAppMessage($admin['no_hp'], $message);
+                        }
+                    }
                 } else {
                     log_message('debug', 'WhatsApp update not configured or disabled; skipping notify.');
                 }

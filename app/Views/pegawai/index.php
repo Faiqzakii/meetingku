@@ -149,10 +149,20 @@
                             <label for="add_role" class="block text-sm font-semibold text-gray-700 mb-1.5">
                                 <i class="fas fa-shield-halved mr-1 text-orange-400 text-xs"></i> Role
                             </label>
-                            <select class="input-modern dropdown-modern" id="add_role" name="role" required>
-                                <option value="user">User</option>
-                                <option value="admin">Admin</option>
+                            <select class="input-modern dropdown-modern" id="add_role" name="is_admin" required>
+                                <option value="0">User</option>
+                                <option value="1">Admin</option>
                             </select>
+                        </div>
+                        <div class="flex items-center gap-4 mt-2">
+                            <label class="flex items-center text-sm text-gray-700 cursor-pointer">
+                                <input type="checkbox" name="terima_notif_offline" value="1" class="mr-2 rounded text-orange-500 focus:ring-orange-500">
+                                Terima Notif Offline
+                            </label>
+                            <label class="flex items-center text-sm text-gray-700 cursor-pointer">
+                                <input type="checkbox" name="terima_notif_zoom" value="1" class="mr-2 rounded text-orange-500 focus:ring-orange-500">
+                                Terima Notif Zoom
+                            </label>
                         </div>
                     </div>
                 </div>
