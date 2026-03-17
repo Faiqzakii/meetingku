@@ -503,6 +503,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'ruangan' => $meeting['nama_ruangan'],
                 'tipe' => $meeting['tipe'],
                 'status' => $meeting['status'],
+                'waktu_mulai_ts' => isset($meeting['waktu_mulai']) ? strtotime($meeting['waktu_mulai']) : null,
                 'pegawai' => $meeting['nama_pegawai'] ?? null,
                 'pegawai_id' => $meeting['pegawai_id'] ?? null,
                 'jumlah_peserta' => $meeting['jumlah_peserta'] ?? null,
@@ -664,7 +665,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('zoomJoinLink').href = props.zoom_join_url || '#';
                     var hostForm = document.getElementById('zoomHostForm');
                     var hostLocked = document.getElementById('zoomHostLocked');
-                    var meetStart = new Date(event.start).getTime();
+                    var meetStart = Number(props.waktu_mulai_ts) * 1000;
                     var nowMs = Date.now();
                     if (nowMs >= (meetStart - 3600000)) {
                         hostForm.action = '<?= base_url('meeting/refresh-zoom/') ?>' + event.id;

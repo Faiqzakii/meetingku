@@ -397,8 +397,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    var todayMeetings = <?= json_encode($today_meetings) ?>;
-    var upcomingMeetings = <?= json_encode($upcoming_meetings) ?>;
+    var todayMeetings = <?= json_encode(array_map(static function ($meeting) {
+        $meeting['waktu_mulai_ts'] = isset($meeting['waktu_mulai']) ? strtotime($meeting['waktu_mulai']) : null;
+        return $meeting;
+    }, $today_meetings)) ?>;
+    var upcomingMeetings = <?= json_encode(array_map(static function ($meeting) {
+        $meeting['waktu_mulai_ts'] = isset($meeting['waktu_mulai']) ? strtotime($meeting['waktu_mulai']) : null;
+        return $meeting;
+    }, $upcoming_meetings)) ?>;
     
     function generateMeetingRowExpandable(meeting) {
         var badgeClass = meeting.status === 'pending' ? 'badge-pending' :
@@ -487,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (isOnlineOrHybrid && meeting.status === 'approved' && canOwnOrAdmin) {
                                 if (hasZoom) {
                                     zoomHtml += '<a href="' + meeting.zoom_join_url + '" target="_blank" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe;"><i class="fas fa-video"></i> Join Zoom</a>';
-                                    var meetStart = new Date(meeting.waktu_mulai).getTime();
+                                    var meetStart = Number(meeting.waktu_mulai_ts) * 1000;
                                     var nowMs = Date.now();
                                     if (nowMs >= (meetStart - 3600000)) {
                                         zoomHtml += '<form action="' + baseUrl + '/meeting/refresh-zoom/' + meeting.id + '" method="POST" class="inline-block" target="_blank"><input type="hidden" name="csrf_test_name" value="' + csrf + '"><button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host (generate link baru)"><i class="fas fa-play-circle"></i> Host</button></form>';
