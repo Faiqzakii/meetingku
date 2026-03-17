@@ -158,10 +158,10 @@
                                                 <?php endif; ?>
                                             <?php endif; ?>
                                             <?php if ($isAdmin && $isOnlineOrHybrid && $meeting['status'] === 'approved' && $meetingNotEnded): ?>
-                                                <form action="<?= base_url('meeting/manual-zoom/' . $meeting['id']) ?>" method="POST" class="inline-flex items-center gap-1" style="padding:0; margin:0;">
+                                                <form action="<?= base_url('meeting/manual-zoom/' . $meeting['id']) ?>" method="POST" class="inline-flex items-center gap-1 flex-nowrap" style="padding:0; margin:0;">
                                                     <?= csrf_field() ?>
                                                     <input type="url" name="zoom_join_url" value="<?= esc($meeting['zoom_join_url'] ?? '') ?>" placeholder="https://us02web.zoom.us/j/..." class="input-modern" style="height:30px; font-size:0.75rem; min-width:220px; padding:0.25rem 0.5rem;" required>
-                                                    <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#0f766e; border-color:#99f6e4;">
+                                                    <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#0f766e; border-color:#99f6e4; white-space:nowrap;">
                                                         <i class="fas fa-link"></i> Simpan Link
                                                     </button>
                                                 </form>
@@ -340,10 +340,10 @@
                                                 <?php endif; ?>
                                             <?php endif; ?>
                                             <?php if ($isAdmin && $isOnlineOrHybrid && $meeting['status'] === 'approved' && $meetingNotEnded): ?>
-                                                <form action="<?= base_url('meeting/manual-zoom/' . $meeting['id']) ?>" method="POST" class="inline-flex items-center gap-1" style="padding:0; margin:0;">
+                                                <form action="<?= base_url('meeting/manual-zoom/' . $meeting['id']) ?>" method="POST" class="inline-flex items-center gap-1 flex-nowrap" style="padding:0; margin:0;">
                                                     <?= csrf_field() ?>
                                                     <input type="url" name="zoom_join_url" value="<?= esc($meeting['zoom_join_url'] ?? '') ?>" placeholder="https://us02web.zoom.us/j/..." class="input-modern" style="height:30px; font-size:0.75rem; min-width:220px; padding:0.25rem 0.5rem;" required>
-                                                    <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#0f766e; border-color:#99f6e4;">
+                                                    <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#0f766e; border-color:#99f6e4; white-space:nowrap;">
                                                         <i class="fas fa-link"></i> Simpan Link
                                                     </button>
                                                 </form>
@@ -571,7 +571,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
                             }
                             if (isAdmin && isOnlineOrHybrid && meeting.status === 'approved' && meetingNotEnded) {
-                                zoomHtml += '<form action="' + baseUrl + '/meeting/manual-zoom/' + meeting.id + '" method="POST" class="inline-flex items-center gap-1" style="padding:0; margin:0;"><input type="hidden" name="csrf_test_name" value="' + csrf + '"><input type="url" name="zoom_join_url" value="' + joinValue + '" placeholder="https://us02web.zoom.us/j/..." class="input-modern" style="height:30px; font-size:0.75rem; min-width:220px; padding:0.25rem 0.5rem;" required><button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#0f766e; border-color:#99f6e4;"><i class="fas fa-link"></i> Simpan Link</button></form>';
+                                zoomHtml += '<form action="' + baseUrl + '/meeting/manual-zoom/' + meeting.id + '" method="POST" class="inline-flex items-center gap-1 flex-nowrap" style="padding:0; margin:0;"><input type="hidden" name="csrf_test_name" value="' + csrf + '"><input type="url" name="zoom_join_url" value="' + joinValue + '" placeholder="https://us02web.zoom.us/j/..." class="input-modern" style="height:30px; font-size:0.75rem; min-width:220px; padding:0.25rem 0.5rem;" required><button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#0f766e; border-color:#99f6e4; white-space:nowrap;"><i class="fas fa-link"></i> Simpan Link</button></form>';
                             }
                             return zoomHtml;
                         })()}

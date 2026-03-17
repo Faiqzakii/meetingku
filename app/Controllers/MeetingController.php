@@ -28,6 +28,34 @@ class MeetingController extends Controller
         return session()->get('is_admin') === true;
     }
 
+    protected function extractZoomMeetingIdFromUrl(string $zoomUrl): ?string
+    {
+        $parts = parse_url($zoomUrl);
+        if ($parts === false) {
+            return null;
+        }
+
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        if (!preg_match('/(^|\.)zoom\.us$/', $host)) {
+            return null;
+        }
+
+        $path = trim((string) ($parts['path'] ?? ''), '/');
+        if ($path === '') {
+            return null;
+        }
+
+        if (preg_match('/(?:^|\/)j\/(\d{9,15})(?:\/|$)/', $path, $match) === 1) {
+            return $match[1];
+        }
+
+        if (preg_match('/(?:^|\/)wc\/(\d{9,15})(?:\/|$)/', $path, $match) === 1) {
+            return $match[1];
+        }
+
+        return null;
+    }
+
     public function index()
     {
         if (!session()->get('logged_in')) {
@@ -815,8 +843,10 @@ class MeetingController extends Controller
         }
 
         $this->meetingModel->setValidationRules([]);
+        $zoomMeetingId = $this->extractZoomMeetingIdFromUrl($zoomJoinUrl);
         $updated = $this->meetingModel->update($id, [
             'zoom_join_url' => $zoomJoinUrl,
+            'zoom_meeting_id' => $zoomMeetingId,
         ]);
 
         if ($updated === false) {

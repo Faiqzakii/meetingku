@@ -335,21 +335,21 @@
                     <form id="approveForm" method="POST" class="inline-block">
                         <?= csrf_field() ?>
                         <input type="hidden" name="status" value="approved">
-                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.875rem; font-size:0.8125rem; color:#059669; border-color:#a7f3d0;">
+                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#059669; border-color:#a7f3d0;">
                             <i class="fas fa-check"></i> Setujui
                         </button>
                     </form>
 
                     <form id="sendZoomForm" method="POST" class="inline-block hidden" onsubmit="return confirm('Buat Zoom meeting dan kirim link ke pegawai?');">
                         <?= csrf_field() ?>
-                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.875rem; font-size:0.8125rem; color:#2563eb; border-color:#bfdbfe; font-weight:600;">
+                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe; font-weight:600;">
                             🚀 Kirim Zoom
                         </button>
                     </form>
-                    <form id="manualZoomForm" method="POST" class="hidden items-center gap-1 flex-wrap">
+                    <form id="manualZoomForm" method="POST" class="hidden items-center gap-1 flex-nowrap">
                         <?= csrf_field() ?>
-                        <input id="manualZoomInput" type="url" name="zoom_join_url" placeholder="https://us02web.zoom.us/j/..." class="input-modern" style="height:32px; font-size:0.8125rem; min-width:240px; padding:0.3rem 0.55rem;" required>
-                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.8125rem; color:#0f766e; border-color:#99f6e4;">
+                        <input id="manualZoomInput" type="url" name="zoom_join_url" placeholder="https://us02web.zoom.us/j/..." class="input-modern" style="height:30px; font-size:0.75rem; min-width:220px; padding:0.25rem 0.5rem;" required>
+                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#0f766e; border-color:#99f6e4; white-space:nowrap;">
                             <i class="fas fa-link"></i> Simpan Link
                         </button>
                     </form>
@@ -358,14 +358,14 @@
                 <div id="eventOwnerActions" class="hidden flex items-center gap-2 flex-wrap ml-2">
                     <form id="deleteForm" method="POST" class="inline-block hidden" onsubmit="return confirm('Apakah Anda yakin ingin menghapus meeting ini?');">
                         <?= csrf_field() ?>
-                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.875rem; font-size:0.8125rem; color:#ef4444; border-color:#fecaca;">
+                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#ef4444; border-color:#fecaca;">
                             <i class="fas fa-trash-alt"></i> Hapus
                         </button>
                     </form>
                 </div>
 
                 <div class="ml-auto">
-                    <button type="button" class="btn-outline-custom" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem;" data-bs-dismiss="modal">Tutup</button>
                 </div>
             </div>
         </div>
