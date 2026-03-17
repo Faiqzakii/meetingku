@@ -346,6 +346,12 @@
                             🚀 Kirim Zoom
                         </button>
                     </form>
+                    <form id="manualZoomForm" method="POST" class="hidden items-center gap-1 flex-wrap">
+                        <?= csrf_field() ?>
+                        <input id="manualZoomInput" type="url" name="zoom_join_url" placeholder="https://us02web.zoom.us/j/..." class="input-modern" style="height:32px; font-size:0.8125rem; min-width:240px; padding:0.3rem 0.55rem;" required>
+                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.8125rem; color:#0f766e; border-color:#99f6e4;">
+                            <i class="fas fa-link"></i> Simpan Link
+                        </button>
                     </form>
                 </div>
                 
@@ -504,6 +510,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'tipe' => $meeting['tipe'],
                 'status' => $meeting['status'],
                 'waktu_mulai_ts' => isset($meeting['waktu_mulai']) ? strtotime($meeting['waktu_mulai']) : null,
+                'waktu_selesai_ts' => isset($meeting['waktu_selesai']) ? strtotime($meeting['waktu_selesai']) : null,
                 'pegawai' => $meeting['nama_pegawai'] ?? null,
                 'pegawai_id' => $meeting['pegawai_id'] ?? null,
                 'jumlah_peserta' => $meeting['jumlah_peserta'] ?? null,
@@ -570,6 +577,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (adminActions) {
                 var approveForm = document.getElementById('approveForm');
                 var sendZoomForm = document.getElementById('sendZoomForm');
+                var manualZoomForm = document.getElementById('manualZoomForm');
+                var manualZoomInput = document.getElementById('manualZoomInput');
                 var showContainer = false;
 
                 // Show approve/reject only for pending
@@ -585,13 +594,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Show "Kirim Zoom" only for approved + Online/Hybrid + no zoom yet
                 if (sendZoomForm) {
                     var isOnlineOrHybrid = props.tipe === 'Online' || props.tipe === 'Hybrid';
-                    var hasZoom = props.zoom_meeting_id && props.zoom_meeting_id !== '';
-                    if (isAdmin && props.status === 'approved' && isOnlineOrHybrid && !hasZoom) {
+                    var hasHostMeeting = props.zoom_meeting_id && props.zoom_meeting_id !== '';
+                    if (isAdmin && props.status === 'approved' && isOnlineOrHybrid && !hasHostMeeting) {
                         sendZoomForm.classList.remove('hidden');
                         sendZoomForm.action = '<?= base_url('meeting/send-zoom/') ?>' + event.id;
                         showContainer = true;
                     } else {
                         sendZoomForm.classList.add('hidden');
+                    }
+                }
+
+                if (manualZoomForm && manualZoomInput) {
+                    var isOnlineOrHybrid = props.tipe === 'Online' || props.tipe === 'Hybrid';
+                    var meetingNotEnded = Date.now() < (Number(props.waktu_selesai_ts) * 1000);
+                    if (isAdmin && props.status === 'approved' && isOnlineOrHybrid && meetingNotEnded) {
+                        manualZoomForm.classList.remove('hidden');
+                        manualZoomForm.classList.add('inline-flex');
+                        manualZoomForm.action = '<?= base_url('meeting/manual-zoom/') ?>' + event.id;
+                        manualZoomInput.value = props.zoom_join_url || '';
+                        showContainer = true;
+                    } else {
+                        manualZoomForm.classList.remove('inline-flex');
+                        manualZoomForm.classList.add('hidden');
+                        manualZoomInput.value = '';
                     }
                 }
 
@@ -656,24 +681,29 @@ document.addEventListener('DOMContentLoaded', function() {
             var zoomSection = document.getElementById('eventZoomSection');
             if (zoomSection) {
                 var isOnlineOrHybrid = props.tipe === 'Online' || props.tipe === 'Hybrid';
-                var hasZoom = props.zoom_meeting_id && props.zoom_meeting_id !== '';
+                var hasJoinUrl = props.zoom_join_url && props.zoom_join_url !== '';
+                var hasHostMeeting = props.zoom_meeting_id && props.zoom_meeting_id !== '';
                 var currentPegawaiId = <?= (int) session()->get('pegawai_id') ?>;
                 var isOwner = parseInt(props.pegawai_id) === currentPegawaiId;
                 var canSeeZoom = isAdmin || isOwner;
-                if (isOnlineOrHybrid && props.status === 'approved' && hasZoom && canSeeZoom) {
+                var meetingNotEnded = Date.now() < (Number(props.waktu_selesai_ts) * 1000);
+                if (isOnlineOrHybrid && props.status === 'approved' && hasJoinUrl && canSeeZoom) {
                     zoomSection.classList.remove('hidden');
                     document.getElementById('zoomJoinLink').href = props.zoom_join_url || '#';
                     var hostForm = document.getElementById('zoomHostForm');
                     var hostLocked = document.getElementById('zoomHostLocked');
                     var meetStart = Number(props.waktu_mulai_ts) * 1000;
                     var nowMs = Date.now();
-                    if (nowMs >= (meetStart - 3600000)) {
+                    if (hasHostMeeting && meetingNotEnded && nowMs >= (meetStart - 3600000)) {
                         hostForm.action = '<?= base_url('meeting/refresh-zoom/') ?>' + event.id;
                         hostForm.classList.remove('hidden');
                         hostLocked.classList.add('hidden');
-                    } else {
+                    } else if (hasHostMeeting && meetingNotEnded) {
                         hostForm.classList.add('hidden');
                         hostLocked.classList.remove('hidden');
+                    } else {
+                        hostForm.classList.add('hidden');
+                        hostLocked.classList.add('hidden');
                     }
                 } else {
                     zoomSection.classList.add('hidden');

@@ -126,27 +126,29 @@
                                         <div class="flex items-center gap-2 justify-end py-1 flex-wrap">
                                             <?php
                                                 $isOnlineOrHybrid = in_array($meeting['tipe'] ?? '', ['Online', 'Hybrid']);
-                                                $hasZoom = !empty($meeting['zoom_meeting_id']);
+                                                $hasJoinUrl = !empty($meeting['zoom_join_url']);
+                                                $hasHostMeeting = !empty($meeting['zoom_meeting_id']);
+                                                $meetingNotEnded = time() < strtotime($meeting['waktu_selesai']);
                                             ?>
                                             <?php if ($isOnlineOrHybrid && $meeting['status'] === 'approved' && $canOwnOrAdmin): ?>
-                                                <?php if ($hasZoom): ?>
+                                                <?php if ($hasJoinUrl): ?>
                                                     <a href="<?= esc($meeting['zoom_join_url']) ?>" target="_blank" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe;">
                                                         <i class="fas fa-video"></i> Join Zoom
                                                     </a>
                                                     <?php $withinOneHour = time() >= (strtotime($meeting['waktu_mulai']) - 3600); ?>
-                                                    <?php if ($withinOneHour): ?>
+                                                    <?php if ($hasHostMeeting && $meetingNotEnded && $withinOneHour): ?>
                                                         <form action="<?= base_url('meeting/refresh-zoom/' . $meeting['id']) ?>" method="POST" class="inline-block" target="_blank">
                                                             <?= csrf_field() ?>
                                                             <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host (generate link baru)">
                                                                 <i class="fas fa-play-circle"></i> Host
                                                             </button>
                                                         </form>
-                                                    <?php else: ?>
+                                                    <?php elseif ($hasHostMeeting && $meetingNotEnded): ?>
                                                         <span class="text-xs text-gray-400 italic" title="Link Host tersedia 1 jam sebelum meeting">
                                                             <i class="fas fa-lock text-gray-300"></i> Host (H-1 jam)
                                                         </span>
                                                     <?php endif; ?>
-                                                <?php elseif ($isAdmin): ?>
+                                                <?php elseif ($isAdmin && !$hasHostMeeting): ?>
                                                     <form action="<?= base_url('meeting/send-zoom/' . $meeting['id']) ?>" method="POST" class="inline-block" onsubmit="return confirm('Buat Zoom meeting dan kirim link ke pegawai?');">
                                                         <?= csrf_field() ?>
                                                         <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe; font-weight:600;">
@@ -154,6 +156,15 @@
                                                         </button>
                                                     </form>
                                                 <?php endif; ?>
+                                            <?php endif; ?>
+                                            <?php if ($isAdmin && $isOnlineOrHybrid && $meeting['status'] === 'approved' && $meetingNotEnded): ?>
+                                                <form action="<?= base_url('meeting/manual-zoom/' . $meeting['id']) ?>" method="POST" class="inline-flex items-center gap-1" style="padding:0; margin:0;">
+                                                    <?= csrf_field() ?>
+                                                    <input type="url" name="zoom_join_url" value="<?= esc($meeting['zoom_join_url'] ?? '') ?>" placeholder="https://us02web.zoom.us/j/..." class="input-modern" style="height:30px; font-size:0.75rem; min-width:220px; padding:0.25rem 0.5rem;" required>
+                                                    <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#0f766e; border-color:#99f6e4;">
+                                                        <i class="fas fa-link"></i> Simpan Link
+                                                    </button>
+                                                </form>
                                             <?php endif; ?>
                                             <?php if ($canOwnOrAdmin): ?>
                                                 <a href="<?= base_url('meeting/edit/' . $meeting['id']) ?>" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem;">
@@ -297,27 +308,29 @@
                                         <div class="flex items-center gap-2 justify-end py-1 flex-wrap">
                                             <?php
                                                 $isOnlineOrHybrid = in_array($meeting['tipe'] ?? '', ['Online', 'Hybrid']);
-                                                $hasZoom = !empty($meeting['zoom_meeting_id']);
+                                                $hasJoinUrl = !empty($meeting['zoom_join_url']);
+                                                $hasHostMeeting = !empty($meeting['zoom_meeting_id']);
+                                                $meetingNotEnded = time() < strtotime($meeting['waktu_selesai']);
                                             ?>
                                             <?php if ($isOnlineOrHybrid && $meeting['status'] === 'approved' && $canOwnOrAdmin): ?>
-                                                <?php if ($hasZoom): ?>
+                                                <?php if ($hasJoinUrl): ?>
                                                     <a href="<?= esc($meeting['zoom_join_url']) ?>" target="_blank" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe;">
                                                         <i class="fas fa-video"></i> Join Zoom
                                                     </a>
                                                     <?php $withinOneHour = time() >= (strtotime($meeting['waktu_mulai']) - 3600); ?>
-                                                    <?php if ($withinOneHour): ?>
+                                                    <?php if ($hasHostMeeting && $meetingNotEnded && $withinOneHour): ?>
                                                         <form action="<?= base_url('meeting/refresh-zoom/' . $meeting['id']) ?>" method="POST" class="inline-block" target="_blank">
                                                             <?= csrf_field() ?>
                                                             <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host (generate link baru)">
                                                                 <i class="fas fa-play-circle"></i> Host
                                                             </button>
                                                         </form>
-                                                    <?php else: ?>
+                                                    <?php elseif ($hasHostMeeting && $meetingNotEnded): ?>
                                                         <span class="text-xs text-gray-400 italic" title="Link Host tersedia 1 jam sebelum meeting">
                                                             <i class="fas fa-lock text-gray-300"></i> Host (H-1 jam)
                                                         </span>
                                                     <?php endif; ?>
-                                                <?php elseif ($isAdmin): ?>
+                                                <?php elseif ($isAdmin && !$hasHostMeeting): ?>
                                                     <form action="<?= base_url('meeting/send-zoom/' . $meeting['id']) ?>" method="POST" class="inline-block" onsubmit="return confirm('Buat Zoom meeting dan kirim link ke pegawai?');">
                                                         <?= csrf_field() ?>
                                                         <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe; font-weight:600;">
@@ -325,6 +338,15 @@
                                                         </button>
                                                     </form>
                                                 <?php endif; ?>
+                                            <?php endif; ?>
+                                            <?php if ($isAdmin && $isOnlineOrHybrid && $meeting['status'] === 'approved' && $meetingNotEnded): ?>
+                                                <form action="<?= base_url('meeting/manual-zoom/' . $meeting['id']) ?>" method="POST" class="inline-flex items-center gap-1" style="padding:0; margin:0;">
+                                                    <?= csrf_field() ?>
+                                                    <input type="url" name="zoom_join_url" value="<?= esc($meeting['zoom_join_url'] ?? '') ?>" placeholder="https://us02web.zoom.us/j/..." class="input-modern" style="height:30px; font-size:0.75rem; min-width:220px; padding:0.25rem 0.5rem;" required>
+                                                    <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#0f766e; border-color:#99f6e4;">
+                                                        <i class="fas fa-link"></i> Simpan Link
+                                                    </button>
+                                                </form>
                                             <?php endif; ?>
                                             <?php if ($canOwnOrAdmin): ?>
                                                 <a href="<?= base_url('meeting/edit/' . $meeting['id']) ?>" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem;">
@@ -399,10 +421,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var todayMeetings = <?= json_encode(array_map(static function ($meeting) {
         $meeting['waktu_mulai_ts'] = isset($meeting['waktu_mulai']) ? strtotime($meeting['waktu_mulai']) : null;
+        $meeting['waktu_selesai_ts'] = isset($meeting['waktu_selesai']) ? strtotime($meeting['waktu_selesai']) : null;
         return $meeting;
     }, $today_meetings)) ?>;
     var upcomingMeetings = <?= json_encode(array_map(static function ($meeting) {
         $meeting['waktu_mulai_ts'] = isset($meeting['waktu_mulai']) ? strtotime($meeting['waktu_mulai']) : null;
+        $meeting['waktu_selesai_ts'] = isset($meeting['waktu_selesai']) ? strtotime($meeting['waktu_selesai']) : null;
         return $meeting;
     }, $upcoming_meetings)) ?>;
     
@@ -488,21 +512,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="flex items-center gap-2 justify-end py-1 flex-wrap">
                         ${(function(){
                             var isOnlineOrHybrid = meeting.tipe === 'Online' || meeting.tipe === 'Hybrid';
-                            var hasZoom = meeting.zoom_meeting_id && meeting.zoom_meeting_id !== '';
+                            var hasJoinUrl = meeting.zoom_join_url && meeting.zoom_join_url !== '';
+                            var hasHostMeeting = meeting.zoom_meeting_id && meeting.zoom_meeting_id !== '';
+                            var meetingEnd = Number(meeting.waktu_selesai_ts) * 1000;
+                            var meetingNotEnded = Date.now() < meetingEnd;
                             var zoomHtml = '';
                             if (isOnlineOrHybrid && meeting.status === 'approved' && canOwnOrAdmin) {
-                                if (hasZoom) {
+                                if (hasJoinUrl) {
                                     zoomHtml += '<a href="' + meeting.zoom_join_url + '" target="_blank" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe;"><i class="fas fa-video"></i> Join Zoom</a>';
                                     var meetStart = Number(meeting.waktu_mulai_ts) * 1000;
                                     var nowMs = Date.now();
-                                    if (nowMs >= (meetStart - 3600000)) {
+                                    if (hasHostMeeting && meetingNotEnded && nowMs >= (meetStart - 3600000)) {
                                         zoomHtml += '<form action="' + baseUrl + '/meeting/refresh-zoom/' + meeting.id + '" method="POST" class="inline-block" target="_blank"><input type="hidden" name="csrf_test_name" value="' + csrf + '"><button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host (generate link baru)"><i class="fas fa-play-circle"></i> Host</button></form>';
-                                    } else {
+                                    } else if (hasHostMeeting && meetingNotEnded) {
                                         zoomHtml += '<span class="text-xs text-gray-400 italic" title="Link Host tersedia 1 jam sebelum meeting"><i class="fas fa-lock text-gray-300"></i> Host (H-1 jam)</span>';
                                     }
-                                } else if (isAdmin) {
+                                } else if (isAdmin && !hasHostMeeting) {
                                     zoomHtml += '<form action="' + baseUrl + '/meeting/send-zoom/' + meeting.id + '" method="POST" class="inline-block" onsubmit="return confirm(\'Buat Zoom meeting dan kirim link ke pegawai?\');"><input type="hidden" name="csrf_test_name" value="' + csrf + '"><button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe; font-weight:600;">\ud83d\ude80 Kirim Zoom</button></form>';
                                 }
+                            }
+                            if (isAdmin && isOnlineOrHybrid && meeting.status === 'approved' && meetingNotEnded) {
+                                var joinValue = meeting.zoom_join_url ? String(meeting.zoom_join_url).replace(/"/g, '&quot;') : '';
+                                zoomHtml += '<form action="' + baseUrl + '/meeting/manual-zoom/' + meeting.id + '" method="POST" class="inline-flex items-center gap-1" style="padding:0; margin:0;"><input type="hidden" name="csrf_test_name" value="' + csrf + '"><input type="url" name="zoom_join_url" value="' + joinValue + '" placeholder="https://us02web.zoom.us/j/..." class="input-modern" style="height:30px; font-size:0.75rem; min-width:220px; padding:0.25rem 0.5rem;" required><button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#0f766e; border-color:#99f6e4;"><i class="fas fa-link"></i> Simpan Link</button></form>';
                             }
                             return zoomHtml;
                         })()}

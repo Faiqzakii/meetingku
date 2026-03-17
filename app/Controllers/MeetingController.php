@@ -772,6 +772,61 @@ class MeetingController extends Controller
     }
 
     /**
+     * Save manual Zoom join link for approved online/hybrid meetings.
+     */
+    public function updateManualZoomJoin($id = null)
+    {
+        if (!$this->isAdmin()) {
+            return redirect()->back()->with('error', 'Hanya admin yang dapat menginput link Zoom manual');
+        }
+
+        $meeting = $this->meetingModel->find($id);
+        if (!$meeting) {
+            return redirect()->back()->with('error', 'Meeting tidak ditemukan');
+        }
+
+        if ($meeting['status'] !== 'approved') {
+            return redirect()->back()->with('error', 'Link Zoom manual hanya bisa diinput untuk meeting approved');
+        }
+
+        $ruangan = $this->ruanganModel->find($meeting['ruangan_id']);
+        if (!$ruangan || !in_array($ruangan['tipe'], ['Online', 'Hybrid'])) {
+            return redirect()->back()->with('error', 'Link Zoom manual hanya untuk ruangan Online/Hybrid');
+        }
+
+        if (strtotime($meeting['waktu_selesai']) <= time()) {
+            return redirect()->back()->with('error', 'Meeting sudah selesai, link Zoom tidak dapat diubah');
+        }
+
+        $zoomJoinUrl = trim((string) $this->request->getPost('zoom_join_url'));
+        if ($zoomJoinUrl === '') {
+            return redirect()->back()->with('error', 'Link Zoom wajib diisi');
+        }
+
+        if (!filter_var($zoomJoinUrl, FILTER_VALIDATE_URL)) {
+            return redirect()->back()->with('error', 'Format URL tidak valid');
+        }
+
+        $parts = parse_url($zoomJoinUrl);
+        $scheme = strtolower($parts['scheme'] ?? '');
+        $host = strtolower($parts['host'] ?? '');
+        if (!in_array($scheme, ['http', 'https'], true) || !preg_match('/(^|\.)zoom\.us$/', $host)) {
+            return redirect()->back()->with('error', 'URL harus menggunakan domain Zoom (zoom.us)');
+        }
+
+        $this->meetingModel->setValidationRules([]);
+        $updated = $this->meetingModel->update($id, [
+            'zoom_join_url' => $zoomJoinUrl,
+        ]);
+
+        if ($updated === false) {
+            return redirect()->back()->with('error', 'Gagal menyimpan link Zoom manual');
+        }
+
+        return redirect()->back()->with('success', 'Link Zoom manual berhasil disimpan');
+    }
+
+    /**
      * Refresh Zoom start_url and redirect to it.
      * Used as the "Host" button action — generates a fresh start_url (valid 2h) on the fly.
      */
@@ -790,6 +845,12 @@ class MeetingController extends Controller
         $currentPegawaiId = (int) session()->get('pegawai_id');
         if (!$this->isAdmin() && (int) $meeting['pegawai_id'] !== $currentPegawaiId) {
             return redirect()->back()->with('error', 'Anda tidak memiliki akses');
+        }
+
+        // Do not allow host link when meeting is finished
+        $meetingEnd = strtotime($meeting['waktu_selesai']);
+        if (time() >= $meetingEnd) {
+            return redirect()->back()->with('error', 'Meeting sudah selesai, link Host tidak tersedia');
         }
 
         // Only allow within 1 hour before meeting start
