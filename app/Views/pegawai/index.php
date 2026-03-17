@@ -61,7 +61,7 @@
                             </td>
                             <td class="text-gray-600 font-mono text-sm"><?= esc($p['nip']) ?></td>
                             <td>
-                                <?php if (($p['role'] ?? '') === 'admin'): ?>
+                                <?php if ((int) ($p['is_admin'] ?? 0) === 1): ?>
                                     <span class="badge-status badge-approved" style="font-size:0.6875rem;">Admin</span>
                                 <?php else: ?>
                                     <span class="badge-status" style="background:#f1f5f9; color:#64748b; font-size:0.6875rem;">User</span>
@@ -196,7 +196,7 @@
                         <i class="fas fa-cloud-arrow-up text-3xl text-gray-300 mb-3"></i>
                         <p class="text-sm font-medium text-gray-600">Pilih file Excel (.xlsx, .xls)</p>
                         <p class="text-xs text-gray-400 mt-1">Atau drag & drop file ke sini</p>
-                        <input type="file" name="file" accept=".xlsx,.xls" required class="mt-3 text-sm" style="max-width:250px;">
+                        <input type="file" name="excel_file" accept=".xlsx" required class="mt-3 text-sm" style="max-width:250px;">
                     </div>
                 </div>
                 <div class="modal-footer flex justify-end gap-3">

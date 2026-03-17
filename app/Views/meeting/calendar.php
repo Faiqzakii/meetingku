@@ -399,6 +399,23 @@
 <?= $this->section('scripts') ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    function safeHttpUrl(url) {
+        if (!url) {
+            return '';
+        }
+
+        try {
+            var parsed = new URL(String(url), window.location.origin);
+            if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+                return parsed.href;
+            }
+        } catch (e) {
+            return '';
+        }
+
+        return '';
+    }
+
     // Generate unique form token
     function generateFormToken() {
         return 'token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -569,7 +586,11 @@ document.addEventListener('DOMContentLoaded', function() {
             var statusElement = document.getElementById('eventStatus');
             var badgeClass = props.status === 'approved' ? 'badge-approved' : 
                             (props.status === 'pending' ? 'badge-pending' : 'badge-rejected');
-            statusElement.innerHTML = '<span class="badge-status ' + badgeClass + '">' + props.status.toUpperCase() + '</span>';
+            statusElement.textContent = '';
+            var statusBadge = document.createElement('span');
+            statusBadge.className = 'badge-status ' + badgeClass;
+            statusBadge.textContent = String(props.status || '').toUpperCase();
+            statusElement.appendChild(statusBadge);
             
             // Show admin actions based on status
             var adminActions = document.getElementById('eventAdminActions');
@@ -653,14 +674,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 var editRow = document.getElementById('auditEditRow');
                 if (props.status_changed_by_name && props.status_changed_at) {
                     var statusLabel = props.status === 'approved' ? 'Disetujui' : (props.status === 'rejected' ? 'Ditolak' : 'Status diubah');
-                    document.getElementById('auditStatusText').innerHTML = '<strong>' + statusLabel + '</strong> oleh <strong>' + props.status_changed_by_name + '</strong> pada ' + moment(props.status_changed_at).format('DD MMM YYYY HH:mm');
+                    document.getElementById('auditStatusText').textContent = statusLabel + ' oleh ' + props.status_changed_by_name + ' pada ' + moment(props.status_changed_at).format('DD MMM YYYY HH:mm');
                     statusRow.classList.remove('hidden');
                     hasAudit = true;
                 } else {
                     statusRow.classList.add('hidden');
                 }
                 if (props.last_edited_by_name && props.last_edited_at) {
-                    document.getElementById('auditEditText').innerHTML = '<strong>Diedit</strong> oleh <strong>' + props.last_edited_by_name + '</strong> pada ' + moment(props.last_edited_at).format('DD MMM YYYY HH:mm');
+                    document.getElementById('auditEditText').textContent = 'Diedit oleh ' + props.last_edited_by_name + ' pada ' + moment(props.last_edited_at).format('DD MMM YYYY HH:mm');
                     editRow.classList.remove('hidden');
                     hasAudit = true;
                 } else {
@@ -668,7 +689,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 var createdRow = document.getElementById('auditCreatedRow');
                 if (props.pegawai && props.created_at) {
-                    document.getElementById('auditCreatedText').innerHTML = '<strong>Di-input</strong> oleh <strong>' + props.pegawai + '</strong> pada ' + moment(props.created_at).format('DD MMM YYYY HH:mm');
+                    document.getElementById('auditCreatedText').textContent = 'Di-input oleh ' + props.pegawai + ' pada ' + moment(props.created_at).format('DD MMM YYYY HH:mm');
                     createdRow.classList.remove('hidden');
                     hasAudit = true;
                 } else {
@@ -687,9 +708,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 var isOwner = parseInt(props.pegawai_id) === currentPegawaiId;
                 var canSeeZoom = isAdmin || isOwner;
                 var meetingNotEnded = Date.now() < (Number(props.waktu_selesai_ts) * 1000);
+                var joinUrl = safeHttpUrl(props.zoom_join_url);
                 if (isOnlineOrHybrid && props.status === 'approved' && hasJoinUrl && canSeeZoom) {
                     zoomSection.classList.remove('hidden');
-                    document.getElementById('zoomJoinLink').href = props.zoom_join_url || '#';
+                    document.getElementById('zoomJoinLink').href = joinUrl || '#';
                     var hostForm = document.getElementById('zoomHostForm');
                     var hostLocked = document.getElementById('zoomHostLocked');
                     var meetStart = Number(props.waktu_mulai_ts) * 1000;

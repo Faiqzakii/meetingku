@@ -407,6 +407,36 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    function escHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function escAttr(value) {
+        return escHtml(value).replace(/`/g, '&#96;');
+    }
+
+    function safeHttpUrl(url) {
+        if (!url) {
+            return '';
+        }
+
+        try {
+            var parsed = new URL(String(url), window.location.origin);
+            if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+                return parsed.href;
+            }
+        } catch (e) {
+            return '';
+        }
+
+        return '';
+    }
+
     function updateEndTime() {
         var startTime = document.getElementById('waktu_mulai');
         var durasi = document.getElementById('durasi');
@@ -440,15 +470,25 @@ document.addEventListener('DOMContentLoaded', function() {
         var currentId  = pegEl ? Number(pegEl.dataset.pegawaiId) : 0;
         var canOwnOrAdmin = isLoggedIn && ((meeting.pegawai_id != null && Number(meeting.pegawai_id) === currentId) || isAdmin);
         var canApprove    = isLoggedIn && isAdmin && meeting.status === 'pending';
+        var safeNamaKeg = escHtml(meeting.nama_keg);
+        var safeNamaRuangan = escHtml(meeting.nama_ruangan);
+        var safeTipe = escHtml(meeting.tipe);
+        var safeNamaPegawai = escHtml(meeting.nama_pegawai || '-');
+        var safeLastEditedBy = escHtml(meeting.last_edited_by_name || '');
+        var safeStatusChangedBy = escHtml(meeting.status_changed_by_name || '');
+        var safeStatusLabel = escHtml(meeting.status === 'approved' ? 'Disetujui' : (meeting.status === 'rejected' ? 'Ditolak' : 'Status diubah'));
+        var safeStatusText = escHtml(String(meeting.status || '').toUpperCase());
+        var joinUrl = safeHttpUrl(meeting.zoom_join_url);
+        var joinValue = escAttr(meeting.zoom_join_url || '');
 
         var html = `
             <tr>
                 <td class="font-semibold text-gray-900" style="max-width:250px; word-wrap:break-word; white-space:normal;">
-                    ${meeting.nama_keg}
+                    ${safeNamaKeg}
                 </td>
                 <td class="text-gray-600" data-ruangan-id="${meeting.ruangan_id}">
                     <i class="fas fa-door-open text-orange-300 mr-1 text-xs"></i>
-                    ${meeting.nama_ruangan} <span class="text-gray-400">(${meeting.tipe})</span>
+                    ${safeNamaRuangan} <span class="text-gray-400">(${safeTipe})</span>
                 </td>
                 <td class="text-gray-600">
                     <i class="fas fa-clock text-orange-300 mr-1 text-xs"></i>
@@ -459,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </td>
                 <td>
                     <span class="badge-status ${badgeClass}">
-                        ${meeting.status.toUpperCase()}
+                        ${safeStatusText}
                     </span>
                 </td>`;
 
@@ -483,24 +523,23 @@ document.addEventListener('DOMContentLoaded', function() {
             var csrf   = csrfEl ? csrfEl.value : '';
             var auditHtml = '';
             if (isAdmin) {
-                var statusLabel = meeting.status === 'approved' ? 'Disetujui' : (meeting.status === 'rejected' ? 'Ditolak' : 'Status diubah');
                 auditHtml = `
                     <div class="px-2 pt-2 pb-1">
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5"><i class="fas fa-history mr-1"></i>Log Aktivitas</p>
                         <div class="space-y-1 mb-2">
                             <div class="flex items-start gap-2 text-xs text-gray-500">
                                 <i class="fas fa-plus-circle text-orange-300 mt-0.5" style="min-width:14px;"></i>
-                                <span><strong>Di-input</strong> oleh <strong>${meeting.nama_pegawai || '-'}</strong> pada ${meeting.created_at ? moment(meeting.created_at).format('DD MMM YYYY HH:mm') : '-'}</span>
+                                <span><strong>Di-input</strong> oleh <strong>${safeNamaPegawai}</strong> pada ${meeting.created_at ? moment(meeting.created_at).format('DD MMM YYYY HH:mm') : '-'}</span>
                             </div>
                             ${meeting.last_edited_by_name && meeting.last_edited_at ? `
                             <div class="flex items-start gap-2 text-xs text-gray-500">
                                 <i class="fas fa-pen text-orange-300 mt-0.5" style="min-width:14px;"></i>
-                                <span><strong>Diedit</strong> oleh <strong>${meeting.last_edited_by_name}</strong> pada ${moment(meeting.last_edited_at).format('DD MMM YYYY HH:mm')}</span>
+                                <span><strong>Diedit</strong> oleh <strong>${safeLastEditedBy}</strong> pada ${moment(meeting.last_edited_at).format('DD MMM YYYY HH:mm')}</span>
                             </div>` : ''}
                             ${meeting.status_changed_by_name && meeting.status_changed_at ? `
                             <div class="flex items-start gap-2 text-xs text-gray-500">
                                 <i class="fas fa-gavel text-orange-300 mt-0.5" style="min-width:14px;"></i>
-                                <span><strong>${statusLabel}</strong> oleh <strong>${meeting.status_changed_by_name}</strong> pada ${moment(meeting.status_changed_at).format('DD MMM YYYY HH:mm')}</span>
+                                <span><strong>${safeStatusLabel}</strong> oleh <strong>${safeStatusChangedBy}</strong> pada ${moment(meeting.status_changed_at).format('DD MMM YYYY HH:mm')}</span>
                             </div>` : ''}
                         </div>
                     </div>`;
@@ -519,7 +558,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             var zoomHtml = '';
                             if (isOnlineOrHybrid && meeting.status === 'approved' && canOwnOrAdmin) {
                                 if (hasJoinUrl) {
-                                    zoomHtml += '<a href="' + meeting.zoom_join_url + '" target="_blank" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe;"><i class="fas fa-video"></i> Join Zoom</a>';
+                                    zoomHtml += '<a href="' + joinUrl + '" target="_blank" rel="noopener noreferrer" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe;"><i class="fas fa-video"></i> Join Zoom</a>';
                                     var meetStart = Number(meeting.waktu_mulai_ts) * 1000;
                                     var nowMs = Date.now();
                                     if (hasHostMeeting && meetingNotEnded && nowMs >= (meetStart - 3600000)) {
@@ -532,7 +571,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
                             }
                             if (isAdmin && isOnlineOrHybrid && meeting.status === 'approved' && meetingNotEnded) {
-                                var joinValue = meeting.zoom_join_url ? String(meeting.zoom_join_url).replace(/"/g, '&quot;') : '';
                                 zoomHtml += '<form action="' + baseUrl + '/meeting/manual-zoom/' + meeting.id + '" method="POST" class="inline-flex items-center gap-1" style="padding:0; margin:0;"><input type="hidden" name="csrf_test_name" value="' + csrf + '"><input type="url" name="zoom_join_url" value="' + joinValue + '" placeholder="https://us02web.zoom.us/j/..." class="input-modern" style="height:30px; font-size:0.75rem; min-width:220px; padding:0.25rem 0.5rem;" required><button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#0f766e; border-color:#99f6e4;"><i class="fas fa-link"></i> Simpan Link</button></form>';
                             }
                             return zoomHtml;

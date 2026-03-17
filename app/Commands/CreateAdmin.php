@@ -50,12 +50,8 @@ class CreateAdmin extends BaseCommand
         ];
 
         try {
-            log_message('debug', 'Creating admin user via CLI command');
-            log_message('debug', '- Username: ' . $username);
-            log_message('debug', '- Name: ' . $nama);
-            log_message('debug', '- NIP: ' . $nip);
-
-            if ($pegawaiModel->createAdmin($data)) {
+            $created = $pegawaiModel->insert($data);
+            if ($created !== false) {
                 CLI::write('Admin user created successfully', 'green');
                 
                 // Show created user details
@@ -73,23 +69,15 @@ class CreateAdmin extends BaseCommand
                 CLI::write("1. Go to: " . site_url('auth/login'), 'white');
                 CLI::write("2. Username: {$user['username']}", 'white');
                 CLI::write("3. Password: [The password you entered]", 'white');
-                
-                log_message('info', 'Admin user created successfully via CLI');
-                log_message('debug', 'Created user details: ' . json_encode($user));
             } else {
                 CLI::error('Failed to create admin user');
                 CLI::error('Validation errors:');
                 foreach ($pegawaiModel->errors() as $error) {
                     CLI::error('- ' . $error);
                 }
-                
-                log_message('error', 'Failed to create admin user via CLI');
-                log_message('error', 'Validation errors: ' . json_encode($pegawaiModel->errors()));
             }
         } catch (\Exception $e) {
             CLI::error('Error creating admin user: ' . $e->getMessage());
-            log_message('error', 'Exception while creating admin user: ' . $e->getMessage());
-            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
         }
     }
 }

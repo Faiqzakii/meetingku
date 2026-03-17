@@ -60,7 +60,7 @@
                             </div>
                         </div>
                         <div>
-                            <?php if (($r['status'] ?? 'active') === 'active'): ?>
+                            <?php if ((int) ($r['is_active'] ?? 1) === 1): ?>
                                 <span class="badge-status badge-approved" style="font-size:0.6875rem;">Aktif</span>
                             <?php else: ?>
                                 <span class="badge-status badge-rejected" style="font-size:0.6875rem;">Nonaktif</span>
@@ -69,7 +69,7 @@
                     </div>
 
                     <div class="flex items-center gap-2 mt-4">
-                        <a href="<?= base_url('meeting/room/' . $r['id']) ?>" 
+                        <a href="<?= base_url('ruangan/' . $r['id'] . '/meetings') ?>" 
                            class="btn-outline-custom flex-1 justify-center" style="padding:0.5rem 0.75rem; font-size:0.8125rem;">
                             <i class="fas fa-calendar-alt"></i> Jadwal
                         </a>
@@ -128,9 +128,9 @@
                             <label for="add_status" class="block text-sm font-semibold text-gray-700 mb-1.5">
                                 <i class="fas fa-toggle-on mr-1 text-orange-400 text-xs"></i> Status
                             </label>
-                            <select class="input-modern dropdown-modern" id="add_status" name="status" required>
-                                <option value="active">Aktif</option>
-                                <option value="inactive">Nonaktif</option>
+                            <select class="input-modern dropdown-modern" id="add_status" name="is_active" required>
+                                <option value="1">Aktif</option>
+                                <option value="0">Nonaktif</option>
                             </select>
                         </div>
                     </div>

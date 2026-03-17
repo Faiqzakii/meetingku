@@ -52,13 +52,6 @@ abstract class BaseController extends Controller
 
         // Preload any models, libraries, etc, here.
         $this->session = \Config\Services::session();
-
-        // Log initialization
-        log_message('debug', '=== Controller Initialization ===');
-        log_message('debug', 'Session ID: ' . session_id());
-        log_message('debug', 'Request Method: ' . $request->getMethod());
-        log_message('debug', 'Request URI: ' . $request->getUri()->getPath());
-        log_message('debug', 'Session Data: ' . json_encode($this->session->get()));
     }
 
     /**
