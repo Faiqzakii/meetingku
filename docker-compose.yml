@@ -109,17 +109,6 @@ services:
     networks:
       - meetingku-internal
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TUNNEL_TOKEN}
-    depends_on:
-      - reverse-proxy
-    profiles:
-      - tunnel
-    networks:
-      - coolify
-      - meetingku-internal
-
 volumes:
   writable_data:
   wa_auth:

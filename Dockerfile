@@ -1,8 +1,18 @@
 FROM php:8.2-fpm-bookworm AS app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libicu-dev libpq-dev libzip-dev unzip git \
-    && docker-php-ext-install pdo_pgsql pgsql intl zip \
+    && apt-get install -y --no-install-recommends \
+        git \
+        libfreetype6-dev \
+        libicu-dev \
+        libjpeg62-turbo-dev \
+        libonig-dev \
+        libpng-dev \
+        libpq-dev \
+        libzip-dev \
+        unzip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd intl mbstring pdo_pgsql pgsql zip \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
