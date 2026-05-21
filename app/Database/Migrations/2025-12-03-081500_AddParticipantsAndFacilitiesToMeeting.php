@@ -11,15 +11,11 @@ class AddParticipantsAndFacilitiesToMeeting extends Migration
         $fields = [
             'jumlah_peserta' => [
                 'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
                 'null' => true, // Initially null for existing records, or default 0
-                'after' => 'nama_keg'
             ],
             'fasilitas' => [
                 'type' => 'TEXT', // Using TEXT to be safe across DB versions, storing JSON
                 'null' => true,
-                'after' => 'jumlah_peserta'
             ]
         ];
 

@@ -13,7 +13,7 @@ class AddPlainKeyToWaApiKeys extends Migration
         }
 
         $fields = [
-            'plain_key' => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true, 'after' => 'name'],
+            'plain_key' => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
         ];
 
         $this->forge->addColumn('wa_api_keys', $fields);

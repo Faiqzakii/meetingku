@@ -9,7 +9,7 @@ class CreateWhatsappTables extends Migration
     public function up()
     {
         $this->forge->addField([
-            'id' => ['type' => 'BIGINT', 'auto_increment' => true],
+            'id' => ['type' => 'BIGSERIAL'],
             'name' => ['type' => 'VARCHAR', 'constraint' => 100],
             'plain_key' => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
             'key_hash' => ['type' => 'VARCHAR', 'constraint' => 255],
@@ -25,7 +25,7 @@ class CreateWhatsappTables extends Migration
         $this->forge->createTable('wa_api_keys', true);
 
         $this->forge->addField([
-            'id' => ['type' => 'BIGINT', 'auto_increment' => true],
+            'id' => ['type' => 'BIGSERIAL'],
             'api_key_id' => ['type' => 'BIGINT', 'null' => true],
             'to_number' => ['type' => 'VARCHAR', 'constraint' => 32],
             'message' => ['type' => 'TEXT'],

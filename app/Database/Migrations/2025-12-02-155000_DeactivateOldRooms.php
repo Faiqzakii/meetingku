@@ -16,7 +16,7 @@ class DeactivateOldRooms extends Migration
 
         $this->db->table('ruangan')
             ->whereIn('nama_ruangan', $oldRooms)
-            ->update(['is_active' => 0]);
+            ->update(['is_active' => false]);
     }
 
     public function down()
@@ -29,6 +29,6 @@ class DeactivateOldRooms extends Migration
 
         $this->db->table('ruangan')
             ->whereIn('nama_ruangan', $oldRooms)
-            ->update(['is_active' => 1]);
+            ->update(['is_active' => true]);
     }
 }

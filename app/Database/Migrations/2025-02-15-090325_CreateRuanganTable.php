@@ -10,10 +10,7 @@ class CreateRuanganTable extends Migration
     {
         $this->forge->addField([
             'id' => [
-                'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
-                'auto_increment' => true,
+                'type' => 'SERIAL',
             ],
             'nama_ruangan' => [
                 'type' => 'VARCHAR',

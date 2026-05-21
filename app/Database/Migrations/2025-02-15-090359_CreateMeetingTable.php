@@ -10,10 +10,7 @@ class CreateMeetingTable extends Migration
     {
         $this->forge->addField([
             'id' => [
-                'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
-                'auto_increment' => true,
+                'type' => 'SERIAL',
             ],
             'nama_keg' => [
                 'type' => 'VARCHAR',
@@ -21,13 +18,9 @@ class CreateMeetingTable extends Migration
             ],
             'ruangan_id' => [
                 'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
             ],
             'pegawai_id' => [
                 'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
             ],
             'waktu_mulai' => [
                 'type' => 'DATETIME',

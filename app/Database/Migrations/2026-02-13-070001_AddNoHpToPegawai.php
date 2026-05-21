@@ -14,7 +14,6 @@ class AddNoHpToPegawai extends Migration
                 'constraint' => 20,
                 'null'       => true,
                 'default'    => null,
-                'after'      => 'nip',
             ],
         ]);
     }

@@ -12,7 +12,6 @@ class AddActiveStatusToRuanganTable extends Migration
             'is_active' => [
                 'type' => 'BOOLEAN',
                 'default' => true,
-                'after' => 'tipe'
             ]
         ]);
     }
