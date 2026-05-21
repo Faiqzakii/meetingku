@@ -88,10 +88,10 @@ class ImportMysqlDumpToPostgres extends BaseCommand
         }
 
         $pdo = $this->createPostgresPdo($target);
+        $this->trySetReplicationRole($pdo, 'replica');
         $pdo->beginTransaction();
 
         try {
-            $this->trySetReplicationRole($pdo, 'replica');
 
             if ($truncate) {
                 $truncateTables = array_values(array_filter($tables, static fn (string $table): bool => isset($rowsByTable[$table])));
@@ -110,8 +110,8 @@ class ImportMysqlDumpToPostgres extends BaseCommand
                 $this->resetSequence($pdo, $table, 'id');
             }
 
-            $this->trySetReplicationRole($pdo, 'origin');
             $pdo->commit();
+            $this->trySetReplicationRole($pdo, 'origin');
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
