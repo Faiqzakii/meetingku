@@ -50,7 +50,7 @@ class RuanganModel extends Model
 
     public function getActiveRooms()
     {
-        return $this->where('is_active', 1)->findAll();
+        return $this->where('is_active', true)->findAll();
     }
 
     // Get meetings for a specific room, optionally filtered by date (Y-m-d)

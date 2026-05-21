@@ -113,8 +113,11 @@ class ImportMysqlDumpToPostgres extends BaseCommand
             $this->trySetReplicationRole($pdo, 'origin');
             $pdo->commit();
         } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
             $this->trySetReplicationRole($pdo, 'origin');
-            $pdo->rollBack();
             CLI::error($e->getMessage());
             return EXIT_ERROR;
         }
@@ -294,12 +297,17 @@ class ImportMysqlDumpToPostgres extends BaseCommand
                 $row[$index] = null;
             }
 
-            if (in_array($column, ['is_admin', 'is_active'], true) && $value !== null) {
+            if ($this->isBooleanColumn($column) && $value !== null) {
                 $row[$index] = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? ((int) $value === 1);
             }
         }
 
         return $row;
+    }
+
+    private function isBooleanColumn(string $column): bool
+    {
+        return in_array($column, ['is_admin', 'is_active'], true);
     }
 
     /** @param list<string> $columns @param list<list<mixed>> $rows */
@@ -314,7 +322,12 @@ class ImportMysqlDumpToPostgres extends BaseCommand
             foreach ($columns as $index => $column) {
                 $params[':' . $column] = $row[$index] ?? null;
             }
-            $stmt->execute($params);
+            try {
+                $stmt->execute($params);
+            } catch (Throwable $e) {
+                $id = $params[':id'] ?? 'unknown';
+                throw new \RuntimeException("Failed importing {$table} row id {$id}: " . $e->getMessage(), 0, $e);
+            }
         }
     }
 

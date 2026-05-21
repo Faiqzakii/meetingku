@@ -46,7 +46,7 @@ class CreateAdmin extends BaseCommand
             'password' => $password,
             'nama'     => $nama,
             'nip'      => $nip,
-            'is_admin' => 1
+            'is_admin' => true
         ];
 
         try {
