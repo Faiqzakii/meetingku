@@ -10,14 +10,12 @@ class AddPegawaiNotifCols extends Migration
     {
         $fields = [
             'terima_notif_offline' => [
-                'type'       => 'TINYINT',
-                'constraint' => 1,
+                'type'       => 'SMALLINT',
                 'default'    => 0,
                 'null'       => false,
             ],
             'terima_notif_zoom' => [
-                'type'       => 'TINYINT',
-                'constraint' => 1,
+                'type'       => 'SMALLINT',
                 'default'    => 0,
                 'null'       => false,
             ],

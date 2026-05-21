@@ -26,9 +26,9 @@ class AlterMeetingPegawaiFkSetNull extends Migration
         }
 
         $this->db->query(
-            'ALTER TABLE `meeting` ' .
-            'ADD CONSTRAINT `meeting_pegawai_id_foreign` ' .
-            'FOREIGN KEY (`pegawai_id`) REFERENCES `pegawai`(`id`) ' .
+            'ALTER TABLE "meeting" ' .
+            'ADD CONSTRAINT "meeting_pegawai_id_foreign" ' .
+            'FOREIGN KEY ("pegawai_id") REFERENCES "pegawai"("id") ' .
             'ON DELETE SET NULL ON UPDATE CASCADE'
         );
     }
@@ -42,9 +42,9 @@ class AlterMeetingPegawaiFkSetNull extends Migration
         }
 
         $this->db->query(
-            'ALTER TABLE `meeting` ' .
-            'ADD CONSTRAINT `meeting_pegawai_id_foreign` ' .
-            'FOREIGN KEY (`pegawai_id`) REFERENCES `pegawai`(`id`) ' .
+            'ALTER TABLE "meeting" ' .
+            'ADD CONSTRAINT "meeting_pegawai_id_foreign" ' .
+            'FOREIGN KEY ("pegawai_id") REFERENCES "pegawai"("id") ' .
             'ON DELETE RESTRICT ON UPDATE CASCADE'
         );
     }

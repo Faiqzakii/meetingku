@@ -20,8 +20,8 @@ class CreateRuanganTable extends Migration
                 'constraint' => '100',
             ],
             'tipe' => [
-                'type' => 'ENUM',
-                'constraint' => ['Online', 'Offline', 'Hybrid'],
+                'type' => 'VARCHAR',
+                'constraint' => '20',
                 'default' => 'Offline'
             ],
             'created_at' => [

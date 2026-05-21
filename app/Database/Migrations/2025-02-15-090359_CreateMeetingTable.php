@@ -36,8 +36,8 @@ class CreateMeetingTable extends Migration
                 'type' => 'DATETIME',
             ],
             'status' => [
-                'type' => 'ENUM',
-                'constraint' => ['pending', 'approved', 'rejected', 'cancelled'],
+                'type' => 'VARCHAR',
+                'constraint' => '20',
                 'default' => 'pending'
             ],
             'created_at' => [
