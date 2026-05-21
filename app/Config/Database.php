@@ -197,12 +197,12 @@ class Database extends Config
 
         // Override defaults using .env values at runtime (avoids non-constant default expressions)
         $this->default['DSN']          = env('database.default.DSN', $this->default['DSN']);
-        $this->default['hostname']     = env('database.default.hostname', $this->default['hostname']);
-        $this->default['username']     = env('database.default.username', $this->default['username']);
-        $this->default['password']     = env('database.default.password', $this->default['password']);
-        $this->default['database']     = env('database.default.database', $this->default['database']);
-        $this->default['schema']       = env('database.default.schema', $this->default['schema']);
-        $this->default['DBDriver']     = env('database.default.DBDriver', $this->default['DBDriver']);
+        $this->default['hostname']     = env('database.default.hostname', env('DB_HOST', $this->default['hostname']));
+        $this->default['username']     = env('database.default.username', env('DB_USERNAME', $this->default['username']));
+        $this->default['password']     = env('database.default.password', env('DB_PASSWORD', $this->default['password']));
+        $this->default['database']     = env('database.default.database', env('DB_DATABASE', $this->default['database']));
+        $this->default['schema']       = env('database.default.schema', env('DB_SCHEMA', $this->default['schema']));
+        $this->default['DBDriver']     = env('database.default.DBDriver', env('DB_DRIVER', $this->default['DBDriver']));
         $this->default['DBPrefix']     = env('database.default.DBPrefix', $this->default['DBPrefix']);
         $this->default['pConnect']     = (bool) env('database.default.pConnect', $this->default['pConnect']);
         $this->default['DBDebug']      = (bool) env('database.default.DBDebug', $this->default['DBDebug']);
@@ -213,7 +213,7 @@ class Database extends Config
         $this->default['compress']     = (bool) env('database.default.compress', $this->default['compress']);
         $this->default['strictOn']     = (bool) env('database.default.strictOn', $this->default['strictOn']);
         $this->default['failover']     = env('database.default.failover', $this->default['failover']) ?: [];
-        $this->default['port']         = (int) env('database.default.port', $this->default['port']);
+        $this->default['port']         = (int) env('database.default.port', env('DB_PORT', $this->default['port']));
         $this->default['numberNative'] = (bool) env('database.default.numberNative', $this->default['numberNative']);
         $this->default['foundRows']    = (bool) env('database.default.foundRows', $this->default['foundRows']);
 
@@ -246,5 +246,10 @@ class Database extends Config
         }
 
         $this->defaultGroup = env('database.defaultGroup', $this->defaultGroup);
+
+        if ($this->default['DBDriver'] === 'Postgre') {
+            $this->default['charset'] = env('database.default.charset', 'utf8');
+            $this->default['DBCollat'] = env('database.default.DBCollat', '');
+        }
     }
 }
