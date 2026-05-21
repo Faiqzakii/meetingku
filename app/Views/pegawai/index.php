@@ -1,37 +1,51 @@
 <?= $this->extend('layout') ?>
 
 <?= $this->section('content') ?>
-<div class="sm:flex sm:items-center sm:justify-between mt-2 mb-6">
+<?php $isAdmin = (bool) session()->get('is_admin'); ?>
+
+<div class="page-header">
     <div>
         <h2 class="section-title">
-            <i class="fas fa-users mr-2 text-orange-500"></i>Data Pegawai
+            <i class="fas fa-users" aria-hidden="true"></i>
+            Data Pegawai
         </h2>
-        <p class="text-sm text-gray-500 mt-1">Kelola data pegawai dalam sistem</p>
+        <p class="page-subtitle">Kelola data pegawai dalam sistem.</p>
     </div>
-    <?php if (session()->get('is_admin')): ?>
-    <div class="flex flex-wrap items-center gap-3 mt-4 sm:mt-0">
-        <button type="button" class="btn-outline-custom" data-bs-toggle="modal" data-bs-target="#importModal">
-            <i class="fas fa-file-excel"></i> Import Excel
-        </button>
-        <button type="button" class="btn-primary-gradient" data-bs-toggle="modal" data-bs-target="#addPegawaiModal">
-            <i class="fas fa-plus"></i> Tambah Pegawai
-        </button>
-    </div>
+    <?php if ($isAdmin): ?>
+        <div class="page-actions">
+            <a href="<?= base_url('pegawai/downloadTemplate') ?>" class="btn btn-secondary">
+                <i class="fas fa-file-arrow-down" aria-hidden="true"></i> Template
+            </a>
+            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#importModal">
+                <i class="fas fa-file-excel" aria-hidden="true"></i> Import
+            </button>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPegawaiModal">
+                <i class="fas fa-user-plus" aria-hidden="true"></i> Tambah Pegawai
+            </button>
+        </div>
     <?php endif; ?>
 </div>
 
-<div class="card-modern">
-    <div class="overflow-x-auto">
-        <table class="min-w-full table-modern">
+<div class="card">
+    <div class="card-section" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div class="field" style="flex:1;min-width:240px;">
+            <label class="field-label sr-only" for="searchPegawai" style="position:absolute;left:-9999px;">Cari pegawai</label>
+            <input type="search" id="searchPegawai" class="input" placeholder="Cari nama, NIP, atau username...">
+        </div>
+        <span style="color:var(--mute);font-size:.8125rem;">
+            <span id="rowCount"><?= count($pegawai) ?></span> dari <?= count($pegawai) ?> pegawai
+        </span>
+    </div>
+    <div class="card-divider"></div>
+    <div style="overflow-x:auto;">
+        <table class="table-modern" id="pegawaiTable">
             <thead>
                 <tr>
-                    <th style="width:50px;" class="text-center">#</th>
-                    <th class="text-left">Nama</th>
-                    <th class="text-left">NIP</th>
-                    <th class="text-left">Role</th>
-                    <?php if (session()->get('is_admin')): ?>
-                        <th class="text-right" style="width:120px;">Aksi</th>
-                    <?php endif; ?>
+                    <th style="width:48px;">#</th>
+                    <th>Nama</th>
+                    <th>NIP</th>
+                    <th>Role</th>
+                    <?php if ($isAdmin): ?><th style="width:64px;text-align:right;">Aksi</th><?php endif; ?>
                 </tr>
             </thead>
             <tbody>
@@ -39,59 +53,53 @@
                     <tr>
                         <td colspan="5">
                             <div class="empty-state">
-                                <div class="empty-state-icon">
-                                    <i class="fas fa-user-plus"></i>
-                                </div>
+                                <div class="empty-state-icon"><i class="fas fa-user-plus" aria-hidden="true"></i></div>
                                 <p class="empty-state-title">Belum ada data pegawai</p>
-                                <p class="empty-state-desc">Tambahkan pegawai pertama atau import dari Excel</p>
+                                <p class="empty-state-desc">Tambahkan pegawai pertama atau import dari Excel.</p>
                             </div>
                         </td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($pegawai as $i => $p): ?>
-                        <tr>
-                            <td class="text-center text-gray-400 text-xs font-mono"><?= $i + 1 ?></td>
-                            <td>
-                                <div class="flex items-center gap-3">
-                                    <div class="nav-user-avatar" style="width:2rem;height:2rem;font-size:0.625rem; flex-shrink:0;">
-                                        <?= strtoupper(substr($p['nama'], 0, 2)) ?>
-                                    </div>
-                                    <span class="font-semibold text-gray-900"><?= esc($p['nama']) ?></span>
+                        <tr data-search="<?= esc(strtolower(($p['nama'] ?? '') . ' ' . ($p['nip'] ?? '') . ' ' . ($p['username'] ?? '')), 'attr') ?>">
+                            <td style="color:var(--mute);font-family:ui-monospace,monospace;font-size:.75rem;text-align:center;"><?= $i + 1 ?></td>
+                            <td class="cell-truncate" style="max-width:280px;" title="<?= esc($p['nama'], 'attr') ?>">
+                                <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                                    <span class="user-avatar" style="width:28px;height:28px;font-size:.65rem;flex-shrink:0;">
+                                        <?= esc(strtoupper(mb_substr($p['nama'], 0, 2))) ?>
+                                    </span>
+                                    <span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= esc($p['nama']) ?></span>
                                 </div>
                             </td>
-                            <td class="text-gray-600 font-mono text-sm"><?= esc($p['nip']) ?></td>
+                            <td style="font-family:ui-monospace,monospace;font-size:.8rem;color:var(--body);white-space:nowrap;"><?= esc($p['nip']) ?></td>
                             <td>
                                 <?php if ((int) ($p['is_admin'] ?? 0) === 1): ?>
-                                    <span class="badge-status badge-approved" style="font-size:0.6875rem;">Admin</span>
+                                    <span class="badge-status badge-primary">Admin</span>
                                 <?php else: ?>
-                                    <span class="badge-status" style="background:#f1f5f9; color:#64748b; font-size:0.6875rem;">User</span>
+                                    <span class="badge-status">User</span>
                                 <?php endif; ?>
                             </td>
-                            <?php if (session()->get('is_admin')): ?>
-                                <td class="text-right">
-                                    <button type="button" class="expand-trigger btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem;">
-                                        <i class="fas fa-ellipsis-h"></i>
-                                    </button>
+                            <?php if ($isAdmin): ?>
+                                <td style="text-align:right;">
+                                    <div class="kebab" data-kebab>
+                                        <button type="button" class="kebab-btn" aria-haspopup="menu" aria-expanded="false" aria-label="Aksi pegawai">
+                                            <i class="fas fa-ellipsis-vertical" aria-hidden="true"></i>
+                                        </button>
+                                        <div class="kebab-menu" role="menu">
+                                            <a href="<?= base_url('pegawai/edit/' . $p['id']) ?>" role="menuitem">
+                                                <i class="fas fa-pen" aria-hidden="true"></i> Edit
+                                            </a>
+                                            <button type="button" data-delete-form="<?= esc($p['id'], 'attr') ?>" role="menuitem" class="danger">
+                                                <i class="fas fa-trash-alt" aria-hidden="true"></i> Hapus
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <form action="<?= base_url('pegawai/delete/' . $p['id']) ?>" method="POST" id="deleteForm-<?= esc($p['id']) ?>" style="display:none;">
+                                        <?= csrf_field() ?>
+                                    </form>
                                 </td>
                             <?php endif; ?>
                         </tr>
-                        <?php if (session()->get('is_admin')): ?>
-                        <tr class="details-row hidden">
-                            <td colspan="5" style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
-                                <div class="flex items-center gap-2 justify-end py-1">
-                                    <a href="<?= base_url('pegawai/edit/' . $p['id']) ?>" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem;">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </a>
-                                    <form action="<?= base_url('pegawai/delete/' . $p['id']) ?>" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data pegawai ini?');" class="inline-block">
-                                        <?= csrf_field() ?>
-                                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#ef4444; border-color:#fecaca;">
-                                            <i class="fas fa-trash-alt"></i> Hapus
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endif; ?>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </tbody>
@@ -100,77 +108,49 @@
 </div>
 
 <!-- Add Pegawai Modal -->
-<div class="modal fade" id="addPegawaiModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="addPegawaiModal" tabindex="-1" aria-hidden="true" aria-labelledby="addPegawaiTitle">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-user-plus mr-2 text-orange-500"></i>Tambah Pegawai
-                </h5>
-                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-bs-dismiss="modal" aria-label="Close">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
+                <h5 class="modal-title" id="addPegawaiTitle">Tambah Pegawai</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="<?= base_url('pegawai/create') ?>" method="POST">
                 <div class="modal-body">
                     <?= csrf_field() ?>
-                    <div class="space-y-4">
-                        <div>
-                            <label for="add_nama" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                                <i class="fas fa-user mr-1 text-orange-400 text-xs"></i> Nama
-                            </label>
-                            <input type="text" class="input-modern" id="add_nama" name="nama" placeholder="Nama lengkap" required>
+                    <div class="stack">
+                        <div class="field">
+                            <label class="field-label" for="add_nama">Nama lengkap</label>
+                            <input class="input" type="text" id="add_nama" name="nama" placeholder="Nama lengkap" required>
                         </div>
-                        <div>
-                            <label for="add_nip" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                                <i class="fas fa-id-card mr-1 text-orange-400 text-xs"></i> NIP
-                            </label>
-                            <input type="text" class="input-modern" id="add_nip" name="nip" placeholder="Nomor Induk Pegawai" required>
+                        <div class="field">
+                            <label class="field-label" for="add_nip">NIP</label>
+                            <input class="input" type="text" id="add_nip" name="nip" placeholder="Nomor Induk Pegawai" required>
                         </div>
-                        <div>
-                            <label for="add_no_hp" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                                <i class="fas fa-phone mr-1 text-orange-400 text-xs"></i> Nomor Telepon
-                            </label>
-                            <input type="text" class="input-modern" id="add_no_hp" name="no_hp" placeholder="Contoh: 08123456789">
+                        <div class="field">
+                            <label class="field-label" for="add_no_hp">Nomor telepon</label>
+                            <input class="input" type="text" id="add_no_hp" name="no_hp" placeholder="08xxxxxxxxxx">
                         </div>
-                        <div>
-                            <label for="add_username" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                                <i class="fas fa-at mr-1 text-orange-400 text-xs"></i> Username
-                            </label>
-                            <input type="text" class="input-modern" id="add_username" name="username" placeholder="Username untuk login" required>
+                        <div class="field">
+                            <label class="field-label" for="add_username">Username</label>
+                            <input class="input" type="text" id="add_username" name="username" placeholder="Untuk login" required>
                         </div>
-                        <div>
-                            <label for="add_password" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                                <i class="fas fa-lock mr-1 text-orange-400 text-xs"></i> Password
-                            </label>
-                            <input type="password" class="input-modern" id="add_password" name="password" placeholder="Password" required>
+                        <div class="field">
+                            <label class="field-label" for="add_password">Password</label>
+                            <input class="input" type="password" id="add_password" name="password" placeholder="Password" required>
                         </div>
-                        <div>
-                            <label for="add_role" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                                <i class="fas fa-shield-halved mr-1 text-orange-400 text-xs"></i> Role
-                            </label>
-                            <select class="input-modern dropdown-modern" id="add_role" name="is_admin" required>
+                        <div class="field">
+                            <label class="field-label" for="add_role">Role</label>
+                            <select class="input" id="add_role" name="is_admin" required>
                                 <option value="0">User</option>
                                 <option value="1">Admin</option>
                             </select>
                         </div>
-                        <div class="flex items-center gap-4 mt-2">
-                            <label class="flex items-center text-sm text-gray-700 cursor-pointer">
-                                <input type="checkbox" name="terima_notif_offline" value="1" class="mr-2 rounded text-orange-500 focus:ring-orange-500">
-                                Terima Notif Offline
-                            </label>
-                            <label class="flex items-center text-sm text-gray-700 cursor-pointer">
-                                <input type="checkbox" name="terima_notif_zoom" value="1" class="mr-2 rounded text-orange-500 focus:ring-orange-500">
-                                Terima Notif Zoom
-                            </label>
-                        </div>
                     </div>
                 </div>
-                <div class="modal-footer flex justify-end gap-3">
-                    <button type="button" class="btn-outline-custom" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn-primary-gradient">
-                        <i class="fas fa-save"></i> Simpan
-                    </button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk" aria-hidden="true"></i> Simpan</button>
                 </div>
             </form>
         </div>
@@ -178,77 +158,87 @@
 </div>
 
 <!-- Import Modal -->
-<div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true" aria-labelledby="importTitle">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-file-excel mr-2 text-green-500"></i>Import Data Pegawai
-                </h5>
-                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-bs-dismiss="modal" aria-label="Close">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
+                <h5 class="modal-title" id="importTitle">Import data pegawai</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="<?= base_url('pegawai/import') ?>" method="POST" enctype="multipart/form-data">
                 <div class="modal-body">
                     <?= csrf_field() ?>
-                    <div class="p-4 rounded-lg border-2 border-dashed border-gray-300 text-center hover:border-orange-300 transition-colors cursor-pointer" id="dropzone">
-                        <i class="fas fa-cloud-arrow-up text-3xl text-gray-300 mb-3"></i>
-                        <p class="text-sm font-medium text-gray-600">Pilih file Excel (.xlsx, .xls)</p>
-                        <p class="text-xs text-gray-400 mt-1">Atau drag & drop file ke sini</p>
-                        <input type="file" name="excel_file" accept=".xlsx" required class="mt-3 text-sm" style="max-width:250px;">
+                    <p style="margin:0 0 12px;color:var(--body);font-size:.875rem;">
+                        Pilih file Excel (.xlsx). <a href="<?= base_url('pegawai/downloadTemplate') ?>" style="color:var(--primary-dark);font-weight:600;">Unduh template</a>.
+                    </p>
+                    <div style="border:1.5px dashed var(--border-strong);border-radius:var(--radius-md);padding:18px;text-align:center;">
+                        <i class="fas fa-cloud-arrow-up" aria-hidden="true" style="font-size:1.5rem;color:var(--mute);"></i>
+                        <p style="margin:8px 0 4px;font-weight:600;font-size:.875rem;">Pilih file Excel</p>
+                        <p style="color:var(--mute);font-size:.75rem;margin:0 0 10px;">Format .xlsx</p>
+                        <input type="file" name="excel_file" accept=".xlsx" required>
                     </div>
                 </div>
-                <div class="modal-footer flex justify-end gap-3">
-                    <button type="button" class="btn-outline-custom" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn-primary-gradient">
-                        <i class="fas fa-upload"></i> Upload
-                    </button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-upload" aria-hidden="true"></i> Upload</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Toast Flash Messages -->
 <div class="toast-container">
     <?php if (session()->getFlashdata('success')): ?>
-        <div class="toast-notification toast-success" id="flashToast">
-            <div class="toast-icon"><i class="fas fa-check"></i></div>
-            <span><?= session()->getFlashdata('success') ?></span>
-            <button class="toast-close" onclick="this.parentElement.classList.add('toast-hiding');setTimeout(()=>this.parentElement.remove(),300)"><i class="fas fa-times"></i></button>
+        <div class="toast-notification toast-success" id="flashToast" role="status">
+            <i class="fas fa-circle-check" aria-hidden="true"></i>
+            <span><?= esc(session()->getFlashdata('success')) ?></span>
+            <button class="toast-close" type="button" aria-label="Tutup notifikasi"><i class="fas fa-times" aria-hidden="true"></i></button>
         </div>
     <?php endif; ?>
     <?php if (session()->getFlashdata('error')): ?>
-        <div class="toast-notification toast-error" id="flashToast">
-            <div class="toast-icon"><i class="fas fa-exclamation"></i></div>
-            <span><?= session()->getFlashdata('error') ?></span>
-            <button class="toast-close" onclick="this.parentElement.classList.add('toast-hiding');setTimeout(()=>this.parentElement.remove(),300)"><i class="fas fa-times"></i></button>
+        <div class="toast-notification toast-error" id="flashToast" role="alert">
+            <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+            <span><?= esc(session()->getFlashdata('error')) ?></span>
+            <button class="toast-close" type="button" aria-label="Tutup notifikasi"><i class="fas fa-times" aria-hidden="true"></i></button>
         </div>
     <?php endif; ?>
 </div>
-
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Expandable row toggle
+    var search = document.getElementById('searchPegawai');
+    var rows = document.querySelectorAll('#pegawaiTable tbody tr');
+    var rowCount = document.getElementById('rowCount');
+    if (search) {
+        search.addEventListener('input', function() {
+            var q = (search.value || '').trim().toLowerCase();
+            var visible = 0;
+            rows.forEach(function(tr) {
+                var key = tr.getAttribute('data-search') || '';
+                var match = !q || key.indexOf(q) !== -1;
+                tr.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            if (rowCount) rowCount.textContent = visible;
+        });
+    }
+
     document.addEventListener('click', function(e) {
-        var btn = e.target.closest('.expand-trigger');
-        if (!btn) return;
-        var row = btn.closest('tr');
-        if (!row) return;
-        var details = row.nextElementSibling;
-        if (!details || !details.classList.contains('details-row')) return;
-        document.querySelectorAll('.details-row').forEach(function(dr){ if (dr !== details && !dr.classList.contains('hidden')) dr.classList.add('hidden'); });
-        details.classList.toggle('hidden');
+        var del = e.target.closest('[data-delete-form]');
+        if (!del) return;
+        var id = del.getAttribute('data-delete-form');
+        var form = document.getElementById('deleteForm-' + id);
+        if (!form) return;
+        if (confirm('Hapus pegawai ini? Tindakan tidak dapat dibatalkan.')) form.submit();
     });
 
-    // Auto-hide toast
     var toast = document.getElementById('flashToast');
     if (toast) {
-        setTimeout(function() { toast.classList.add('toast-hiding'); setTimeout(function(){ toast.remove(); }, 300); }, 4000);
+        var c = toast.querySelector('.toast-close');
+        if (c) c.addEventListener('click', function() { toast.classList.add('toast-hiding'); setTimeout(function(){ toast.remove(); }, 250); });
+        setTimeout(function() { toast.classList.add('toast-hiding'); setTimeout(function(){ toast.remove(); }, 250); }, 4000);
     }
 });
 </script>

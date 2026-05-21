@@ -1,40 +1,49 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Source code in `app/` (controllers, models, views, config).
-- Public webroot is `public/` (index.php, assets). Point your server here.
-- Tests in `tests/` with helpers in `tests/_support/`.
-- Runtime files in `writable/` (logs, cache, uploads). Do not commit contents.
-- Composer dependencies in `vendor/`; sample database in `meetingku.sql`.
+- CodeIgniter 4 app lives in `app/` (`Controllers`, `Models`, `Views`, `Config`, `Commands`, `Database/Migrations`).
+- Public webroot is `public/`; configure web server/Nginx to point here only.
+- Runtime state belongs in `writable/` and `public/writable/`; do not commit logs/cache/session/uploads.
+- WhatsApp gateway code is split between PHP (`app/Commands`, `app/Libraries`, `app/Models`) and Node service `wa-sender/`.
+- Deploy assets live in `Dockerfile`, `docker-compose.yml`, and `docker/nginx/`.
+- Tests live in `tests/`; project-specific unit tests are under `tests/unit/`.
 
 ## Build, Test, and Development Commands
 - `composer install` — install PHP dependencies.
-- `composer update` — update dependencies to allowed versions.
-- `php spark serve` — run local dev server at `http://localhost:8080`.
-- `composer test` or `vendor/bin/phpunit -c phpunit.xml.dist` — run tests and produce coverage in `build/logs/` (HTML, Clover, JUnit).
-- Optional: `php spark migrate` — run database migrations if migrations are defined.
+- `php spark serve` — run local app at `http://localhost:8080`.
+- `php spark migrate` — apply database migrations.
+- `composer test` or `vendor/bin/phpunit -c phpunit.xml.dist` — run PHPUnit suite.
+- `php spark wa:worker --sleep=3 --limit=20` — process WhatsApp queue.
+- `php spark wa:daily-summary-scheduler --time=07:00 --sleep=60` — run daily summary scheduler.
+- `docker compose up -d --build` — run container stack.
 
 ## Coding Style & Naming Conventions
-- Target PHP `^8.1`. Follow PSR-12; use 4-space indentation.
-- PSR-4 namespaces: `App\` in `app/`, `Config\` in `app/Config/`.
-- Classes `PascalCase` (e.g., `App\Controllers\Home`, `App\Models\UserModel`); methods `camelCase`.
-- Views live in `app/Views/` and are referenced from controllers; keep filenames consistent and descriptive.
-- Keep secrets and environment-specific values in `.env`, not in code.
+- Target PHP `^8.1`; follow PSR-12 with 4-space indentation.
+- Use PSR-4 namespaces: `App\` for `app/`, `Config\` for `app/Config/`.
+- Classes use `PascalCase`; methods and variables use `camelCase`.
+- Keep views in `app/Views/`; prefer small controller methods and model/library helpers for reusable logic.
+- Keep Node gateway code in `wa-sender/src/`; avoid coupling UI directly to Baileys internals.
+
+## Configuration & Secrets
+- Use `env` as template; local secrets go in `.env` only.
+- Required deploy env includes `APP_BASE_URL`, DB settings, `WA_SENDER_SECRET`, and optional `WA_DAILY_SUMMARY_GROUP_ID`.
+- Do not commit `.env`, generated sessions, logs, cache, upload contents, zip archives, or local tool context.
+- Database config supports `database.defaultGroup`, `database.*.schema`, and development overrides.
 
 ## Testing Guidelines
-- PHPUnit 10 configured via `phpunit.xml.dist`; tests reside under `tests/` and end with `*Test.php`.
-- Use `Tests\Support\` utilities from `tests/_support/` when helpful.
-- Coverage reports and logs write to `build/logs/`; ensure the project can create directories under `build/`.
-- Run `composer test` and ensure passing tests before opening a PR.
+- Add focused tests for library/worker behavior under `tests/unit/`.
+- Keep tests deterministic; avoid real WhatsApp/network calls in PHPUnit.
+- Run `composer test` before commit when PHP code changes.
+- For Docker changes, at minimum run `docker compose config`.
 
-## Commit & Pull Request Guidelines
-- Use clear, imperative subjects (e.g., `Add meeting export controller`).
-- Group related changes; avoid unrelated edits and noisy formatting-only diffs.
-- PRs should include: concise description, linked issue (if any), setup/testing notes, and screenshots for UI changes.
-- For DB changes, include migration steps and rollback notes.
+## Commit & PR Guidelines
+- Use concise imperative subjects or Conventional Commits, e.g. `feat: add whatsapp worker`.
+- Group related changes; avoid mixing unrelated UI, infra, and DB work unless part of one feature slice.
+- PRs should include summary, setup/migration notes, verification commands, and screenshots for UI changes.
+- For DB changes, include migration/rollback notes and required env values.
 
-## Security & Configuration Tips
-- Copy `env` to `.env`; set `app.baseURL` and database credentials. Never commit `.env`.
-- Configure your web server to use `public/` as the document root.
-- Enable and respect CSRF protections (`Config\Security`); validate all inputs.
-- Verify permissions for `writable/`; review logs in `writable/logs/` during development.
+## Security Notes
+- Public document root must remain `public/`.
+- Validate all request input; keep CSRF protections enabled for forms.
+- Treat WhatsApp API keys and sender secrets as credentials; rotate after exposure.
+- Never expose `wa-sender` publicly; it should stay on an internal network behind PHP app auth.

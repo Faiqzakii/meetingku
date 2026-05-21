@@ -1,130 +1,113 @@
 <?= $this->extend('layout') ?>
 
+<?= $this->section('styles') ?>
+<style>
+    .meeting-form-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 14px 16px;
+    }
+    .meeting-form-grid .col-full { grid-column: 1 / -1; }
+    .meeting-form-grid .col-half { grid-column: span 3; }
+    .meeting-form-grid .col-third { grid-column: span 2; }
+    @media (max-width: 640px) {
+        .meeting-form-grid { grid-template-columns: 1fr; }
+        .meeting-form-grid .col-full,
+        .meeting-form-grid .col-half,
+        .meeting-form-grid .col-third { grid-column: 1 / -1; }
+    }
+</style>
+<?= $this->endSection() ?>
+
 <?= $this->section('content') ?>
-<div class="sm:flex sm:items-center sm:justify-between mt-2 mb-6">
+<div class="page-header">
     <div>
         <h2 class="section-title">
-            <i class="fas fa-calendar-alt mr-2 text-orange-500"></i>Jadwal Pertemuan
+            <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+            Jadwal Pertemuan
         </h2>
-        <p class="text-sm text-gray-500 mt-1">Lihat dan kelola jadwal meeting di satu tempat</p>
+        <p class="page-subtitle">Lihat dan kelola jadwal meeting di satu tempat.</p>
     </div>
-    <div class="flex flex-wrap items-center gap-3 mt-4 sm:mt-0">
-        <select id="ruanganFilter" class="input-modern dropdown-modern" style="width:auto; min-width:180px;">
-            <option value="">📍 Semua Ruangan</option>
-            <?php foreach ($ruangan as $r): ?>
-                <option value="<?= $r['id'] ?>">
-                    <?= esc($r['nama_ruangan']) ?> (<?= $r['tipe'] ?>)
-                </option>
-            <?php endforeach; ?>
-        </select>
+    <div class="page-actions" style="align-items:center;">
+        <div class="field" style="min-width:200px;">
+            <label class="field-label sr-only" for="ruanganFilter" style="position:absolute;left:-9999px;">Filter ruangan</label>
+            <select id="ruanganFilter" class="input">
+                <option value="">Semua ruangan</option>
+                <?php foreach ($ruangan as $r): ?>
+                    <option value="<?= esc($r['id'], 'attr') ?>"><?= esc($r['nama_ruangan']) ?> (<?= esc($r['tipe']) ?>)</option>
+                <?php endforeach; ?>
+            </select>
+        </div>
         <?php if (session()->get('logged_in')): ?>
-            <button type="button" 
-                    class="btn-primary-gradient"
-                    data-bs-toggle="modal" 
-                    data-bs-target="#createMeetingModal">
-                <i class="fas fa-plus"></i>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createMeetingModal">
+                <i class="fas fa-plus" aria-hidden="true"></i>
                 <span>Buat Meeting</span>
             </button>
         <?php else: ?>
-            <a href="<?= base_url('auth/login') ?>" class="btn-primary-gradient">
-                <i class="fas fa-plus"></i>
-                <span>Buat Meeting</span>
+            <a href="<?= base_url('auth/login') ?>" class="btn btn-primary">
+                <i class="fas fa-sign-in-alt" aria-hidden="true"></i> Login
             </a>
         <?php endif; ?>
     </div>
 </div>
 
-<!-- Status Legend -->
-<div class="flex flex-wrap items-center gap-4 mb-4 px-1">
-    <span class="flex items-center gap-2 text-xs font-medium text-gray-500">
-        <span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Disetujui
-    </span>
-    <span class="flex items-center gap-2 text-xs font-medium text-gray-500">
-        <span class="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span> Menunggu
-    </span>
-    <span class="flex items-center gap-2 text-xs font-medium text-gray-500">
-        <span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Ditolak
-    </span>
+<!-- Status legend -->
+<div class="chip-row" style="margin-bottom:16px;align-items:center;" aria-label="Legenda status">
+    <span style="font-size:.75rem;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-right:4px;">Status</span>
+    <span class="badge-status badge-approved">Disetujui</span>
+    <span class="badge-status badge-pending">Menunggu</span>
+    <span class="badge-status badge-rejected">Ditolak</span>
 </div>
 
-<div class="card-modern-elevated p-4 sm:p-6">
-    <div id="calendar"></div>
+<div class="card">
+    <div class="card-section" style="padding:16px;">
+        <div id="calendar"></div>
+    </div>
 </div>
 
 <!-- Create Meeting Modal -->
 <div class="modal fade" id="createMeetingModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="modalTitle">
-                    <i class="fas fa-plus-circle mr-2 text-orange-500"></i>Buat Meeting Baru
-                </h5>
-                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-bs-dismiss="modal" aria-label="Close">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
+                <h5 class="modal-title" id="modalTitle">Buat Meeting Baru</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="<?= base_url('meeting/create') ?>" method="POST" id="createMeetingForm">
                 <div class="modal-body">
                     <?= csrf_field() ?>
-                    <div class="grid grid-cols-1 gap-y-5 gap-x-4 sm:grid-cols-6">
-                        <div class="sm:col-span-6">
-                            <label for="nama_keg" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                                <i class="fas fa-bookmark mr-1 text-orange-400 text-xs"></i> Nama Kegiatan
-                            </label>
-                            <input type="text" 
-                                   class="input-modern" 
-                                   id="nama_keg" 
-                                   name="nama_keg" 
-                                   placeholder="Contoh: Rapat Koordinasi Bulanan"
-                                   required>
+                    <div class="meeting-form-grid">
+                        <div class="field col-full">
+                            <label class="field-label" for="nama_keg">Nama kegiatan</label>
+                            <input class="input" type="text" id="nama_keg" name="nama_keg"
+                                   placeholder="Contoh: Rapat Koordinasi Bulanan" required>
                         </div>
 
-                        <div class="sm:col-span-3">
-                            <label for="ruangan_id" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                                <i class="fas fa-door-open mr-1 text-orange-400 text-xs"></i> Ruangan
-                            </label>
-                            <select class="input-modern dropdown-modern" 
-                                    id="ruangan_id" 
-                                    name="ruangan_id" 
-                                    required>
+                        <div class="field col-half" id="room_container">
+                            <label class="field-label" for="ruangan_id">Ruangan</label>
+                            <select class="input" id="ruangan_id" name="ruangan_id" required>
                                 <?php foreach ($ruangan as $r): ?>
-                                    <option value="<?= $r['id'] ?>" data-tipe="<?= $r['tipe'] ?>">
-                                        <?= esc($r['nama_ruangan']) ?> (<?= $r['tipe'] ?>)
+                                    <option value="<?= esc($r['id'], 'attr') ?>" data-tipe="<?= esc($r['tipe'], 'attr') ?>">
+                                        <?= esc($r['nama_ruangan']) ?> (<?= esc($r['tipe']) ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
 
-                        <div class="sm:col-span-3" id="participants_container">
-                            <label for="jumlah_peserta" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                                <i class="fas fa-users mr-1 text-orange-400 text-xs"></i> Jumlah Peserta
-                            </label>
-                            <input type="number" 
-                                   class="input-modern" 
-                                   id="jumlah_peserta" 
-                                   name="jumlah_peserta" 
-                                   min="1"
-                                   placeholder="0"
-                                   required>
+                        <div class="field col-half" id="participants_container">
+                            <label class="field-label" for="jumlah_peserta">Jumlah peserta</label>
+                            <input class="input" type="number" id="jumlah_peserta" name="jumlah_peserta"
+                                   min="1" placeholder="0" required>
                         </div>
 
-                        <div class="sm:col-span-3">
-                            <label for="tanggal_mulai" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                                <i class="fas fa-calendar mr-1 text-orange-400 text-xs"></i> Tanggal
-                            </label>
-                            <input type="date" 
-                                   class="input-modern" 
-                                   id="tanggal_mulai" 
-                                   required>
+                        <div class="field col-third">
+                            <label class="field-label" for="tanggal_mulai">Tanggal</label>
+                            <input class="input" type="date" id="tanggal_mulai" required>
                         </div>
 
-                        <div class="sm:col-span-3">
-                            <label for="jam_mulai" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                                <i class="fas fa-clock mr-1 text-orange-400 text-xs"></i> Jam Mulai
-                            </label>
-                            <select class="input-modern dropdown-modern" 
-                                    id="jam_mulai" 
-                                    required>
+                        <div class="field col-third">
+                            <label class="field-label" for="jam_mulai">Jam mulai</label>
+                            <select class="input" id="jam_mulai" required>
                                 <?php
                                 for ($h = 7; $h <= 17; $h++) {
                                     for ($m = 0; $m < 60; $m += 15) {
@@ -138,15 +121,10 @@
                             <input type="hidden" id="waktu_mulai" name="waktu_mulai">
                         </div>
 
-                        <div class="sm:col-span-3">
-                            <label for="durasi" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                                <i class="fas fa-hourglass-half mr-1 text-orange-400 text-xs"></i> Durasi
-                            </label>
-                            <select class="input-modern dropdown-modern" 
-                                    id="durasi" 
-                                    name="durasi" 
-                                    required>
-                                <option value="60" >1 jam</option>
+                        <div class="field col-third">
+                            <label class="field-label" for="durasi">Durasi</label>
+                            <select class="input" id="durasi" name="durasi" required>
+                                <option value="60">1 jam</option>
                                 <option value="120">2 jam</option>
                                 <option value="180">3 jam</option>
                                 <option value="240">4 jam</option>
@@ -154,67 +132,46 @@
                             </select>
                         </div>
 
-                        <div class="sm:col-span-6" id="fasilitas_container">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">
-                                <i class="fas fa-concierge-bell mr-1 text-orange-400 text-xs"></i> Fasilitas Rapat
-                            </label>
-                            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                                <?php 
+                        <div class="field col-full" id="fasilitas_container">
+                            <label class="field-label">Fasilitas rapat</label>
+                            <div class="check-grid">
+                                <?php
                                 $fasilitas_options = [
-                                    ['icon' => 'fa-microphone', 'name' => 'Microphone'],
-                                    ['icon' => 'fa-camera', 'name' => 'Dokumentasi'],
-                                    ['icon' => 'fa-video', 'name' => 'Zoom (Hybrid)'],
-                                    ['icon' => 'fa-cookie-bite', 'name' => 'Snack'],
-                                    ['icon' => 'fa-utensils', 'name' => 'Makanan Berat'],
-                                    ['icon' => 'fa-glass-water', 'name' => 'Air Minum'],
+                                    ['icon' => 'fa-microphone',   'name' => 'Microphone'],
+                                    ['icon' => 'fa-camera',       'name' => 'Dokumentasi'],
+                                    ['icon' => 'fa-video',        'name' => 'Zoom (Hybrid)'],
+                                    ['icon' => 'fa-cookie-bite',  'name' => 'Snack'],
+                                    ['icon' => 'fa-utensils',     'name' => 'Makanan Berat'],
+                                    ['icon' => 'fa-glass-water',  'name' => 'Air Minum'],
                                 ];
-                                foreach ($fasilitas_options as $f): 
-                                ?>
-                                <label for="fasilitas_<?= url_title($f['name'], '-', true) ?>" 
-                                       class="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-200 cursor-pointer hover:border-orange-300 hover:bg-orange-50 transition-all"
-                                       style="font-size:0.8125rem;">
-                                    <input id="fasilitas_<?= url_title($f['name'], '-', true) ?>" 
-                                           name="fasilitas[]" 
-                                           value="<?= $f['name'] ?>" 
-                                           type="checkbox" 
-                                           class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
-                                    <i class="fas <?= $f['icon'] ?> text-orange-400 text-xs"></i>
-                                    <span class="font-medium text-gray-700"><?= $f['name'] ?></span>
-                                </label>
+                                foreach ($fasilitas_options as $f): ?>
+                                    <label class="check-pill" for="fasilitas_<?= url_title($f['name'], '-', true) ?>">
+                                        <input id="fasilitas_<?= url_title($f['name'], '-', true) ?>"
+                                               name="fasilitas[]" value="<?= esc($f['name'], 'attr') ?>" type="checkbox">
+                                        <i class="fas <?= esc($f['icon']) ?>" aria-hidden="true"></i>
+                                        <span><?= esc($f['name']) ?></span>
+                                    </label>
                                 <?php endforeach; ?>
-                                <label for="fasilitas_lainnya_checkbox"
-                                       class="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-200 cursor-pointer hover:border-orange-300 hover:bg-orange-50 transition-all col-span-2 sm:col-span-3"
-                                       style="font-size:0.8125rem;">
-                                    <input id="fasilitas_lainnya_checkbox" 
-                                           name="fasilitas[]" 
-                                           value="Lainnya" 
-                                           type="checkbox" 
-                                           class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
-                                    <i class="fas fa-ellipsis-h text-orange-400 text-xs"></i>
-                                    <span class="font-medium text-gray-700">Lainnya</span>
+                                <label class="check-pill check-pill-wide" for="fasilitas_lainnya_checkbox">
+                                    <input id="fasilitas_lainnya_checkbox" name="fasilitas[]" value="Lainnya" type="checkbox">
+                                    <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+                                    <span>Lainnya</span>
                                 </label>
-                                <div class="col-span-2 sm:col-span-3">
-                                    <input type="text" 
-                                           id="fasilitas_lainnya_text" 
-                                           name="fasilitas_lainnya" 
-                                           class="input-modern hidden" 
-                                           placeholder="Sebutkan fasilitas lainnya...">
-                                </div>
+                                <input type="text" id="fasilitas_lainnya_text" name="fasilitas_lainnya"
+                                       class="input check-pill-wide hidden"
+                                       placeholder="Sebutkan fasilitas lainnya...">
                             </div>
                         </div>
 
                         <input type="hidden" id="waktu_selesai" name="waktu_selesai">
                     </div>
                 </div>
-                <div class="modal-footer flex justify-end gap-3">
-                    <button type="button" class="btn-outline-custom" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" id="submitBtn" class="btn-primary-gradient">
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" id="submitBtn" class="btn btn-primary">
                         <span id="submitText">Simpan</span>
-                        <span id="submitSpinner" class="hidden">
-                            <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
+                        <span id="submitSpinner" class="hidden" aria-hidden="true">
+                            <i class="fas fa-spinner fa-spin"></i>
                         </span>
                     </button>
                 </div>
@@ -356,6 +313,9 @@
                 </div>
                 
                 <div id="eventOwnerActions" class="hidden flex items-center gap-2 flex-wrap ml-2">
+                    <a id="editMeetingLink" href="#" class="btn-outline-custom hidden" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#334155; border-color:#cbd5e1;">
+                        <i class="fas fa-pen"></i> Edit
+                    </a>
                     <form id="deleteForm" method="POST" class="inline-block hidden" onsubmit="return confirm('Apakah Anda yakin ingin menghapus meeting ini?');">
                         <?= csrf_field() ?>
                         <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#ef4444; border-color:#fecaca;">
@@ -517,10 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'title' => $meeting['nama_keg'],
             'start' => $meeting['waktu_mulai'],
             'end' => $meeting['waktu_selesai'],
-            'backgroundColor' => $meeting['status'] === 'approved' ? '#10B981' : 
-                               ($meeting['status'] === 'pending' ? '#F59E0B' : '#EF4444'),
-            'borderColor' => $meeting['status'] === 'approved' ? '#059669' : 
-                            ($meeting['status'] === 'pending' ? '#D97706' : '#DC2626'),
+            'classNames' => ['fc-event-status-' . ($meeting['status'] ?? 'pending')],
             'extendedProps' => [
                 'ruangan_id' => $meeting['ruangan_id'],
                 'ruangan' => $meeting['nama_ruangan'],
@@ -651,12 +608,16 @@ document.addEventListener('DOMContentLoaded', function() {
             var isAdmin = <?= session()->get('is_admin') ? 'true' : 'false' ?>;
 
             if (ownerActions) {
+                var editMeetingLink = document.getElementById('editMeetingLink');
                 var deleteForm = document.getElementById('deleteForm');
                 
+                editMeetingLink.classList.add('hidden');
                 deleteForm.classList.add('hidden');
                 ownerActions.classList.add('hidden');
 
                 if (isOwner || isAdmin) {
+                    editMeetingLink.href = '<?= base_url('meeting/edit/') ?>' + event.id;
+                    editMeetingLink.classList.remove('hidden');
                     // Direct Delete
                     deleteForm.action = '<?= base_url('meeting/delete/') ?>' + event.id;
                     deleteForm.classList.remove('hidden');
@@ -744,6 +705,17 @@ document.addEventListener('DOMContentLoaded', function() {
         calendar.addEventSource(filterEvents(ruanganId));
     });
 
+    // Auto-open create modal via ?action=create (used by topbar "+ Meeting")
+    try {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('action') === 'create') {
+            var modalEl = document.getElementById('createMeetingModal');
+            if (modalEl && window.bootstrap) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            }
+        }
+    } catch (e) {}
+
     // Auto-hide toast
     var toast = document.getElementById('flashToast');
     if (toast) {
@@ -777,10 +749,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function toggleFasilitas() {
         const selectedOption = ruanganSelect.options[ruanganSelect.selectedIndex];
         const tipe = selectedOption ? selectedOption.getAttribute('data-tipe') : '';
+        const roomContainer = document.getElementById('room_container');
         const participantsContainer = document.getElementById('participants_container');
         const participantsInput = document.getElementById('jumlah_peserta');
         
         if (tipe === 'Online') {
+            if (roomContainer) {
+                roomContainer.classList.remove('col-half');
+                roomContainer.classList.add('col-full');
+            }
             fasilitasContainer.classList.add('hidden');
             const checkboxes = fasilitasContainer.querySelectorAll('input[type="checkbox"]');
             checkboxes.forEach(cb => cb.checked = false);
@@ -791,6 +768,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (participantsContainer) participantsContainer.classList.add('hidden');
             if (participantsInput) { participantsInput.required = false; participantsInput.value = ''; }
         } else {
+            if (roomContainer) {
+                roomContainer.classList.remove('col-full');
+                roomContainer.classList.add('col-half');
+            }
             fasilitasContainer.classList.remove('hidden');
             if (participantsContainer) participantsContainer.classList.remove('hidden');
             if (participantsInput) participantsInput.required = true;

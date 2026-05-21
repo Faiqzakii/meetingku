@@ -1,100 +1,79 @@
 <?= $this->extend('layout') ?>
 
 <?= $this->section('content') ?>
-<div class="sm:flex sm:items-center sm:justify-between mb-8">
+<div class="page-header">
     <div>
-        <h2 class="text-2xl font-bold text-gray-900">Edit Pegawai</h2>
+        <h2 class="section-title">
+            <i class="fas fa-user-pen" aria-hidden="true"></i>
+            Edit Pegawai
+        </h2>
+        <p class="page-subtitle"><?= esc($pegawai['nama']) ?> · <?= esc($pegawai['nip']) ?></p>
     </div>
-</div>
-
-<div class="bg-white shadow-sm rounded-lg overflow-hidden p-6">
-    <form action="<?= base_url('pegawai/update/' . $pegawai['id']) ?>" method="POST">
-        <?= csrf_field() ?>
-        <input type="hidden" name="_method" value="PUT">
-        <div class="space-y-4">
-            <div>
-                <label for="nama" class="block text-sm font-medium text-gray-700">Nama</label>
-                <input type="text" 
-                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" 
-                       id="nama" 
-                       name="nama"
-                       value="<?= old('nama', $pegawai['nama']) ?>"
-                       required>
-            </div>
-            <div>
-                <label for="nip" class="block text-sm font-medium text-gray-700">NIP</label>
-                <input type="text" 
-                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" 
-                       id="nip" 
-                       name="nip"
-                       value="<?= old('nip', $pegawai['nip']) ?>"
-                       required>
-            </div>
-            <div>
-                <label for="no_hp" class="block text-sm font-medium text-gray-700">Nomor Telepon</label>
-                <input type="text" 
-                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" 
-                       id="no_hp" 
-                       name="no_hp"
-                       value="<?= old('no_hp', $pegawai['no_hp'] ?? '') ?>"
-                       placeholder="Contoh: 08123456789">
-            </div>
-            <div>
-                <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                <input type="text" 
-                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" 
-                       id="username" 
-                       name="username"
-                       value="<?= old('username', $pegawai['username']) ?>"
-                       required>
-            </div>
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700">Password (Kosongkan jika tidak ingin mengubah)</label>
-                <input type="password" 
-                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" 
-                       id="password" 
-                       name="password">
-            </div>
-            <div>
-                <label for="is_admin" class="block text-sm font-medium text-gray-700">Role</label>
-                <select class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm" 
-                        id="is_admin" 
-                        name="is_admin" 
-                        required>
-                    <option value="false" <?= old('is_admin', $pegawai['is_admin']) ? '' : 'selected' ?>>Pegawai</option>
-                    <option value="true" <?= old('is_admin', $pegawai['is_admin']) ? 'selected' : '' ?>>Admin</option>
-                </select>
-            </div>
-            <div class="flex items-center space-x-6">
-                <label class="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
-                    <input type="checkbox" name="terima_notif_offline" value="true" class="mr-2 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded" <?= old('terima_notif_offline', $pegawai['terima_notif_offline']) ? 'checked' : '' ?>>
-                    Terima Notifikasi Meeting Offline
-                </label>
-                <label class="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
-                    <input type="checkbox" name="terima_notif_zoom" value="true" class="mr-2 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded" <?= old('terima_notif_zoom', $pegawai['terima_notif_zoom']) ? 'checked' : '' ?>>
-                    Terima Notifikasi Meeting Zoom
-                </label>
-            </div>
-            <div class="flex justify-end space-x-3">
-                <a href="<?= base_url('pegawai') ?>" 
-                   class="btn-outline-custom" style="padding:0.5rem 1rem;">
-                    Batal
-                </a>
-                <button type="submit" class="btn-primary-gradient">
-                    <i class="fas fa-save"></i> Simpan
-                </button>
-            </div>
-        </div>
-    </form>
+    <div class="page-actions">
+        <a href="<?= base_url('pegawai') ?>" class="btn btn-ghost">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali
+        </a>
+    </div>
 </div>
 
 <?php if (session()->getFlashdata('errors')): ?>
-    <div class="mt-4 p-4 bg-red-100 text-red-700 rounded">
-        <ul class="list-disc list-inside">
-            <?php foreach (session()->getFlashdata('errors') as $error): ?>
-                <li><?= $error ?></li>
-            <?php endforeach; ?>
-        </ul>
+    <div class="card" style="border-left:4px solid var(--danger);margin-bottom:16px;">
+        <div class="card-section">
+            <strong style="color:var(--danger);">Periksa kembali isian:</strong>
+            <ul style="margin:8px 0 0 18px;">
+                <?php foreach (session()->getFlashdata('errors') as $error): ?>
+                    <li><?= esc($error) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
     </div>
 <?php endif; ?>
+
+<div class="card">
+    <div class="card-section">
+        <form action="<?= base_url('pegawai/update/' . $pegawai['id']) ?>" method="POST" class="stack">
+            <?= csrf_field() ?>
+            <input type="hidden" name="_method" value="PUT">
+
+            <div class="field">
+                <label class="field-label" for="nama">Nama lengkap</label>
+                <input class="input" type="text" id="nama" name="nama" value="<?= esc(old('nama', $pegawai['nama']), 'attr') ?>" required>
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="nip">NIP</label>
+                <input class="input" type="text" id="nip" name="nip" value="<?= esc(old('nip', $pegawai['nip']), 'attr') ?>" required>
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="no_hp">Nomor telepon</label>
+                <input class="input" type="text" id="no_hp" name="no_hp" value="<?= esc(old('no_hp', $pegawai['no_hp'] ?? ''), 'attr') ?>" placeholder="08xxxxxxxxxx">
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="username">Username</label>
+                <input class="input" type="text" id="username" name="username" value="<?= esc(old('username', $pegawai['username']), 'attr') ?>" required>
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="password">Password</label>
+                <input class="input" type="password" id="password" name="password" placeholder="Kosongkan jika tidak diubah">
+                <span class="field-help">Biarkan kosong untuk mempertahankan password lama.</span>
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="is_admin">Role</label>
+                <select class="input" id="is_admin" name="is_admin" required>
+                    <option value="false" <?= old('is_admin', $pegawai['is_admin']) ? '' : 'selected' ?>>Pegawai</option>
+                    <option value="true"  <?= old('is_admin', $pegawai['is_admin']) ? 'selected' : '' ?>>Admin</option>
+                </select>
+            </div>
+
+            <div class="row-actions" style="justify-content:flex-end;margin-top:8px;">
+                <a href="<?= base_url('pegawai') ?>" class="btn btn-secondary">Batal</a>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk" aria-hidden="true"></i> Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
 <?= $this->endSection() ?>

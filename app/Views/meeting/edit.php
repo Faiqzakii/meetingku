@@ -1,101 +1,62 @@
 <?= $this->extend('layout') ?>
 
 <?= $this->section('content') ?>
-<!-- Breadcrumb -->
-<nav class="flex items-center gap-2 text-sm text-gray-500 mb-5 mt-2">
-    <a href="<?= base_url('/upcoming') ?>" class="hover:text-orange-600 transition-colors">
-        <i class="fas fa-arrow-left mr-1"></i> Kembali ke Daftar
-    </a>
-    <span class="text-gray-300">/</span>
-    <span class="text-gray-700 font-medium">Edit Meeting</span>
-</nav>
+<div class="page-header">
+    <div>
+        <h2 class="section-title">
+            <i class="fas fa-pen-to-square" aria-hidden="true"></i>
+            Edit Meeting
+        </h2>
+        <p class="page-subtitle"><?= esc($meeting['nama_keg']) ?></p>
+    </div>
+    <div class="page-actions">
+        <a href="<?= base_url('/upcoming') ?>" class="btn btn-ghost">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali
+        </a>
+    </div>
+</div>
 
-<div class="max-w-3xl mx-auto">
-    <div class="card-modern-elevated">
-        <!-- Top gradient accent -->
-        <div style="height:4px; background: var(--gradient-primary);"></div>
-        
-        <div class="p-4 sm:p-6 border-b" style="border-color:#f1f5f9; background:linear-gradient(to bottom, #fafaff, white);">
-            <h2 class="section-title text-lg">
-                <i class="fas fa-edit mr-2 text-orange-500"></i>Edit Meeting
-            </h2>
-            <p class="text-sm text-gray-500 mt-1">Perbarui informasi meeting yang sudah ada</p>
-        </div>
-
-        <form action="<?= base_url('meeting/update/' . $meeting['id']) ?>" method="POST" class="p-4 sm:p-6" id="editMeetingForm">
+<div style="max-width:840px;">
+    <div class="card">
+        <form action="<?= base_url('meeting/update/' . $meeting['id']) ?>" method="POST" class="card-section" id="editMeetingForm">
             <?= csrf_field() ?>
             <input type="hidden" name="form_token" value="<?= bin2hex(random_bytes(16)) ?>">
-            <div class="grid grid-cols-1 gap-y-5 gap-x-4 sm:grid-cols-6">
-                <!-- Nama Kegiatan -->
-                <div class="sm:col-span-6">
-                    <label for="nama_keg" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                        <i class="fas fa-bookmark mr-1 text-orange-400 text-xs"></i> Nama Kegiatan
-                    </label>
-                    <input type="text" 
-                           class="input-modern" 
-                           id="nama_keg" 
-                           name="nama_keg"
-                           value="<?= old('nama_keg', $meeting['nama_keg']) ?>" 
-                           required>
+            <div class="form-grid">
+                <div class="field col-span-2">
+                    <label class="field-label" for="nama_keg">Nama kegiatan</label>
+                    <input class="input" type="text" id="nama_keg" name="nama_keg"
+                           value="<?= esc(old('nama_keg', $meeting['nama_keg']), 'attr') ?>" required>
                 </div>
 
-                <!-- Ruangan -->
-                <div class="sm:col-span-3">
-                    <label for="ruangan_id" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                        <i class="fas fa-door-open mr-1 text-orange-400 text-xs"></i> Ruangan
-                    </label>
-                    <select class="input-modern dropdown-modern" 
-                            id="ruangan_id" 
-                            name="ruangan_id" 
-                            required>
+                <div class="field">
+                    <label class="field-label" for="ruangan_id">Ruangan</label>
+                    <select class="input" id="ruangan_id" name="ruangan_id" required>
                         <?php foreach ($ruangan as $r): ?>
-                            <option value="<?= $r['id'] ?>" 
-                                    data-tipe="<?= $r['tipe'] ?>" 
+                            <option value="<?= esc($r['id'], 'attr') ?>"
+                                    data-tipe="<?= esc($r['tipe'], 'attr') ?>"
                                     <?= $r['id'] == $meeting['ruangan_id'] ? 'selected' : '' ?>>
-                                <?= esc($r['nama_ruangan']) ?> (<?= $r['tipe'] ?>)
+                                <?= esc($r['nama_ruangan']) ?> (<?= esc($r['tipe']) ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
-                <!-- Jumlah Peserta -->
-                <div class="sm:col-span-3" id="participants_container">
-                    <label for="jumlah_peserta" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                        <i class="fas fa-users mr-1 text-orange-400 text-xs"></i> Jumlah Peserta
-                    </label>
-                    <input type="number" 
-                           class="input-modern" 
-                           id="jumlah_peserta" 
-                           name="jumlah_peserta"
-                           value="<?= old('jumlah_peserta', $meeting['jumlah_peserta'] ?? '') ?>" 
-                           min="1" 
-                           required>
+                <div class="field" id="participants_container">
+                    <label class="field-label" for="jumlah_peserta">Jumlah peserta</label>
+                    <input class="input" type="number" id="jumlah_peserta" name="jumlah_peserta"
+                           value="<?= esc(old('jumlah_peserta', $meeting['jumlah_peserta'] ?? ''), 'attr') ?>"
+                           min="1" required>
                 </div>
 
-                <!-- Divider -->
-                <div class="sm:col-span-6">
-                    <div style="border-top:1px solid #f1f5f9;" class="my-1"></div>
+                <div class="field">
+                    <label class="field-label" for="waktu_mulai">Waktu mulai</label>
+                    <input class="input" type="datetime-local" id="waktu_mulai" name="waktu_mulai"
+                           value="<?= date('Y-m-d\TH:i', strtotime($meeting['waktu_mulai'])) ?>"
+                           step="900" required>
                 </div>
 
-                <!-- Waktu Mulai -->
-                <div class="sm:col-span-3">
-                    <label for="waktu_mulai" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                        <i class="fas fa-clock mr-1 text-orange-400 text-xs"></i> Waktu Mulai
-                    </label>
-                    <input type="datetime-local" 
-                           class="input-modern" 
-                           id="waktu_mulai" 
-                           name="waktu_mulai"
-                           value="<?= date('Y-m-d\TH:i', strtotime($meeting['waktu_mulai'])) ?>" 
-                           step="900"
-                           required>
-                </div>
-
-                <!-- Durasi -->
-                <div class="sm:col-span-3">
-                    <label for="durasi" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                        <i class="fas fa-hourglass-half mr-1 text-orange-400 text-xs"></i> Durasi
-                    </label>
+                <div class="field">
+                    <label class="field-label" for="durasi">Durasi</label>
                     <?php
                         $defaultDurasi = 60;
                         if (isset($meeting['waktu_mulai'], $meeting['waktu_selesai'])) {
@@ -110,11 +71,8 @@
                             }
                         }
                     ?>
-                    <select class="input-modern dropdown-modern" 
-                            id="durasi" 
-                            name="durasi" 
-                            required>
-                        <option value="60" <?= $defaultDurasi == 60  ? 'selected' : '' ?>>1 jam</option>
+                    <select class="input" id="durasi" name="durasi" required>
+                        <option value="60"  <?= $defaultDurasi == 60  ? 'selected' : '' ?>>1 jam</option>
                         <option value="120" <?= $defaultDurasi == 120 ? 'selected' : '' ?>>2 jam</option>
                         <option value="180" <?= $defaultDurasi == 180 ? 'selected' : '' ?>>3 jam</option>
                         <option value="240" <?= $defaultDurasi == 240 ? 'selected' : '' ?>>4 jam</option>
@@ -122,28 +80,20 @@
                     </select>
                 </div>
 
-                <!-- Divider -->
-                <div class="sm:col-span-6">
-                    <div style="border-top:1px solid #f1f5f9;" class="my-1"></div>
-                </div>
-
-                <!-- Fasilitas -->
-                <div class="sm:col-span-6" id="fasilitas_container">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2.5">
-                        <i class="fas fa-concierge-bell mr-1 text-orange-400 text-xs"></i> Fasilitas Rapat
-                    </label>
-                    <?php 
+                <div class="field col-span-2" id="fasilitas_container">
+                    <label class="field-label">Fasilitas rapat</label>
+                    <?php
                         $fasilitasArr = [];
                         if (!empty($meeting['fasilitas'])) {
                             $fasilitasArr = json_decode($meeting['fasilitas'], true) ?? [];
                         }
                         $fasilitas_options = [
-                            ['icon' => 'fa-microphone', 'name' => 'Microphone'],
-                            ['icon' => 'fa-camera', 'name' => 'Dokumentasi'],
-                            ['icon' => 'fa-video', 'name' => 'Zoom (Hybrid)'],
-                            ['icon' => 'fa-cookie-bite', 'name' => 'Snack'],
-                            ['icon' => 'fa-utensils', 'name' => 'Makanan Berat'],
-                            ['icon' => 'fa-glass-water', 'name' => 'Air Minum'],
+                            ['icon' => 'fa-microphone',   'name' => 'Microphone'],
+                            ['icon' => 'fa-camera',       'name' => 'Dokumentasi'],
+                            ['icon' => 'fa-video',        'name' => 'Zoom (Hybrid)'],
+                            ['icon' => 'fa-cookie-bite',  'name' => 'Snack'],
+                            ['icon' => 'fa-utensils',     'name' => 'Makanan Berat'],
+                            ['icon' => 'fa-glass-water',  'name' => 'Air Minum'],
                         ];
                         $knownFasilitas = array_column($fasilitas_options, 'name');
                         $lainnyaValue = '';
@@ -152,46 +102,31 @@
                             if (!in_array($f, $knownFasilitas) && strtolower($f) !== 'lainnya') {
                                 $lainnyaValue = $f;
                                 $hasLainnya = true;
-                            } else if (strtolower($f) === 'lainnya') {
+                            } elseif (strtolower($f) === 'lainnya') {
                                 $hasLainnya = true;
                             }
                         }
                     ?>
-                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <div class="check-grid">
                         <?php foreach ($fasilitas_options as $f): ?>
-                        <label for="fasilitas_edit_<?= url_title($f['name'], '-', true) ?>"
-                               class="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-200 cursor-pointer hover:border-orange-300 hover:bg-orange-50 transition-all"
-                               style="font-size:0.8125rem;">
-                            <input id="fasilitas_edit_<?= url_title($f['name'], '-', true) ?>"
-                                   name="fasilitas[]" 
-                                   value="<?= $f['name'] ?>" 
-                                   type="checkbox" 
-                                   class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
-                                   <?= in_array($f['name'], $fasilitasArr) ? 'checked' : '' ?>>
-                            <i class="fas <?= $f['icon'] ?> text-orange-400 text-xs"></i>
-                            <span class="font-medium text-gray-700"><?= $f['name'] ?></span>
-                        </label>
+                            <label class="check-pill" for="fasilitas_edit_<?= url_title($f['name'], '-', true) ?>">
+                                <input id="fasilitas_edit_<?= url_title($f['name'], '-', true) ?>"
+                                       name="fasilitas[]" value="<?= esc($f['name'], 'attr') ?>" type="checkbox"
+                                       <?= in_array($f['name'], $fasilitasArr) ? 'checked' : '' ?>>
+                                <i class="fas <?= esc($f['icon']) ?>" aria-hidden="true"></i>
+                                <span><?= esc($f['name']) ?></span>
+                            </label>
                         <?php endforeach; ?>
-                        <label for="fasilitas_lainnya_checkbox"
-                               class="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-200 cursor-pointer hover:border-orange-300 hover:bg-orange-50 transition-all col-span-2 sm:col-span-3"
-                               style="font-size:0.8125rem;">
-                            <input id="fasilitas_lainnya_checkbox" 
-                                   name="fasilitas[]" 
-                                   value="Lainnya" 
-                                   type="checkbox" 
-                                   class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                        <label class="check-pill check-pill-wide" for="fasilitas_lainnya_checkbox">
+                            <input id="fasilitas_lainnya_checkbox" name="fasilitas[]" value="Lainnya" type="checkbox"
                                    <?= $hasLainnya ? 'checked' : '' ?>>
-                            <i class="fas fa-ellipsis-h text-orange-400 text-xs"></i>
-                            <span class="font-medium text-gray-700">Lainnya</span>
+                            <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+                            <span>Lainnya</span>
                         </label>
-                        <div class="col-span-2 sm:col-span-3">
-                            <input type="text" 
-                                   id="fasilitas_lainnya_text" 
-                                   name="fasilitas_lainnya" 
-                                   class="input-modern <?= !$hasLainnya ? 'hidden' : '' ?>" 
-                                   placeholder="Sebutkan fasilitas lainnya..."
-                                   value="<?= esc($lainnyaValue) ?>">
-                        </div>
+                        <input type="text" id="fasilitas_lainnya_text" name="fasilitas_lainnya"
+                               class="input check-pill-wide <?= !$hasLainnya ? 'hidden' : '' ?>"
+                               placeholder="Sebutkan fasilitas lainnya..."
+                               value="<?= esc($lainnyaValue, 'attr') ?>">
                     </div>
                 </div>
 
@@ -199,41 +134,40 @@
             </div>
 
             <?php if (session()->get('is_admin')): ?>
-            <!-- Log Aktivitas -->
-            <div class="mt-6 pt-4" style="border-top:1px solid #f1f5f9;">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"><i class="fas fa-history mr-1"></i>Log Aktivitas</p>
-                <div class="space-y-1.5">
-                    <div class="flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-md p-2">
-                        <i class="fas fa-plus-circle text-orange-300 mt-0.5" style="min-width:14px;"></i>
+            <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border);">
+                <p style="font-size:.7rem;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.04em;margin:0 0 10px;">
+                    <i class="fas fa-history" aria-hidden="true"></i> Log aktivitas
+                </p>
+                <div class="stack-sm">
+                    <div style="display:flex;align-items:flex-start;gap:8px;font-size:.75rem;color:var(--body);background:var(--canvas-soft);border-radius:var(--radius-sm);padding:8px 10px;">
+                        <i class="fas fa-plus-circle" aria-hidden="true" style="color:var(--primary);margin-top:2px;"></i>
                         <span><strong>Di-input</strong> oleh <strong><?= esc($meeting['nama_pegawai'] ?? '-') ?></strong> pada <?= $meeting['created_at'] ? date('d M Y H:i', strtotime($meeting['created_at'])) : '-' ?></span>
                     </div>
                     <?php if (!empty($meeting['last_edited_by_name']) && !empty($meeting['last_edited_at'])): ?>
-                    <div class="flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-md p-2">
-                        <i class="fas fa-pen text-orange-300 mt-0.5" style="min-width:14px;"></i>
-                        <span><strong>Diedit</strong> oleh <strong><?= esc($meeting['last_edited_by_name']) ?></strong> pada <?= date('d M Y H:i', strtotime($meeting['last_edited_at'])) ?></span>
-                    </div>
+                        <div style="display:flex;align-items:flex-start;gap:8px;font-size:.75rem;color:var(--body);background:var(--canvas-soft);border-radius:var(--radius-sm);padding:8px 10px;">
+                            <i class="fas fa-pen" aria-hidden="true" style="color:var(--primary);margin-top:2px;"></i>
+                            <span><strong>Diedit</strong> oleh <strong><?= esc($meeting['last_edited_by_name']) ?></strong> pada <?= date('d M Y H:i', strtotime($meeting['last_edited_at'])) ?></span>
+                        </div>
                     <?php endif; ?>
                     <?php if (!empty($meeting['status_changed_by_name']) && !empty($meeting['status_changed_at'])): ?>
-                    <div class="flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-md p-2">
-                        <i class="fas fa-gavel text-orange-300 mt-0.5" style="min-width:14px;"></i>
-                        <?php 
-                            $statusLabel = $meeting['status'] === 'approved' ? 'Disetujui' : ($meeting['status'] === 'rejected' ? 'Ditolak' : 'Status diubah');
-                        ?>
-                        <span><strong><?= $statusLabel ?></strong> oleh <strong><?= esc($meeting['status_changed_by_name']) ?></strong> pada <?= date('d M Y H:i', strtotime($meeting['status_changed_at'])) ?></span>
-                    </div>
+                        <?php $statusLabel = $meeting['status'] === 'approved' ? 'Disetujui' : ($meeting['status'] === 'rejected' ? 'Ditolak' : 'Status diubah'); ?>
+                        <div style="display:flex;align-items:flex-start;gap:8px;font-size:.75rem;color:var(--body);background:var(--canvas-soft);border-radius:var(--radius-sm);padding:8px 10px;">
+                            <i class="fas fa-gavel" aria-hidden="true" style="color:var(--primary);margin-top:2px;"></i>
+                            <span><strong><?= esc($statusLabel) ?></strong> oleh <strong><?= esc($meeting['status_changed_by_name']) ?></strong> pada <?= date('d M Y H:i', strtotime($meeting['status_changed_at'])) ?></span>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
             <?php endif; ?>
 
             <!-- Action buttons -->
-            <div class="flex justify-end gap-3 mt-8 pt-5" style="border-top:1px solid #f1f5f9;">
-                <a href="<?= base_url('/upcoming') ?>" class="btn-outline-custom">
-                    <i class="fas fa-times"></i> Batal
+            <div class="row-actions" style="justify-content:flex-end;margin-top:24px;padding-top:18px;border-top:1px solid var(--border);">
+                <a href="<?= base_url('/upcoming') ?>" class="btn btn-secondary">
+                    <i class="fas fa-times" aria-hidden="true"></i> Batal
                 </a>
-                <button type="submit" id="editSubmitBtn" class="btn-primary-gradient">
-                    <i class="fas fa-save"></i>
-                    <span id="editSubmitText">Simpan Perubahan</span>
+                <button type="submit" id="editSubmitBtn" class="btn btn-primary">
+                    <i class="fas fa-floppy-disk" aria-hidden="true"></i>
+                    <span id="editSubmitText">Simpan perubahan</span>
                 </button>
             </div>
         </form>

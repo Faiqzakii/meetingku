@@ -10,6 +10,8 @@ use CodeIgniter\Controller;
 
 class MeetingController extends Controller
 {
+    private const WHATSAPP_GROUP_ID = '120363425375670792@g.us';
+
     protected $meetingModel;
     protected $ruanganModel;
     protected $pegawaiModel;
@@ -26,6 +28,11 @@ class MeetingController extends Controller
     protected function isAdmin()
     {
         return session()->get('is_admin') === true;
+    }
+
+    protected function sendWhatsAppToGroup(string $message): bool
+    {
+        return $this->sendWhatsAppMessage(self::WHATSAPP_GROUP_ID, $message);
     }
 
     protected function extractZoomMeetingIdFromUrl(string $zoomUrl): ?string
@@ -252,36 +259,7 @@ class MeetingController extends Controller
                                "*Fasilitas*: $fasilitasStr\n" .
                                "*Oleh*: $oleh";
 
-                    $isOnline = in_array($ruangan['tipe'] ?? '', ['Online', 'Hybrid']);
-                    $wantsZoom = false;
-                    if ($data['fasilitas']) {
-                        $fasilitasArr = json_decode($data['fasilitas'], true) ?? [];
-                        foreach ($fasilitasArr as $fasilitasItem) {
-                            if (stripos($fasilitasItem, 'Zoom') !== false) {
-                                $wantsZoom = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if ($isOnline) {
-                        $admins = $this->pegawaiModel->where('terima_notif_zoom', 1)->findAll();
-                    } elseif ($wantsZoom) {
-                        $admins = $this->pegawaiModel
-                            ->groupStart()
-                                ->where('terima_notif_offline', 1)
-                                ->orWhere('terima_notif_zoom', 1)
-                            ->groupEnd()
-                            ->findAll();
-                    } else {
-                        $admins = $this->pegawaiModel->where('terima_notif_offline', 1)->findAll();
-                    }
-                    
-                    foreach ($admins as $admin) {
-                        if (!empty($admin['no_hp'])) {
-                            $this->sendWhatsAppMessage($admin['no_hp'], $message);
-                        }
-                    }
+                    $this->sendWhatsAppToGroup($message);
                 } else {
                     log_message('debug', 'WhatsApp not configured or disabled; skipping notify.');
                 }
@@ -527,36 +505,7 @@ class MeetingController extends Controller
                                "*Fasilitas*: $fasilitasStr\n" .
                                "*Oleh*: $oleh";
 
-                    $isOnline = in_array($ruangan['tipe'] ?? '', ['Online', 'Hybrid']);
-                    $wantsZoom = false;
-                    if ($data['fasilitas']) {
-                        $fasilitasArr = json_decode($data['fasilitas'], true) ?? [];
-                        foreach ($fasilitasArr as $fasilitasItem) {
-                            if (stripos($fasilitasItem, 'Zoom') !== false) {
-                                $wantsZoom = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if ($isOnline) {
-                        $admins = $this->pegawaiModel->where('terima_notif_zoom', 1)->findAll();
-                    } elseif ($wantsZoom) {
-                        $admins = $this->pegawaiModel
-                            ->groupStart()
-                                ->where('terima_notif_offline', 1)
-                                ->orWhere('terima_notif_zoom', 1)
-                            ->groupEnd()
-                            ->findAll();
-                    } else {
-                        $admins = $this->pegawaiModel->where('terima_notif_offline', 1)->findAll();
-                    }
-                    
-                    foreach ($admins as $admin) {
-                        if (!empty($admin['no_hp'])) {
-                            $this->sendWhatsAppMessage($admin['no_hp'], $message);
-                        }
-                    }
+                    $this->sendWhatsAppToGroup($message);
                 } else {
                     log_message('debug', 'WhatsApp update not configured or disabled; skipping notify.');
                 }

@@ -1,0 +1,131 @@
+services:
+  reverse-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: nginx
+    image: ${NGINX_IMAGE:-meetingku-nginx}:${APP_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      SERVICE_FQDN_REVERSE_PROXY_80: ${APP_BASE_URL:?Set APP_BASE_URL in your environment}
+    expose:
+      - "80"
+    volumes:
+      - writable_data:/var/www/html/writable:ro
+    depends_on:
+      - meetingku-app
+    networks:
+      - coolify
+      - meetingku-internal
+
+  meetingku-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    image: ${APP_IMAGE:-meetingku-app}:${APP_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      CI_ENVIRONMENT: production
+      app.baseURL: ${APP_BASE_URL:?Set APP_BASE_URL in your environment}
+      database.default.hostname: ${DB_HOST:?Set DB_HOST in your environment}
+      database.default.database: ${DB_DATABASE:?Set DB_DATABASE in your environment}
+      database.default.username: ${DB_USERNAME:?Set DB_USERNAME in your environment}
+      database.default.password: ${DB_PASSWORD:?Set DB_PASSWORD in your environment}
+      database.default.DBDriver: ${DB_DRIVER:-Postgre}
+      database.default.port: ${DB_PORT:-5432}
+      database.default.schema: ${DB_SCHEMA:-public}
+      WA_SENDER_URL: http://wa-sender:3001
+      WA_SENDER_SECRET: ${WA_SENDER_SECRET:?Set WA_SENDER_SECRET in your environment}
+    volumes:
+      - writable_data:/var/www/html/writable
+    depends_on:
+      - wa-sender
+    networks:
+      - coolify
+      - meetingku-internal
+
+  meetingku-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    image: ${APP_IMAGE:-meetingku-app}:${APP_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    command: php spark wa:worker --sleep=3 --limit=20
+    environment:
+      CI_ENVIRONMENT: production
+      database.default.hostname: ${DB_HOST:?Set DB_HOST in your environment}
+      database.default.database: ${DB_DATABASE:?Set DB_DATABASE in your environment}
+      database.default.username: ${DB_USERNAME:?Set DB_USERNAME in your environment}
+      database.default.password: ${DB_PASSWORD:?Set DB_PASSWORD in your environment}
+      database.default.DBDriver: ${DB_DRIVER:-Postgre}
+      database.default.port: ${DB_PORT:-5432}
+      database.default.schema: ${DB_SCHEMA:-public}
+      WA_SENDER_URL: http://wa-sender:3001
+      WA_SENDER_SECRET: ${WA_SENDER_SECRET:?Set WA_SENDER_SECRET in your environment}
+    volumes:
+      - writable_data:/var/www/html/writable
+    depends_on:
+      - wa-sender
+    networks:
+      - meetingku-internal
+
+  meetingku-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    image: ${APP_IMAGE:-meetingku-app}:${APP_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    command: php spark wa:daily-summary-scheduler --time=07:00 --sleep=60
+    environment:
+      TZ: Asia/Makassar
+      CI_ENVIRONMENT: production
+      database.default.hostname: ${DB_HOST:?Set DB_HOST in your environment}
+      database.default.database: ${DB_DATABASE:?Set DB_DATABASE in your environment}
+      database.default.username: ${DB_USERNAME:?Set DB_USERNAME in your environment}
+      database.default.password: ${DB_PASSWORD:?Set DB_PASSWORD in your environment}
+      database.default.DBDriver: ${DB_DRIVER:-Postgre}
+      database.default.port: ${DB_PORT:-5432}
+      database.default.schema: ${DB_SCHEMA:-public}
+      WA_DAILY_SUMMARY_GROUP_ID: ${WA_DAILY_SUMMARY_GROUP_ID:-120363425375670792@g.us}
+    volumes:
+      - writable_data:/var/www/html/writable
+    networks:
+      - meetingku-internal
+
+  wa-sender:
+    build: ./wa-sender
+    restart: unless-stopped
+    environment:
+      INTERNAL_WA_SECRET: ${WA_SENDER_SECRET:?Set WA_SENDER_SECRET in your environment}
+      WA_AUTH_DIR: /app/auth_info_baileys/default
+      LOG_LEVEL: info
+    volumes:
+      - wa_auth:/app/auth_info_baileys
+    expose:
+      - "3001"
+    networks:
+      - meetingku-internal
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TUNNEL_TOKEN}
+    depends_on:
+      - reverse-proxy
+    profiles:
+      - tunnel
+    networks:
+      - coolify
+      - meetingku-internal
+
+volumes:
+  writable_data:
+  wa_auth:
+
+networks:
+  coolify:
+    external: true
+  meetingku-internal:
+    driver: bridge

@@ -34,6 +34,8 @@ class Filters extends BaseConfig
         'before' => [
             'csrf' => ['except' => [
                 'auth/logout',
+                'api/whatsapp/messages',
+                'api/whatsapp/messages/*',
             ]],
             'invalidchars',
         ],
@@ -47,11 +49,7 @@ class Filters extends BaseConfig
      * List of filter aliases that works on a
      * particular HTTP method (GET, POST, etc.).
      */
-    public array $methods = [
-        'post' => ['csrf'],
-        'put' => ['csrf'],
-        'delete' => ['csrf']
-    ];
+    public array $methods = [];
 
     /**
      * List of filter aliases that should run on any
@@ -62,7 +60,9 @@ class Filters extends BaseConfig
             'before' => [
                 'meeting/*',
                 'pegawai/*',
-                'ruangan/*'
+                'ruangan/*',
+                'whatsapp/*',
+                'whatsapp'
             ],
             'except' => [
                 'auth/*',  // Auth routes are handled by public filter
@@ -73,7 +73,9 @@ class Filters extends BaseConfig
         'admin' => [
             'before' => [
                 'pegawai/*',
-                'ruangan/*'
+                'ruangan/*',
+                'whatsapp/*',
+                'whatsapp'
             ],
             'except' => [
                 'pegawai/profile',

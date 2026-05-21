@@ -1,300 +1,210 @@
+<?php
+/**
+ * Login — clean, fokus, aksen oranye.
+ */
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — MeetingKU</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+
     <style>
+        :root {
+            --canvas: #fffefb;
+            --canvas-soft: #f8f4f0;
+            --surface: #ffffff;
+            --ink: #0f172a;
+            --body: #475569;
+            --mute: #94a3b8;
+            --border: #e2e8f0;
+            --border-strong: #cbd5e1;
+            --primary: #ff4f00;
+            --primary-soft: #fff1ea;
+            --primary-dark: #c2410c;
+            --primary-ring: rgba(255, 79, 0, .35);
+            --danger: #dc2626;
+            --danger-soft: #fee2e2;
+            --success: #16a34a;
+            --success-soft: #dcfce7;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --shadow-1: 0 1px 2px rgba(15, 23, 42, .04);
+            --shadow-3: 0 14px 30px rgba(15, 23, 42, .08), 0 4px 10px rgba(15, 23, 42, .04);
+            --shadow-focus: 0 0 0 3px var(--primary-ring);
+            --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+            --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
         *, *::before, *::after { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            margin: 0;
+            font-family: var(--font-body);
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 18% 12%, rgba(255, 79, 0, .12), transparent 32rem),
+                radial-gradient(circle at 82% 88%, rgba(255, 79, 0, .08), transparent 28rem),
+                linear-gradient(180deg, var(--canvas) 0%, var(--canvas-soft) 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
+            display: grid;
+            place-items: center;
+            padding: 24px;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Animated gradient background */
-        .login-bg {
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(-45deg, #7c2d12, #9a3412, #ea580c, #f97316, #d97706, #c2410c);
-            background-size: 400% 400%;
-            animation: gradientShift 12s ease infinite;
+        .login-shell { width: 100%; max-width: 420px; }
+
+        .login-brand {
+            display: inline-flex; align-items: center; gap: 10px;
+            margin-bottom: 24px;
         }
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+        .login-brand-mark {
+            width: 38px; height: 38px;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 10px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 1rem;
+        }
+        .login-brand-name {
+            font-family: var(--font-display);
+            font-weight: 800; font-size: 1.05rem; color: var(--ink);
+            letter-spacing: -.01em;
         }
 
-        /* Floating orbs */
-        .login-bg::before,
-        .login-bg::after {
-            content: '';
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.05);
-            animation: floatOrb 8s ease-in-out infinite alternate;
-        }
-        .login-bg::before {
-            width: 400px;
-            height: 400px;
-            top: -100px;
-            right: -100px;
-        }
-        .login-bg::after {
-            width: 300px;
-            height: 300px;
-            bottom: -80px;
-            left: -80px;
-            animation-delay: -4s;
-        }
-        @keyframes floatOrb {
-            from { transform: translate(0, 0) scale(1); }
-            to { transform: translate(30px, -30px) scale(1.1); }
-        }
-
-        /* Grid pattern overlay */
-        .grid-overlay {
-            position: fixed;
-            inset: 0;
-            background-image: 
-                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            pointer-events: none;
-        }
-
-        /* Login card */
         .login-card {
-            position: relative;
-            z-index: 10;
-            width: 100%;
-            max-width: 420px;
-            margin: 1rem;
-            background: white;
-            border-radius: 1.25rem;
-            padding: 2.5rem;
-            box-shadow: 
-                0 25px 50px -12px rgba(0, 0, 0, 0.25),
-                0 0 0 1px rgba(255,255,255,0.1);
-            animation: cardAppear 0.6s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
-            opacity: 0;
-        }
-        @keyframes cardAppear {
-            from { opacity: 0; transform: translateY(20px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        /* Logo & title */
-        .login-logo {
-            width: 3.5rem;
-            height: 3.5rem;
-            margin: 0 auto 1.25rem;
-            background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
-            border-radius: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-3);
+            padding: 32px;
         }
         .login-title {
-            text-align: center;
-            background: linear-gradient(135deg, #ea580c, #f97316);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-weight: 800;
-            font-size: 1.75rem;
-            letter-spacing: -0.025em;
-            margin-bottom: 0.375rem;
+            font-family: var(--font-display);
+            font-size: 1.5rem; font-weight: 700;
+            color: var(--ink); margin: 0 0 4px;
+            letter-spacing: -.01em;
         }
         .login-subtitle {
-            text-align: center;
-            color: #94a3b8;
-            font-size: 0.875rem;
-            font-weight: 400;
-            margin-bottom: 2rem;
+            font-size: .9rem; color: var(--body); margin: 0 0 24px;
         }
 
-        /* Input groups */
-        .input-group-login {
-            margin-bottom: 1.25rem;
+        .alert {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 12px 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            font-size: .85rem;
+            margin-bottom: 18px;
         }
-        .input-label {
-            display: block;
-            color: #374151;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            letter-spacing: 0.01em;
+        .alert i { margin-top: 2px; }
+        .alert-error  { background: var(--danger-soft);  border-color: #fecaca; color: #7f1d1d; }
+        .alert-error i { color: var(--danger); }
+        .alert-success { background: var(--success-soft); border-color: #bbf7d0; color: #14532d; }
+        .alert-success i { color: var(--success); }
+        .alert ul { margin: 0; padding-left: 18px; }
+
+        .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+        .field-label {
+            font-size: .8125rem; font-weight: 600; color: var(--ink);
         }
-        .input-wrapper {
-            position: relative;
+        .field-control { position: relative; }
+        .field-control i.lead {
+            position: absolute; top: 50%; left: 14px; transform: translateY(-50%);
+            color: var(--mute); font-size: .9rem; pointer-events: none;
         }
-        .input-icon {
-            position: absolute;
-            left: 0.875rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #94a3b8;
-            font-size: 0.875rem;
-            pointer-events: none;
-            transition: color 0.25s;
-        }
-        .login-input {
+        .field-control input {
             width: 100%;
-            padding: 0.75rem 0.875rem 0.75rem 2.75rem;
-            background: #f8fafc;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 0.625rem;
-            color: #1e293b;
-            font-size: 0.9375rem;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.25s;
+            padding: 12px 14px 12px 40px;
+            min-height: 44px;
+            background: var(--surface);
+            color: var(--ink);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-md);
+            font: inherit; font-size: .9rem;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .field-control input:focus {
             outline: none;
+            border-color: var(--primary);
+            box-shadow: var(--shadow-focus);
         }
-        .login-input::placeholder {
-            color: #94a3b8;
-        }
-        .login-input:focus {
-            border-color: #fb923c;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
-        }
-        .login-input:focus + .input-icon,
-        .login-input:focus ~ .input-icon {
-            color: #f97316;
-        }
-
-        /* Password toggle */
+        .field-control input[type="password"],
+        .field-control input.has-toggle { padding-right: 44px; }
         .password-toggle {
-            position: absolute;
-            right: 0.875rem;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #94a3b8;
-            cursor: pointer;
-            padding: 0.25rem;
-            font-size: 0.875rem;
-            transition: color 0.2s;
+            position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+            width: 32px; height: 32px;
+            background: transparent; border: 0; color: var(--mute);
+            border-radius: 8px; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
         }
-        .password-toggle:hover {
-            color: #f97316;
-        }
+        .password-toggle:hover { background: var(--canvas-soft); color: var(--ink); }
+        .password-toggle:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
 
-        /* Submit button */
+        .caps-hint {
+            display: none;
+            margin-top: 6px;
+            font-size: .75rem; color: var(--warning, #d97706);
+        }
+        .caps-hint.is-on { display: inline-flex; align-items: center; gap: 6px; }
+
         .login-submit {
             width: 100%;
-            padding: 0.8125rem;
-            background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
-            border: none;
-            border-radius: 0.625rem;
-            color: white;
-            font-family: 'Inter', sans-serif;
-            font-size: 0.9375rem;
-            font-weight: 700;
+            min-height: 46px;
+            padding: 12px 16px;
+            background: var(--primary);
+            color: #fff;
+            border: 0;
+            border-radius: var(--radius-md);
+            font: inherit; font-size: .95rem; font-weight: 700;
             cursor: pointer;
-            transition: all 0.25s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.625rem;
-            letter-spacing: 0.01em;
-            box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            transition: background .15s, transform .15s;
         }
-        .login-submit:hover {
-            box-shadow: 0 4px 16px rgba(234, 88, 12, 0.4);
-            transform: translateY(-1px);
-        }
-        .login-submit:active {
-            transform: translateY(0);
-        }
+        .login-submit:hover { background: var(--primary-dark); }
+        .login-submit:active { transform: translateY(1px); }
+        .login-submit:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
 
-        /* Alert boxes */
-        .login-alert {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.75rem;
-            padding: 0.875rem 1rem;
-            border-radius: 0.625rem;
-            font-size: 0.8125rem;
-            font-weight: 500;
-            margin-bottom: 1.25rem;
-            animation: alertPop 0.3s ease-out;
-        }
-        .login-alert-error {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #991b1b;
-        }
-        .login-alert-success {
-            background: #ecfdf5;
-            border: 1px solid #a7f3d0;
-            color: #065f46;
-        }
-        .login-alert-icon {
-            width: 1.375rem;
-            height: 1.375rem;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.6875rem;
-            flex-shrink: 0;
-            margin-top: 0.0625rem;
-        }
-        .login-alert-error .login-alert-icon { background: #ef4444; color: white; }
-        .login-alert-success .login-alert-icon { background: #10b981; color: white; }
-        @keyframes alertPop {
-            from { opacity: 0; transform: translateY(-6px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Footer text */
         .login-footer {
+            margin-top: 24px;
             text-align: center;
-            margin-top: 1.5rem;
-            color: #94a3b8;
-            font-size: 0.75rem;
+            font-size: .75rem; color: var(--mute);
         }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+        }
+
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
     </style>
 </head>
 <body>
-    <div class="login-bg"></div>
-    <div class="grid-overlay"></div>
+<main class="login-shell" role="main">
+    <div class="login-brand" aria-label="MeetingKU">
+        <span class="login-brand-mark"><i class="fas fa-calendar-check" aria-hidden="true"></i></span>
+        <span class="login-brand-name">MeetingKU</span>
+    </div>
 
-    <div class="login-card">
-        <div class="login-logo">
-            <i class="fas fa-calendar-check"></i>
-        </div>
-        <h1 class="login-title">MeetingKU</h1>
-        <p class="login-subtitle">Silakan login untuk melanjutkan</p>
+    <section class="login-card" aria-labelledby="loginHeading">
+        <h1 id="loginHeading" class="login-title">Selamat datang kembali</h1>
+        <p class="login-subtitle">Masuk untuk mengelola agenda dan ruangan.</p>
 
         <?php if (session()->getFlashdata('error')): ?>
-            <div class="login-alert login-alert-error">
-                <div class="login-alert-icon">
-                    <i class="fas fa-exclamation"></i>
-                </div>
+            <div class="alert alert-error" role="alert">
+                <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
                 <div>
-                    <?php 
+                    <?php
                         $error = session()->getFlashdata('error');
                         if (is_string($error)) {
                             echo esc($error);
-                        } else if (is_array($error)) {
-                            echo '<ul style="margin:0;padding-left:1rem;">';
+                        } elseif (is_array($error)) {
+                            echo '<ul>';
                             foreach ($error as $err) {
                                 echo '<li>' . esc($err) . '</li>';
                             }
@@ -306,71 +216,91 @@
         <?php endif; ?>
 
         <?php if (session()->getFlashdata('success')): ?>
-            <div class="login-alert login-alert-success">
-                <div class="login-alert-icon">
-                    <i class="fas fa-check"></i>
-                </div>
-                <div><?= session()->getFlashdata('success') ?></div>
+            <div class="alert alert-success" role="status">
+                <i class="fas fa-circle-check" aria-hidden="true"></i>
+                <div><?= esc(session()->getFlashdata('success')) ?></div>
             </div>
         <?php endif; ?>
 
-        <form action="<?= base_url('auth/login') ?>" method="POST">
+        <form action="<?= base_url('auth/login') ?>" method="POST" novalidate>
             <?= csrf_field() ?>
-            
-            <div class="input-group-login">
-                <label for="username" class="input-label">Username</label>
-                <div class="input-wrapper">
-                    <input id="username" 
-                           name="username" 
-                           type="text" 
-                           required 
-                           class="login-input" 
+
+            <div class="field">
+                <label for="username" class="field-label">Username</label>
+                <div class="field-control">
+                    <i class="fas fa-user lead" aria-hidden="true"></i>
+                    <input id="username" name="username" type="text" required
                            placeholder="Masukkan username"
-                           value="<?= old('username') ?>"
-                           autocomplete="username">
-                    <span class="input-icon"><i class="fas fa-user"></i></span>
+                           value="<?= esc(old('username'), 'attr') ?>"
+                           autocomplete="username" autocapitalize="off" autocorrect="off">
                 </div>
             </div>
 
-            <div class="input-group-login">
-                <label for="password" class="input-label">Password</label>
-                <div class="input-wrapper">
-                    <input id="password" 
-                           name="password" 
-                           type="password" 
-                           required 
-                           class="login-input" 
-                           style="padding-right: 2.75rem;"
+            <div class="field">
+                <label for="password" class="field-label">Password</label>
+                <div class="field-control">
+                    <i class="fas fa-lock lead" aria-hidden="true"></i>
+                    <input id="password" name="password" type="password" required
+                           class="has-toggle"
                            placeholder="Masukkan password"
                            autocomplete="current-password">
-                    <span class="input-icon"><i class="fas fa-lock"></i></span>
-                    <button type="button" class="password-toggle" id="togglePassword" tabindex="-1">
-                        <i class="fas fa-eye"></i>
+                    <button type="button" class="password-toggle" id="togglePassword"
+                            aria-label="Tampilkan password" aria-pressed="false">
+                        <i class="fas fa-eye" aria-hidden="true"></i>
                     </button>
                 </div>
+                <small id="capsHint" class="caps-hint" aria-live="polite">
+                    <i class="fas fa-arrow-up" aria-hidden="true"></i> Caps Lock aktif
+                </small>
             </div>
 
             <button type="submit" class="login-submit">
-                <i class="fas fa-arrow-right"></i>
-                Masuk
+                <span>Masuk</span>
+                <i class="fas fa-arrow-right" aria-hidden="true"></i>
             </button>
         </form>
+    </section>
 
-        <p class="login-footer">&copy; <?= date('Y') ?> MeetingKU — Sistem Manajemen Meeting</p>
-    </div>
+    <p class="login-footer">&copy; <?= date('Y') ?> MeetingKU — Sistem Manajemen Meeting</p>
+</main>
 
-    <script>
-        // Password visibility toggle
-        const toggleBtn = document.getElementById('togglePassword');
-        const passwordInput = document.getElementById('password');
-        if (toggleBtn && passwordInput) {
-            toggleBtn.addEventListener('click', function() {
-                const isPassword = passwordInput.type === 'password';
-                passwordInput.type = isPassword ? 'text' : 'password';
-                this.querySelector('i').classList.toggle('fa-eye');
-                this.querySelector('i').classList.toggle('fa-eye-slash');
-            });
+<script>
+(function() {
+    'use strict';
+    var toggleBtn = document.getElementById('togglePassword');
+    var passwordInput = document.getElementById('password');
+    if (toggleBtn && passwordInput) {
+        toggleBtn.addEventListener('click', function() {
+            var isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
+            toggleBtn.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+            toggleBtn.setAttribute('aria-label', isPassword ? 'Sembunyikan password' : 'Tampilkan password');
+            var icon = toggleBtn.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
+        });
+    }
+
+    // Caps lock indicator
+    var capsHint = document.getElementById('capsHint');
+    function updateCaps(e) {
+        if (!capsHint || typeof e.getModifierState !== 'function') return;
+        if (e.getModifierState('CapsLock')) {
+            capsHint.classList.add('is-on');
+        } else {
+            capsHint.classList.remove('is-on');
         }
-    </script>
+    }
+    if (passwordInput) {
+        passwordInput.addEventListener('keydown', updateCaps);
+        passwordInput.addEventListener('keyup', updateCaps);
+        passwordInput.addEventListener('blur', function() {
+            capsHint && capsHint.classList.remove('is-on');
+        });
+    }
+})();
+</script>
 </body>
 </html>

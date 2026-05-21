@@ -29,6 +29,9 @@ class Commands extends BaseConfig
      * @var array<int, string>
      */
     public array $commands = [
-        'auth:create-admin' => \App\Commands\CreateAdmin::class
+        'auth:create-admin' => \App\Commands\CreateAdmin::class,
+        'wa:worker' => \App\Commands\WaWorker::class,
+        'wa:daily-summary' => \App\Commands\WaDailySummary::class,
+        'wa:daily-summary-scheduler' => \App\Commands\WaDailySummaryScheduler::class,
     ];
 }

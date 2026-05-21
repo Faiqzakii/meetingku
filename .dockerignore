@@ -1,0 +1,11 @@
+.git
+build
+vendor
+writable/cache/*
+writable/debugbar/*
+writable/logs/*
+writable/session/*
+.env
+.opencode-context.md
+.opencode-jce
+node_modules

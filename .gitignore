@@ -41,8 +41,10 @@ $RECYCLE.BIN/
 #-------------------------
 # These should never be under version control,
 # as it poses a security risk.
+.env
 .vagrant
 Vagrantfile
+*.zip
 
 #-------------------------
 # Temporary Files
@@ -58,6 +60,9 @@ writable/session/*
 
 writable/uploads/*
 !writable/uploads/index.html
+
+public/writable/*
+!public/writable/.gitkeep
 
 writable/debugbar/*
 !writable/debugbar/.gitkeep
@@ -123,4 +128,19 @@ nb-configuration.xml
 
 /results/
 /phpunit*.xml
-/public/writable
+
+
+.opencode-context.md
+/.opencode-context-archive.md
+/.superpowers/
+/.opencode-jce/
+/docs/superpowers/
+
+# CodeIgniter starter/example files not used by MeetingKu
+/app/Controllers/Home.php
+/app/Views/welcome_message.php
+/tests/_support/Database/Migrations/*_example_migration.php
+/tests/_support/Database/Seeds/ExampleSeeder.php
+/tests/_support/Models/ExampleModel.php
+/tests/database/ExampleDatabaseTest.php
+/tests/session/ExampleSessionTest.php

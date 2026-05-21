@@ -30,6 +30,7 @@ class Database extends Config
         'username'     => 'root',
         'password'     => '',
         'database'     => 'meetingku',
+        'schema'       => 'public',
         'DBDriver'     => 'MySQLi',
         'DBPrefix'     => '',
         'pConnect'     => false,
@@ -168,6 +169,7 @@ class Database extends Config
         'username'    => '',
         'password'    => '',
         'database'    => ':memory:',
+        'schema'      => 'public',
         'DBDriver'    => 'SQLite3',
         'DBPrefix'    => 'db_',  // Needed to ensure we're working correctly with prefixes live. DO NOT REMOVE FOR CI DEVS
         'pConnect'    => false,
@@ -199,6 +201,7 @@ class Database extends Config
         $this->default['username']     = env('database.default.username', $this->default['username']);
         $this->default['password']     = env('database.default.password', $this->default['password']);
         $this->default['database']     = env('database.default.database', $this->default['database']);
+        $this->default['schema']       = env('database.default.schema', $this->default['schema']);
         $this->default['DBDriver']     = env('database.default.DBDriver', $this->default['DBDriver']);
         $this->default['DBPrefix']     = env('database.default.DBPrefix', $this->default['DBPrefix']);
         $this->default['pConnect']     = (bool) env('database.default.pConnect', $this->default['pConnect']);
@@ -214,11 +217,34 @@ class Database extends Config
         $this->default['numberNative'] = (bool) env('database.default.numberNative', $this->default['numberNative']);
         $this->default['foundRows']    = (bool) env('database.default.foundRows', $this->default['foundRows']);
 
+        $this->development['DSN']          = env('database.development.DSN', $this->development['DSN']);
+        $this->development['hostname']     = env('database.development.hostname', $this->development['hostname']);
+        $this->development['username']     = env('database.development.username', $this->development['username']);
+        $this->development['password']     = env('database.development.password', $this->development['password']);
+        $this->development['database']     = env('database.development.database', $this->development['database']);
+        $this->development['schema']       = env('database.development.schema', $this->development['schema']);
+        $this->development['DBDriver']     = env('database.development.DBDriver', $this->development['DBDriver']);
+        $this->development['DBPrefix']     = env('database.development.DBPrefix', $this->development['DBPrefix']);
+        $this->development['pConnect']     = (bool) env('database.development.pConnect', $this->development['pConnect']);
+        $this->development['DBDebug']      = (bool) env('database.development.DBDebug', $this->development['DBDebug']);
+        $this->development['charset']      = env('database.development.charset', $this->development['charset']);
+        $this->development['DBCollat']     = env('database.development.DBCollat', $this->development['DBCollat']);
+        $this->development['swapPre']      = env('database.development.swapPre', $this->development['swapPre']);
+        $this->development['encrypt']      = (bool) env('database.development.encrypt', $this->development['encrypt']);
+        $this->development['compress']     = (bool) env('database.development.compress', $this->development['compress']);
+        $this->development['strictOn']     = (bool) env('database.development.strictOn', $this->development['strictOn']);
+        $this->development['failover']     = env('database.development.failover', $this->development['failover']) ?: [];
+        $this->development['port']         = (int) env('database.development.port', $this->development['port']);
+        $this->development['foreignKeys']  = (bool) env('database.development.foreignKeys', $this->development['foreignKeys']);
+        $this->development['busyTimeout']  = (int) env('database.development.busyTimeout', $this->development['busyTimeout']);
+
         // Ensure that we always set the database group to 'tests' if
         // we are currently running an automated test suite, so that
         // we don't overwrite live data on accident.
         if (ENVIRONMENT === 'development') {
             $this->defaultGroup = 'development';
         }
+
+        $this->defaultGroup = env('database.defaultGroup', $this->defaultGroup);
     }
 }

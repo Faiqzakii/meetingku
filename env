@@ -34,9 +34,28 @@ database.default.hostname = localhost
 database.default.database = bpsk7477_meetingku
 database.default.username = root
 database.default.password = 
+database.defaultGroup = default
 # database.default.DBDriver = MySQLi
 # database.default.DBPrefix =
 # database.default.port = 3306
+
+# PostgreSQL example:
+# database.default.DBDriver = Postgre
+# database.default.hostname = localhost
+# database.default.database = meetingku
+# database.default.username = postgres
+# database.default.password = secret
+# database.default.schema = public
+# database.default.port = 5432
+
+# Local development group is used automatically when CI_ENVIRONMENT = development.
+# Set database.defaultGroup = default if you want development to use database.default.*.
+# database.development.hostname = localhost
+# database.development.database = meetingku
+# database.development.username = root
+# database.development.password =
+# database.development.DBDriver = MySQLi
+# database.development.port = 3306
 
 # If you use MySQLi as tests, first update the values of Config\Database::$tests.
 # database.tests.hostname = localhost

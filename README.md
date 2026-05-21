@@ -1,141 +1,144 @@
-# Meetingku — Meeting Room Scheduling (CodeIgniter 4)
+# MeetingKu
 
-Meetingku is a simple meeting room scheduling application built with CodeIgniter 4. It supports authentication, role‑based admin actions, room and employee management, and meeting creation with calendar and upcoming views. Optional WhatsApp notification integration is available via Saungwa.
+MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwalkan rapat, mengelola pegawai/ruangan, menyimpan tautan Zoom/manual, serta mengirim notifikasi WhatsApp grup melalui worker dan gateway internal.
 
-• Demo routes: `/` or `/meeting/calendar` (calendar), `/upcoming` (upcoming), `/auth/login` (login)
+## Fitur Utama
 
-## Features
+- Kalender dan daftar rapat mendatang/semua rapat.
+- CRUD pegawai dan ruangan, termasuk impor pegawai dari spreadsheet.
+- Tautan Zoom/manual meeting dan pengiriman ulang tautan.
+- WhatsApp admin page untuk status koneksi, QR/pairing code, API key, dan antrean pesan.
+- Worker retry WhatsApp dengan backoff dan scheduler ringkasan harian 07:00 WITA.
+- Docker Compose untuk PHP-FPM, Nginx reverse proxy, worker, scheduler, dan Node `wa-sender`.
 
-- Authentication: login/logout with hashed passwords; admin role
-- Meetings: create/update/delete, status workflow (pending/approved/rejected/cancelled)
-- Views: calendar, today/upcoming, and admin all‑meetings by date range
-- Rooms (Ruangan): CRUD with type Online/Offline/Hybrid; prevent deletion if approved meetings exist
-- Employees (Pegawai): CRUD, password hashing, Excel import, downloadable template
-- CLI: `php spark auth:create-admin` to bootstrap the first admin
-- Notifications: optional Saungwa API integration via environment variables
+## Stack
 
-## Tech Stack
+- PHP `^8.1`, CodeIgniter 4, Composer.
+- PHPUnit 10 untuk test.
+- MySQL/MariaDB lokal; PostgreSQL didukung untuk deploy container via env.
+- UI server-rendered PHP views dengan Tailwind CDN, Bootstrap, Font Awesome, FullCalendar.
+- Node.js service `wa-sender` memakai Baileys untuk koneksi WhatsApp internal.
 
-- PHP 8.1+, CodeIgniter 4.x
-- Dependencies: `phpoffice/phpspreadsheet`, `vlucas/phpdotenv`
-- Testing: PHPUnit 10 (coverage to `build/logs/`)
+## Struktur Penting
 
-## Project Structure
+- `app/Controllers`, `app/Models`, `app/Views` — kode aplikasi utama.
+- `app/Commands` — worker dan scheduler WhatsApp.
+- `app/Database/Migrations` — migrasi tabel WhatsApp.
+- `docker/`, `Dockerfile`, `docker-compose.yml` — deploy container.
+- `wa-sender/` — service Node internal untuk WhatsApp.
+- `writable/` — runtime logs/cache/session/uploads; tidak untuk commit.
 
-- Source: `app/` (controllers, models, views, config)
-- Public webroot: `public/` (configure your server to point here)
-- Tests: `tests/` (helpers under `tests/_support/`)
-- Runtime: `writable/` (logs, cache, uploads)
-- Composer deps: `vendor/`; sample DB: `meetingku.sql`
+## Setup Lokal
 
-## Requirements
+1. Install dependency PHP:
 
-- PHP 8.1+ with extensions: intl, mbstring, json, curl, mysqlnd
-- A MySQL-compatible database (migrations use ENUM)
+   ```bash
+   composer install
+   ```
 
-## Setup
+2. Buat konfigurasi lokal:
 
-1) Install dependencies
+   ```bash
+   cp env .env
+   ```
 
-- `composer install`
+3. Atur minimal `.env`:
 
-2) Configure environment
+   ```ini
+   CI_ENVIRONMENT = development
+   app.baseURL = 'http://localhost:8080/'
 
-- Copy `env` to `.env` and set at minimum:
-  - `app.baseURL` (e.g., `http://localhost:8080`)
-  - Database: `database.default.*` (hostname, database, username, password, DBDriver)
-  - Optional Saungwa:
-    - `saungwa.enabled=true`
-    - `saungwa.url=https://app.saungwa.com/api/create-message`
-    - `saungwa.appkey=...`
-    - `saungwa.authkey=...`
-    - `saungwa.to=...`
-    - `saungwa.template_id=...`
-    - `saungwa.template_id_update=...`
+   database.defaultGroup = default
+   database.default.hostname = localhost
+   database.default.database = meetingku
+   database.default.username = root
+   database.default.password =
+   database.default.DBDriver = MySQLi
+   database.default.port = 3306
+   ```
 
-3) Prepare writable directories
+4. Jalankan migrasi jika memakai schema baru:
 
-- Ensure `writable/` and `build/` are writable by the web/PHP user (coverage writes to `build/logs/`).
+   ```bash
+   php spark migrate
+   ```
 
-## Database
+5. Jalankan server lokal:
 
-You can start with the provided sample or run migrations.
+   ```bash
+   php spark serve
+   ```
 
-- Option A: import sample
-  - Import `meetingku.sql` into your database.
+   Buka `http://localhost:8080`.
 
-- Option B: run migrations
-  - `php spark migrate`
-  - Creates tables: `pegawai`, `ruangan`, `meeting` with proper FKs and timestamps.
+## WhatsApp Gateway
 
-## Bootstrapping Admin
+Untuk fitur WhatsApp lokal, jalankan `wa-sender` terpisah atau gunakan Docker Compose.
 
-Create the initial admin account via CLI:
+Env penting:
 
-- `php spark auth:create-admin`
+```ini
+WA_SENDER_URL=http://localhost:3001
+WA_SENDER_SECRET=change-me
+WA_DAILY_SUMMARY_GROUP_ID=120363425375670792@g.us
+```
 
-The command prompts for username, NIP (18 digits), password, and full name, then persists an admin user.
+Command aplikasi:
 
-## Running the App
+```bash
+php spark wa:worker --sleep=3 --limit=20
+php spark wa:daily-summary
+php spark wa:daily-summary-scheduler --time=07:00 --sleep=60
+```
 
-- Local dev server: `php spark serve` then open `http://localhost:8080`
-- Web server: set document root to `public/` (not the project root)
-- Default routes:
-  - `/` → `MeetingController::calendar`
-  - `/upcoming` → upcoming list
-  - `/auth/login` → login form
+## Docker / Coolify
 
-## Key Routes
+Compose memakai external network `coolify` dan env wajib dari platform deploy.
 
-- Auth
-  - `GET /auth/login`, `POST /auth/login`, `GET /auth/logout`
-- Meeting
-  - `GET /meeting/calendar`, `GET /meeting/upcoming`, `GET /meeting/all` (admin)
-  - `POST /meeting/create`
-  - `GET /meeting/edit/{id}`
-  - `POST /meeting/update/{id}`
-  - `POST /meeting/delete/{id}`
-  - `POST /meeting/status/{id}` (admin)
-- Pegawai
-  - `GET /pegawai` (auth)
-  - `POST /pegawai/create` (admin)
-  - `GET /pegawai/edit/{id}` (admin)
-  - `PUT /pegawai/update/{id}` or `POST /pegawai/update/{id}` (admin)
-  - `POST /pegawai/delete/{id}` (admin)
-  - `POST /pegawai/import` (admin). Upload `.xlsx` matching the template
-  - `GET /pegawai/downloadTemplate` (download Excel template)
-- Ruangan
-  - `GET /ruangan` (auth)
-  - `POST /ruangan/create` (admin)
-  - `GET /ruangan/edit/{id}` (admin)
-  - `POST /ruangan/update/{id}` (admin)
-  - `POST /ruangan/delete/{id}` (admin)
+Env minimal:
+
+```ini
+APP_BASE_URL=https://domain.example
+DB_HOST=postgres-host
+DB_DATABASE=meetingku
+DB_USERNAME=meetingku
+DB_PASSWORD=secret
+DB_DRIVER=Postgre
+DB_PORT=5432
+DB_SCHEMA=public
+WA_SENDER_SECRET=secret-internal
+WA_DAILY_SUMMARY_GROUP_ID=120363425375670792@g.us
+```
+
+Jalankan:
+
+```bash
+docker compose up -d --build
+```
+
+Service utama:
+
+- `reverse-proxy` — Nginx exposed port 80.
+- `meetingku-app` — PHP-FPM app.
+- `meetingku-worker` — proses antrean WhatsApp.
+- `meetingku-scheduler` — ringkasan harian.
+- `wa-sender` — service internal WhatsApp.
 
 ## Testing
 
-- Run all tests: `composer test` or `vendor/bin/phpunit -c phpunit.xml.dist`
-- Coverage, JUnit, and TestDox output to `build/logs/`
+```bash
+composer test
+```
 
-## Excel Import Notes
+Atau:
 
-- Template columns: Nama, NIP, Username, Password, Admin (Ya/Tidak)
-- Download template at `GET /pegawai/downloadTemplate`
-- Import file at `POST /pegawai/import` (admin, `.xlsx` only)
+```bash
+vendor/bin/phpunit -c phpunit.xml.dist
+```
 
-## Configuration & Security
+## Catatan Keamanan
 
-- Keep secrets in `.env` and never commit it
-- Set `app.baseURL` to your public URL
-- Configure your web server to use `public/` as document root
-- Ensure `writable/` is writable and review `writable/logs/` during development
-- Consider enabling CSRF in `Config\Security` and adjusting as needed
-
-## License
-
-MIT. See `LICENSE`.
-
-## Contributing
-
-- PHP `^8.1`, PSR‑12, 4‑space indentation
-- Namespaces: `App\` (app/), `Config\` (app/Config/)
-- Run `composer test` and ensure passing tests before PRs
+- Jangan commit `.env`, session, log, cache, zip build, atau kredensial deploy.
+- Public webroot harus `public/`, bukan root project.
+- API key WhatsApp hanya untuk integrasi tepercaya; rotasi jika pernah terekspos.
+- Pastikan `writable/` bisa ditulis runtime tetapi tidak dipublikasikan langsung.

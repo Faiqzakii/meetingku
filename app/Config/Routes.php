@@ -43,6 +43,18 @@ $routes->post('ruangan/delete/(:num)', 'RuanganController::delete/$1');
 // Ruangan meetings (daily filter)
 $routes->get('ruangan/(:num)/meetings', 'RuanganController::meetings/$1');
 
+// WhatsApp Gateway Routes
+$routes->get('whatsapp', 'WhatsappController::index');
+$routes->post('whatsapp/pairing-code', 'WhatsappController::pairingCode');
+$routes->post('whatsapp/reset-session', 'WhatsappController::resetSession');
+$routes->post('whatsapp/logout', 'WhatsappController::logout');
+$routes->post('whatsapp/api-keys', 'WhatsappController::createApiKey');
+$routes->post('whatsapp/api-keys/(:num)/revoke', 'WhatsappController::revokeApiKey/$1');
+
+// External WhatsApp API Routes
+$routes->post('api/whatsapp/messages', 'WhatsappApiController::createMessage');
+$routes->get('api/whatsapp/messages/(:num)', 'WhatsappApiController::showMessage/$1');
+
 // Default route
 $routes->get('/', 'MeetingController::calendar');
 $routes->get('/upcoming', 'MeetingController::upcoming');
