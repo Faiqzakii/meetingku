@@ -69,6 +69,7 @@ services:
     depends_on:
       - wa-sender
     networks:
+      - coolify
       - meetingku-internal
 
   meetingku-scheduler:
@@ -93,6 +94,7 @@ services:
     volumes:
       - writable_data:/var/www/html/writable
     networks:
+      - coolify
       - meetingku-internal
 
   wa-sender:
