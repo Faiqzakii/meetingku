@@ -6,6 +6,13 @@ use CodeIgniter\Config\BaseConfig;
 
 class App extends BaseConfig
 {
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->baseURL = rtrim(env('APP_BASE_URL', env('app.baseURL', $this->baseURL)), '/') . '/';
+    }
+
     /**
      * --------------------------------------------------------------------------
      * Base Site URL
