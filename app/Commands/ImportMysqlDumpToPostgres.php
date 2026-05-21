@@ -61,7 +61,7 @@ class ImportMysqlDumpToPostgres extends BaseCommand
 
             $columnsByTable[$parsed['table']] = $parsed['columns'];
             foreach ($parsed['rows'] as $row) {
-                $rowsByTable[$parsed['table']][] = $this->normalizeRow($parsed['columns'], $row);
+                $rowsByTable[$parsed['table']][] = $row;
             }
         }
 
@@ -88,6 +88,17 @@ class ImportMysqlDumpToPostgres extends BaseCommand
         }
 
         $pdo = $this->createPostgresPdo($target);
+        $columnTypes = $this->loadColumnTypes($pdo, array_keys($rowsByTable));
+
+        // Coerce row values based on real PG column types.
+        foreach ($rowsByTable as $table => $rows) {
+            $columns = $columnsByTable[$table];
+            $types = $columnTypes[$table] ?? [];
+            foreach ($rows as $rowIndex => $row) {
+                $rowsByTable[$table][$rowIndex] = $this->normalizeRow($columns, $row, $types);
+            }
+        }
+
         $this->trySetReplicationRole($pdo, 'replica');
         $pdo->beginTransaction();
 
@@ -150,6 +161,32 @@ class ImportMysqlDumpToPostgres extends BaseCommand
         ]);
     }
 
+    /**
+     * Load `data_type` per column from information_schema for the given tables.
+     *
+     * @param list<string> $tables
+     * @return array<string, array<string, string>>
+     */
+    private function loadColumnTypes(PDO $pdo, array $tables): array
+    {
+        if ($tables === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($tables), '?'));
+        $sql = 'SELECT table_name, column_name, data_type FROM information_schema.columns '
+            . 'WHERE table_schema = ANY (current_schemas(false)) AND table_name IN (' . $placeholders . ')';
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($tables);
+
+        $types = [];
+        foreach ($stmt->fetchAll() as $col) {
+            $types[$col['table_name']][$col['column_name']] = strtolower((string) $col['data_type']);
+        }
+
+        return $types;
+    }
+
     /** @return list<string> */
     private function readInsertStatements(string $file): array
     {
@@ -199,6 +236,7 @@ class ImportMysqlDumpToPostgres extends BaseCommand
         $inString = false;
         $escape = false;
         $inRow = false;
+        $wasQuoted = false;
         $length = strlen($values);
 
         for ($i = 0; $i < $length; $i++) {
@@ -239,6 +277,7 @@ class ImportMysqlDumpToPostgres extends BaseCommand
 
             if ($char === "'") {
                 $inString = true;
+                $wasQuoted = true;
                 continue;
             }
 
@@ -246,6 +285,7 @@ class ImportMysqlDumpToPostgres extends BaseCommand
                 $inRow = true;
                 $row = [];
                 $value = '';
+                $wasQuoted = false;
                 continue;
             }
 
@@ -254,16 +294,18 @@ class ImportMysqlDumpToPostgres extends BaseCommand
             }
 
             if ($char === ',') {
-                $row[] = $this->parseScalar($value);
+                $row[] = $this->parseScalar($value, $wasQuoted);
                 $value = '';
+                $wasQuoted = false;
                 continue;
             }
 
             if ($char === ')') {
-                $row[] = $this->parseScalar($value);
+                $row[] = $this->parseScalar($value, $wasQuoted);
                 $rows[] = $row;
                 $row = [];
                 $value = '';
+                $wasQuoted = false;
                 $inRow = false;
                 continue;
             }
@@ -274,10 +316,15 @@ class ImportMysqlDumpToPostgres extends BaseCommand
         return $rows;
     }
 
-    private function parseScalar(string $value): mixed
+    private function parseScalar(string $value, bool $wasQuoted = false): mixed
     {
+        if ($wasQuoted) {
+            // Quoted value: keep as string verbatim (already stripped of outer quotes).
+            return $value;
+        }
+
         $trimmed = trim($value);
-        if (strcasecmp($trimmed, 'NULL') === 0) {
+        if ($trimmed === '' || strcasecmp($trimmed, 'NULL') === 0) {
             return null;
         }
 
@@ -288,26 +335,90 @@ class ImportMysqlDumpToPostgres extends BaseCommand
         return $trimmed;
     }
 
-    /** @param list<string> $columns @param list<mixed> $row @return list<mixed> */
-    private function normalizeRow(array $columns, array $row): array
+    /**
+     * Coerce values to types Postgres can accept via PDO string binding.
+     *
+     * @param list<string> $columns
+     * @param list<mixed> $row
+     * @param array<string, string> $columnTypes Map of column_name => PG data_type
+     * @return list<mixed>
+     */
+    private function normalizeRow(array $columns, array $row, array $columnTypes): array
     {
         foreach ($row as $index => $value) {
             $column = $columns[$index] ?? '';
+            $type = $columnTypes[$column] ?? '';
+
+            // MySQL zero dates -> NULL.
             if (is_string($value) && in_array($value, ['0000-00-00', '0000-00-00 00:00:00'], true)) {
                 $row[$index] = null;
+                continue;
             }
 
-            if ($this->isBooleanColumn($column) && $value !== null) {
-                $row[$index] = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? ((int) $value === 1);
+            if ($value === null) {
+                continue;
+            }
+
+            // Empty string in non-text PG columns -> NULL (avoids 22P02 invalid input syntax).
+            if ($value === '' && ! $this->isTextLikeType($type)) {
+                $row[$index] = null;
+                continue;
+            }
+
+            if ($type === 'boolean') {
+                $row[$index] = $this->coerceBoolean($value);
+                continue;
+            }
+
+            // Bool inputs targeting non-bool columns: convert to 1/0.
+            if (is_bool($value)) {
+                $row[$index] = $value ? 1 : 0;
             }
         }
 
         return $row;
     }
 
-    private function isBooleanColumn(string $column): bool
+    private function coerceBoolean(mixed $value): ?string
     {
-        return in_array($column, ['is_admin', 'is_active'], true);
+        if (is_bool($value)) {
+            return $value ? 't' : 'f';
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return ((int) $value) === 0 ? 'f' : 't';
+        }
+
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+            if ($normalized === '') {
+                return null;
+            }
+            if (in_array($normalized, ['1', 't', 'true', 'y', 'yes', 'on'], true)) {
+                return 't';
+            }
+            if (in_array($normalized, ['0', 'f', 'false', 'n', 'no', 'off'], true)) {
+                return 'f';
+            }
+        }
+
+        return null;
+    }
+
+    private function isTextLikeType(string $type): bool
+    {
+        return in_array($type, [
+            '',
+            'text',
+            'character varying',
+            'character',
+            'varchar',
+            'char',
+            'json',
+            'jsonb',
+            'uuid',
+            'bytea',
+        ], true);
     }
 
     /** @param list<string> $columns @param list<list<mixed>> $rows */
