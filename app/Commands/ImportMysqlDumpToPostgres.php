@@ -278,6 +278,8 @@ class ImportMysqlDumpToPostgres extends BaseCommand
             if ($char === "'") {
                 $inString = true;
                 $wasQuoted = true;
+                // Discard any whitespace padding accumulated before the opening quote.
+                $value = '';
                 continue;
             }
 
@@ -307,6 +309,12 @@ class ImportMysqlDumpToPostgres extends BaseCommand
                 $value = '';
                 $wasQuoted = false;
                 $inRow = false;
+                continue;
+            }
+
+            // Skip whitespace padding around already-quoted values; quoted content
+            // is captured inside the inString branch only.
+            if ($wasQuoted && ctype_space($char)) {
                 continue;
             }
 
