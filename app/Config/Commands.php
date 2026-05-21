@@ -33,5 +33,6 @@ class Commands extends BaseConfig
         'wa:worker' => \App\Commands\WaWorker::class,
         'wa:daily-summary' => \App\Commands\WaDailySummary::class,
         'wa:daily-summary-scheduler' => \App\Commands\WaDailySummaryScheduler::class,
+        'db:import-mysql-dump' => \App\Commands\ImportMysqlDumpToPostgres::class,
     ];
 }

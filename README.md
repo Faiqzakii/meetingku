@@ -124,6 +124,66 @@ Service utama:
 - `meetingku-scheduler` — ringkasan harian.
 - `wa-sender` — service internal WhatsApp.
 
+## Import Data MySQL ke PostgreSQL
+
+Gunakan saat aplikasi lama masih memakai MySQL dan deployment baru memakai PostgreSQL. Jalankan migrasi PostgreSQL dulu agar schema target tersedia, lalu import data dari dump MySQL.
+
+1. Buat dump data dari server MySQL lama:
+
+   ```bash
+   mysqldump --no-create-info --skip-triggers --single-transaction \
+     -u USER -p DATABASE_NAME > mysql-data.sql
+   ```
+
+2. Jalankan migrasi di PostgreSQL target:
+
+   ```bash
+   php spark migrate
+   ```
+
+3. Pastikan `.env` target PostgreSQL sudah benar. Command memakai konfigurasi database CodeIgniter dari `.env`:
+
+   ```ini
+   database.defaultGroup = default
+   database.default.hostname = HOST
+   database.default.database = meetingku
+   database.default.username = meetingku_user
+   database.default.password = PASSWORD
+   database.default.DBDriver = Postgre
+   database.default.port = 5432
+   database.default.schema = public
+   ```
+
+4. Cek isi dump tanpa menulis ke DB:
+
+   ```bash
+   php spark db:import-mysql-dump \
+     --file mysql-data.sql \
+     --dry-run
+   ```
+
+5. Import ke PostgreSQL sesuai `.env`:
+
+   ```bash
+   php spark db:import-mysql-dump \
+     --file mysql-data.sql \
+     --truncate
+   ```
+
+   Jika ingin memakai group selain default:
+
+   ```bash
+   php spark db:import-mysql-dump --file mysql-data.sql --group production --truncate
+   ```
+
+Catatan:
+
+- Command hanya membaca `INSERT` untuk tabel MeetingKu yang dikenal: `pegawai`, `ruangan`, `meeting`, `wa_settings`, `wa_api_keys`, `wa_message_queue`.
+- `--truncate` menghapus isi tabel target dulu; jangan pakai jika target sudah berisi data baru.
+- ID lama dipertahankan dan sequence PostgreSQL di-reset setelah import.
+- Database target selalu dari konfigurasi CodeIgniter/`.env`; tidak perlu tulis password di command.
+- Jangan commit file dump SQL; simpan sementara di server lalu hapus setelah import.
+
 ## Testing
 
 ```bash
