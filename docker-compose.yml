@@ -28,6 +28,7 @@ services:
     image: ${APP_IMAGE:-meetingku-app}:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
+      TZ: ${APP_TZ:-Asia/Makassar}
       CI_ENVIRONMENT: production
       app.baseURL: ${APP_BASE_URL:?Set APP_BASE_URL in your environment}
       database.default.hostname: ${DB_HOST:?Set DB_HOST in your environment}
@@ -56,6 +57,7 @@ services:
     restart: unless-stopped
     command: php spark wa:worker --sleep=3 --limit=20
     environment:
+      TZ: ${APP_TZ:-Asia/Makassar}
       CI_ENVIRONMENT: production
       database.default.hostname: ${DB_HOST:?Set DB_HOST in your environment}
       database.default.database: ${DB_DATABASE:?Set DB_DATABASE in your environment}
@@ -83,7 +85,7 @@ services:
     restart: unless-stopped
     command: php spark wa:daily-summary-scheduler --time=07:00 --sleep=60
     environment:
-      TZ: Asia/Makassar
+      TZ: ${APP_TZ:-Asia/Makassar}
       CI_ENVIRONMENT: production
       database.default.hostname: ${DB_HOST:?Set DB_HOST in your environment}
       database.default.database: ${DB_DATABASE:?Set DB_DATABASE in your environment}

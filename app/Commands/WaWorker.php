@@ -42,8 +42,8 @@ class WaWorker extends BaseCommand
         $db->transStart();
         if ($db->DBDriver === 'Postgre') {
             $rows = $db->query(
-                'SELECT * FROM wa_message_queue WHERE status = ? AND scheduled_at <= NOW() ORDER BY id ASC FOR UPDATE SKIP LOCKED LIMIT ?',
-                ['pending', $limit]
+                'SELECT * FROM wa_message_queue WHERE status = ? AND scheduled_at <= ? ORDER BY id ASC FOR UPDATE SKIP LOCKED LIMIT ?',
+                ['pending', date('Y-m-d H:i:s'), $limit]
             )->getResultArray();
         } else {
             $rows = $db->table('wa_message_queue')
