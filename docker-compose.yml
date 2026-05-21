@@ -17,6 +17,8 @@ services:
     networks:
       - coolify
       - meetingku-internal
+    labels:
+      - traefik.docker.network=coolify
 
   meetingku-app:
     build:
