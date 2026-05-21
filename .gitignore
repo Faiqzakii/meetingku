@@ -68,6 +68,7 @@ writable/debugbar/*
 !writable/debugbar/.gitkeep
 
 php_errors.log
+/.omx/
 
 #-------------------------
 # User Guide Temp Files

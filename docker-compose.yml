@@ -7,7 +7,7 @@ services:
     image: ${NGINX_IMAGE:-meetingku-nginx}:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
-      SERVICE_FQDN_REVERSE_PROXY_80: ${APP_BASE_URL:?Set APP_BASE_URL in your environment}
+      SERVICE_FQDN_REVERSE_PROXY_80: ${APP_PROXY_FQDN:?Set APP_PROXY_FQDN in your environment}
     expose:
       - "80"
     volumes:

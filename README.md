@@ -98,6 +98,7 @@ Compose memakai external network `coolify` dan env wajib dari platform deploy.
 Env minimal:
 
 ```ini
+APP_PROXY_FQDN=domain.example
 APP_BASE_URL=https://domain.example
 DB_HOST=postgres-host
 DB_DATABASE=meetingku
