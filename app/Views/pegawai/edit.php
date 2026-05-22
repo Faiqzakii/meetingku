@@ -63,9 +63,10 @@
 
             <div class="field">
                 <label class="field-label" for="is_admin">Role</label>
+                <?php $currentIsAdmin = bool_val(old('is_admin', $pegawai['is_admin'] ?? false)); ?>
                 <select class="input" id="is_admin" name="is_admin" required>
-                    <option value="false" <?= old('is_admin', $pegawai['is_admin']) ? '' : 'selected' ?>>Pegawai</option>
-                    <option value="true"  <?= old('is_admin', $pegawai['is_admin']) ? 'selected' : '' ?>>Admin</option>
+                    <option value="0" <?= $currentIsAdmin ? '' : 'selected' ?>>Pegawai</option>
+                    <option value="1" <?= $currentIsAdmin ? 'selected' : '' ?>>Admin</option>
                 </select>
             </div>
 

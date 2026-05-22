@@ -73,7 +73,7 @@
                             </td>
                             <td style="font-family:ui-monospace,monospace;font-size:.8rem;color:var(--body);white-space:nowrap;"><?= esc($p['nip']) ?></td>
                             <td>
-                                <?php if ((int) ($p['is_admin'] ?? 0) === 1): ?>
+                                <?php if (bool_val($p['is_admin'] ?? false)): ?>
                                     <span class="badge-status badge-primary">Admin</span>
                                 <?php else: ?>
                                     <span class="badge-status">User</span>

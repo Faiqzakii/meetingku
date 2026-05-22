@@ -67,7 +67,7 @@ class AuthController extends Controller
                 'pegawai_id' => $pegawai['id'],
                 'nama' => $pegawai['nama'],
                 'username' => $pegawai['username'],
-                'is_admin' => (bool)$pegawai['is_admin'],
+                'is_admin' => bool_val($pegawai['is_admin']),
                 'logged_in' => true
             ];
 
