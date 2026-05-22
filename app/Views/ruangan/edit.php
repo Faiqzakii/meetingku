@@ -39,7 +39,7 @@
 
             <label style="display:inline-flex;align-items:center;gap:10px;font-size:.9rem;">
                 <input type="checkbox" id="is_active" name="is_active" value="1"
-                       <?= old('is_active', $ruangan['is_active']) ? 'checked' : '' ?>>
+                       <?= bool_val(old('is_active', $ruangan['is_active'] ?? false)) ? 'checked' : '' ?>>
                 Aktifkan ruangan
             </label>
 

@@ -48,7 +48,7 @@
         <?php foreach ($ruangan as $r): ?>
             <?php
                 $typeIcon = $r['tipe'] === 'Online' ? 'fa-globe' : ($r['tipe'] === 'Hybrid' ? 'fa-arrows-left-right' : 'fa-building');
-                $isActive = (int) ($r['is_active'] ?? 1) === 1;
+                $isActive = bool_val($r['is_active'] ?? true);
             ?>
             <article class="card" data-type="<?= esc($r['tipe'], 'attr') ?>"
                      data-search="<?= esc(strtolower($r['nama_ruangan']), 'attr') ?>">
