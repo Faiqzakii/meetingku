@@ -311,14 +311,26 @@
         }
         .btn-primary-gradient:hover { background: var(--primary-dark) !important; transform: none; }
         .btn-outline-custom {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px;
+            line-height: 1;
+            white-space: nowrap;
+            text-align: center;
             background: var(--surface) !important; color: var(--ink) !important;
             border: 1px solid var(--border-strong) !important;
             border-radius: var(--radius-md) !important;
             box-shadow: none !important;
             font-weight: 600 !important;
             min-height: 40px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
         }
-        .btn-outline-custom:hover { border-color: var(--primary) !important; color: var(--primary-dark) !important; }
+        .btn-outline-custom > i { line-height: 1; }
+        .btn-outline-custom:hover { border-color: var(--primary) !important; color: var(--primary-dark) !important; text-decoration: none; }
+        .btn-outline-custom:focus-visible { outline: none; box-shadow: var(--shadow-focus) !important; }
 
         /* ================= FORMS ================= */
         .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
