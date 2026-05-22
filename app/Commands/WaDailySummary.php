@@ -20,14 +20,16 @@ class WaDailySummary extends BaseCommand
     public function run(array $params)
     {
         $force = CLI::getOption('force') !== null;
-        $date = (string) (CLI::getOption('date') ?? date('Y-m-d'));
+        $date = (string) (CLI::getOption('date') ?? date('Y-m-d', strtotime('tomorrow')));
         $groupId = (string) (CLI::getOption('group') ?? env('WA_DAILY_SUMMARY_GROUP_ID', self::DEFAULT_GROUP_ID));
         $settingKey = 'wa_daily_summary_last_date';
         $settingModel = new WaSettingModel();
         $lastSent = $settingModel->find($settingKey)['value'] ?? null;
+        $todayKey = date('Y-m-d');
 
-        if (!$force && $lastSent === $date) {
-            CLI::write('Daily summary already queued for ' . $date);
+        // Idempotency by send-day, not target date, so reruns same afternoon don't double-send.
+        if (!$force && $lastSent === $todayKey) {
+            CLI::write('Daily summary already queued today (' . $todayKey . ') for ' . $date);
             return;
         }
 
@@ -48,7 +50,7 @@ class WaDailySummary extends BaseCommand
 
         $settingModel->save([
             'key' => $settingKey,
-            'value' => $date,
+            'value' => $todayKey,
         ]);
 
         CLI::write('Daily summary queued: ' . $queueId);

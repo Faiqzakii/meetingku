@@ -8,7 +8,7 @@ MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwal
 - CRUD pegawai dan ruangan, termasuk impor pegawai dari spreadsheet.
 - Tautan Zoom/manual meeting dan pengiriman ulang tautan.
 - WhatsApp admin page untuk status koneksi, QR/pairing code, API key, dan antrean pesan.
-- Worker retry WhatsApp dengan backoff dan scheduler ringkasan harian 07:00 WITA.
+- Worker retry WhatsApp dengan backoff dan scheduler pengingat agenda besok pukul 15:00 WITA.
 - Docker Compose untuk PHP-FPM, Nginx reverse proxy, worker, scheduler, dan Node `wa-sender`.
 
 ## Stack
@@ -88,7 +88,7 @@ Command aplikasi:
 ```bash
 php spark wa:worker --sleep=3 --limit=20
 php spark wa:daily-summary
-php spark wa:daily-summary-scheduler --time=07:00 --sleep=60
+php spark wa:daily-summary-scheduler --time=15:00 --sleep=60
 ```
 
 ## Docker / Coolify

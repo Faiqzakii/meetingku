@@ -14,7 +14,7 @@
 - `php spark migrate` — apply database migrations.
 - `composer test` or `vendor/bin/phpunit -c phpunit.xml.dist` — run PHPUnit suite.
 - `php spark wa:worker --sleep=3 --limit=20` — process WhatsApp queue.
-- `php spark wa:daily-summary-scheduler --time=07:00 --sleep=60` — run daily summary scheduler.
+- `php spark wa:daily-summary-scheduler --time=15:00 --sleep=60` — run scheduler that sends tomorrow's agenda at 15:00.
 - `docker compose up -d --build` — run container stack.
 
 ## Coding Style & Naming Conventions

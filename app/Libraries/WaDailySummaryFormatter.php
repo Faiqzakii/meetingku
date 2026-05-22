@@ -10,13 +10,13 @@ final class WaDailySummaryFormatter
     {
         $titleDate = self::formatDate($date);
         $lines = [
-            '📋 Agenda kegiatan hari ini',
+            '📋 Agenda kegiatan besok',
             $titleDate,
             '',
         ];
 
         if ($meetings === []) {
-            $lines[] = 'Tidak ada kegiatan terjadwal hari ini.';
+            $lines[] = 'Tidak ada kegiatan terjadwal besok.';
 
             return implode("\n", $lines);
         }

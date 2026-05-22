@@ -83,7 +83,7 @@ services:
       target: app
     image: ${APP_IMAGE:-meetingku-app}:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
-    command: php spark wa:daily-summary-scheduler --time=07:00 --sleep=60
+    command: php spark wa:daily-summary-scheduler --time=15:00 --sleep=60
     environment:
       TZ: ${APP_TZ:-Asia/Makassar}
       CI_ENVIRONMENT: production
