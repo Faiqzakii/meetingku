@@ -302,7 +302,7 @@ class MeetingController extends Controller
             return redirect()->to('auth/login');
         }
 
-        $meeting = $this->meetingModel->find($id);
+        $meeting = $this->meetingModel->getMeetingDetails($id);
         if (!$meeting) {
             return redirect()->to('/upcoming')->with('error', 'Meeting tidak ditemukan');
         }

@@ -13,11 +13,12 @@ class ZoomLibrary
 
     public function __construct()
     {
-        $this->enabled      = env('zoom.enabled', false);
-        $this->accountId    = env('zoom.account_id', '');
-        $this->clientId     = env('zoom.client_id', '');
-        $this->clientSecret = env('zoom.client_secret', '');
-        $this->password     = env('zoom.password', 'bps6500');
+        // Support both Coolify-style UPPER_CASE and compose-style dot.notation env vars
+        $this->enabled      = env('zoom.enabled',   env('ZOOM_ENABLED', false));
+        $this->accountId    = env('zoom.account_id',    env('ZOOM_ACCOUNT_ID', ''));
+        $this->clientId     = env('zoom.client_id',     env('ZOOM_CLIENT_ID', ''));
+        $this->clientSecret = env('zoom.client_secret', env('ZOOM_CLIENT_SECRET', ''));
+        $this->password     = env('zoom.password',      env('ZOOM_PASSWORD', 'bps6500'));
         $this->cache        = \Config\Services::cache();
     }
 
