@@ -40,6 +40,11 @@ services:
       database.default.schema: ${DB_SCHEMA:-public}
       WA_SENDER_URL: http://wa-sender:3001
       WA_SENDER_SECRET: ${WA_SENDER_SECRET:?Set WA_SENDER_SECRET in your environment}
+      zoom.enabled: ${ZOOM_ENABLED:-false}
+      zoom.account_id: ${ZOOM_ACCOUNT_ID:-}
+      zoom.client_id: ${ZOOM_CLIENT_ID:-}
+      zoom.client_secret: ${ZOOM_CLIENT_SECRET:-}
+      zoom.password: ${ZOOM_PASSWORD:-bps6500}
     volumes:
       - writable_data:/var/www/html/writable
     depends_on:
@@ -68,6 +73,11 @@ services:
       database.default.schema: ${DB_SCHEMA:-public}
       WA_SENDER_URL: http://wa-sender:3001
       WA_SENDER_SECRET: ${WA_SENDER_SECRET:?Set WA_SENDER_SECRET in your environment}
+      zoom.enabled: ${ZOOM_ENABLED:-false}
+      zoom.account_id: ${ZOOM_ACCOUNT_ID:-}
+      zoom.client_id: ${ZOOM_CLIENT_ID:-}
+      zoom.client_secret: ${ZOOM_CLIENT_SECRET:-}
+      zoom.password: ${ZOOM_PASSWORD:-bps6500}
     volumes:
       - writable_data:/var/www/html/writable
     depends_on:
@@ -95,6 +105,11 @@ services:
       database.default.port: ${DB_PORT:-5432}
       database.default.schema: ${DB_SCHEMA:-public}
       WA_DAILY_SUMMARY_GROUP_ID: ${WA_DAILY_SUMMARY_GROUP_ID:-120363425375670792@g.us}
+      zoom.enabled: ${ZOOM_ENABLED:-false}
+      zoom.account_id: ${ZOOM_ACCOUNT_ID:-}
+      zoom.client_id: ${ZOOM_CLIENT_ID:-}
+      zoom.client_secret: ${ZOOM_CLIENT_SECRET:-}
+      zoom.password: ${ZOOM_PASSWORD:-bps6500}
     volumes:
       - writable_data:/var/www/html/writable
     networks:
