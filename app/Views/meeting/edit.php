@@ -138,22 +138,30 @@
                 <p style="font-size:.7rem;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.04em;margin:0 0 10px;">
                     <i class="fas fa-history" aria-hidden="true"></i> Log aktivitas
                 </p>
+                <?php
+                    $createdByName = $meeting['nama_pegawai'] ?? null;
+                    $createdBy = $createdByName ?: (!empty($meeting['pegawai_id']) ? 'Pegawai #' . $meeting['pegawai_id'] : '-');
+                    $lastEditedByName = $meeting['last_edited_by_name'] ?? null;
+                    $lastEditedBy = $lastEditedByName ?: (!empty($meeting['last_edited_by']) ? 'Pegawai #' . $meeting['last_edited_by'] : '-');
+                    $statusChangedByName = $meeting['status_changed_by_name'] ?? null;
+                    $statusChangedBy = $statusChangedByName ?: (!empty($meeting['status_changed_by']) ? 'Pegawai #' . $meeting['status_changed_by'] : '-');
+                ?>
                 <div class="stack-sm">
                     <div style="display:flex;align-items:flex-start;gap:8px;font-size:.75rem;color:var(--body);background:var(--canvas-soft);border-radius:var(--radius-sm);padding:8px 10px;">
                         <i class="fas fa-plus-circle" aria-hidden="true" style="color:var(--primary);margin-top:2px;"></i>
-                        <span><strong>Di-input</strong> oleh <strong><?= esc($meeting['nama_pegawai'] ?? '-') ?></strong> pada <?= $meeting['created_at'] ? date('d M Y H:i', strtotime($meeting['created_at'])) : '-' ?></span>
+                        <span><strong>Di-input</strong> oleh <strong><?= esc($createdBy) ?></strong> pada <?= $meeting['created_at'] ? date('d M Y H:i', strtotime($meeting['created_at'])) : '-' ?></span>
                     </div>
-                    <?php if (!empty($meeting['last_edited_by_name']) && !empty($meeting['last_edited_at'])): ?>
+                    <?php if (!empty($meeting['last_edited_at'])): ?>
                         <div style="display:flex;align-items:flex-start;gap:8px;font-size:.75rem;color:var(--body);background:var(--canvas-soft);border-radius:var(--radius-sm);padding:8px 10px;">
                             <i class="fas fa-pen" aria-hidden="true" style="color:var(--primary);margin-top:2px;"></i>
-                            <span><strong>Diedit</strong> oleh <strong><?= esc($meeting['last_edited_by_name']) ?></strong> pada <?= date('d M Y H:i', strtotime($meeting['last_edited_at'])) ?></span>
+                            <span><strong>Diedit</strong> oleh <strong><?= esc($lastEditedBy) ?></strong> pada <?= date('d M Y H:i', strtotime($meeting['last_edited_at'])) ?></span>
                         </div>
                     <?php endif; ?>
-                    <?php if (!empty($meeting['status_changed_by_name']) && !empty($meeting['status_changed_at'])): ?>
+                    <?php if (!empty($meeting['status_changed_at'])): ?>
                         <?php $statusLabel = $meeting['status'] === 'approved' ? 'Disetujui' : ($meeting['status'] === 'rejected' ? 'Ditolak' : 'Status diubah'); ?>
                         <div style="display:flex;align-items:flex-start;gap:8px;font-size:.75rem;color:var(--body);background:var(--canvas-soft);border-radius:var(--radius-sm);padding:8px 10px;">
                             <i class="fas fa-gavel" aria-hidden="true" style="color:var(--primary);margin-top:2px;"></i>
-                            <span><strong><?= esc($statusLabel) ?></strong> oleh <strong><?= esc($meeting['status_changed_by_name']) ?></strong> pada <?= date('d M Y H:i', strtotime($meeting['status_changed_at'])) ?></span>
+                            <span><strong><?= esc($statusLabel) ?></strong> oleh <strong><?= esc($statusChangedBy) ?></strong> pada <?= date('d M Y H:i', strtotime($meeting['status_changed_at'])) ?></span>
                         </div>
                     <?php endif; ?>
                 </div>

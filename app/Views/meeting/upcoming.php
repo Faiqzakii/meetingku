@@ -17,6 +17,7 @@
         $isOnlineOrHybrid = in_array($meeting['tipe'], ['Online', 'Hybrid'], true);
         $hasJoinUrl       = !empty($meeting['zoom_join_url']);
         $hasHostMeeting   = !empty($meeting['zoom_meeting_id']);
+        $hasStartToken    = !empty($meeting['start_token']);
         $meetingNotEnded  = time() < strtotime($meeting['waktu_selesai']);
         $withinOneHour    = time() >= (strtotime($meeting['waktu_mulai']) - 3600);
         $isToday          = date('Y-m-d', strtotime($meeting['waktu_mulai'])) === date('Y-m-d');
@@ -83,6 +84,11 @@
                                     <?php if ($hasJoinUrl && $hasHostMeeting && $meetingNotEnded && $withinOneHour): ?>
                                         <button type="button" data-zoom-action="refresh" data-id="<?= esc($meeting['id'], 'attr') ?>" role="menuitem">
                                             <i class="fas fa-play-circle" aria-hidden="true"></i> Refresh Host
+                                        </button>
+                                    <?php endif; ?>
+                                    <?php if ($hasStartToken): ?>
+                                        <button type="button" data-copy-host-link="<?= esc(base_url('zoom/start/' . $meeting['start_token']), 'attr') ?>" role="menuitem">
+                                            <i class="fas fa-share-alt" aria-hidden="true"></i> Copy Host Link
                                         </button>
                                     <?php endif; ?>
                                     <?php if (!$hasJoinUrl && $isAdmin && !$hasHostMeeting): ?>
@@ -298,6 +304,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!url) return;
         navigator.clipboard.writeText(url).then(function() {
             window.showToast && window.showToast('Link Zoom disalin.', 'success');
+        }, function() {
+            window.showToast && window.showToast('Gagal menyalin link.', 'error');
+        });
+    });
+
+    // Copy host shortlink
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-copy-host-link]');
+        if (!btn) return;
+        var url = btn.getAttribute('data-copy-host-link') || '';
+        if (!url) return;
+        navigator.clipboard.writeText(url).then(function() {
+            window.showToast && window.showToast('Link Host disalin. Link hanya aktif H-1 jam.', 'success');
         }, function() {
             window.showToast && window.showToast('Gagal menyalin link.', 'error');
         });

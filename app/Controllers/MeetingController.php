@@ -64,6 +64,14 @@ class MeetingController extends Controller
         return null;
     }
 
+    /**
+     * Generate a unique start_token for Zoom host shortlink.
+     */
+    protected function generateStartToken(): string
+    {
+        return bin2hex(random_bytes(10));
+    }
+
     public function index()
     {
         if (!session()->get('logged_in')) {
@@ -632,6 +640,7 @@ class MeetingController extends Controller
                 $updateData['zoom_meeting_id'] = null;
                 $updateData['zoom_join_url']   = null;
                 $updateData['zoom_start_url']  = null;
+                $updateData['start_token']     = null;
 
                 // Notify pegawai that Zoom link is cancelled
                 $this->sendWhatsAppToPegawai($meeting, 'cancelled');
@@ -713,17 +722,20 @@ class MeetingController extends Controller
                 return redirect()->back()->with('error', 'Gagal membuat Zoom meeting. Periksa konfigurasi Zoom API.');
             }
 
-            // Save Zoom data to DB
+            // Save Zoom data to DB with start_token for public host shortlink
+            $startToken = $this->generateStartToken();
             $this->meetingModel->setValidationRules([]);
             $this->meetingModel->update($id, [
                 'zoom_meeting_id' => $zoomResult['id'],
                 'zoom_join_url'   => $zoomResult['join_url'],
                 'zoom_start_url'  => $zoomResult['start_url'],
+                'start_token'     => $startToken,
             ]);
 
             // Refresh meeting data for notification
             $meeting['zoom_join_url']  = $zoomResult['join_url'];
             $meeting['zoom_start_url'] = $zoomResult['start_url'];
+            $meeting['start_token']    = $startToken;
 
             // Send WhatsApp to pegawai with Zoom links
             $this->sendWhatsAppToPegawai($meeting, 'zoom_created');
@@ -863,6 +875,70 @@ class MeetingController extends Controller
     }
 
     /**
+     * Public shortlink to host a Zoom meeting — no login required.
+     * Valid only within 1 hour before meeting start and until meeting ends.
+     */
+    public function startHost($token = null)
+    {
+        if (empty($token)) {
+            return redirect()->to('/')->with('error', 'Token tidak valid');
+        }
+
+        $meeting = $this->meetingModel->where('start_token', $token)->first();
+        if (!$meeting || empty($meeting['zoom_meeting_id'])) {
+            return $this->renderHostError('Link host tidak valid atau sudah kadaluarsa.');
+        }
+
+        if ($meeting['status'] !== 'approved') {
+            return $this->renderHostError('Meeting tidak dalam status disetujui.');
+        }
+
+        $now = time();
+        $meetingEnd = strtotime($meeting['waktu_selesai']);
+        if ($now >= $meetingEnd) {
+            return $this->renderHostError('Meeting sudah selesai, link host tidak tersedia.');
+        }
+
+        $meetingStart = strtotime($meeting['waktu_mulai']);
+        if ($now < ($meetingStart - 3600)) {
+            $availableTime = date('d M Y, H:i', $meetingStart - 3600);
+            $meetingTime   = date('d M Y, H:i', $meetingStart);
+            return $this->renderHostError(
+                "Link host hanya tersedia 1 jam sebelum meeting dimulai.<br>" .
+                "Meeting: <strong>" . esc($meeting['nama_keg']) . "</strong><br>" .
+                "Waktu meeting: {$meetingTime}<br>" .
+                "Link aktif pada: {$availableTime}"
+            );
+        }
+
+        try {
+            $zoomData = $this->zoomLibrary->getMeeting($meeting['zoom_meeting_id']);
+            if (!$zoomData || empty($zoomData['start_url'])) {
+                return $this->renderHostError('Gagal mengambil data Zoom meeting. Silakan coba lagi.');
+            }
+
+            $this->meetingModel->setValidationRules([]);
+            $this->meetingModel->update($meeting['id'], [
+                'zoom_start_url' => $zoomData['start_url'],
+                'zoom_join_url'  => $zoomData['join_url'],
+            ]);
+
+            return redirect()->to($zoomData['start_url']);
+        } catch (\Exception $e) {
+            log_message('error', 'Exception during startHost: ' . $e->getMessage());
+            return $this->renderHostError('Terjadi kesalahan saat menghubungkan ke Zoom. Silakan coba lagi.');
+        }
+    }
+
+    /**
+     * Render a user-friendly error page for the host shortlink.
+     */
+    protected function renderHostError(string $message)
+    {
+        return view('meeting/host_error', ['message' => $message]);
+    }
+
+    /**
      * Send WhatsApp notification to pegawai about Zoom
      */
     protected function sendWhatsAppToPegawai(array $meeting, string $type = 'zoom_created'): void
@@ -888,13 +964,20 @@ class MeetingController extends Controller
             $waktu        = date('d M Y H:i', strtotime($meeting['waktu_mulai'])) . ' - ' . date('H:i', strtotime($meeting['waktu_selesai']));
 
             if ($type === 'zoom_created') {
+                $shortlink = !empty($meeting['start_token'])
+                    ? base_url('zoom/start/' . $meeting['start_token'])
+                    : '';
+                $shortlinkLine = $shortlink
+                    ? "\n\n🖥️ *Link Host (H-1 jam)*:\n{$shortlink}\nℹ️ _Link ini hanya aktif 1 jam sebelum meeting dimulai._"
+                    : "\n\nℹ️ _Link Host tersedia 1 jam sebelum meeting pada website meetingku._";
+
                 $message = "*[Meetingku]*\n" .
                            "✅ Pengajuan meeting Anda telah disetujui\n\n" .
                            "*Nama Kegiatan*: $namaKegiatan\n" .
                            "*Tempat*: $tempat\n" .
                            "*Waktu*: $waktu\n\n" .
-                           "🔗 *Link Join (Peserta)*:\n" . ($meeting['zoom_join_url'] ?? '-') . "\n\n" .
-                           "ℹ️ _Link Host tersedia 1 jam sebelum meeting pada website meetingku._";
+                           "🔗 *Link Join (Peserta)*:\n" . ($meeting['zoom_join_url'] ?? '-') .
+                           $shortlinkLine;
             } elseif ($type === 'zoom_updated') {
                 $message = "*[Meetingku]*\n" .
                            "📝 Jadwal Zoom meeting telah diubah\n\n" .

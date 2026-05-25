@@ -260,9 +260,18 @@
                                     <i class="fas fa-play-circle"></i> Host
                                 </button>
                             </form>
-                            <span id="zoomHostLocked" class="text-xs text-gray-400 italic hidden" title="Link Host tersedia 1 jam sebelum meeting">
-                                <i class="fas fa-lock text-gray-300"></i> Host (H-1 jam)
-                            </span>
+<span id="zoomHostLocked" class="text-xs text-gray-400 italic hidden" title="Link Host tersedia 1 jam sebelum meeting">
+            <i class="fas fa-lock text-gray-300"></i> Host (H-1 jam)
+        </span>
+        <div id="zoomHostLinkArea" class="hidden mt-2" style="border-top:1px dashed #e2e8f0;padding-top:6px;">
+            <span class="text-xs text-gray-400">Host Shortlink (H-1 jam):</span>
+            <div class="flex items-center gap-1 mt-1">
+                <input id="zoomHostLinkInput" type="text" readonly class="text-xs" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:2px 6px;width:auto;min-width:0;flex:1;" value="">
+                <button type="button" id="zoomHostLinkCopy" class="btn-outline-custom" style="padding:0.25rem 0.5rem;font-size:0.7rem;flex-shrink:0;">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+        </div>
                         </div>
                     </div>
                     <!-- Audit trail (admin only) -->
@@ -497,6 +506,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'zoom_meeting_id' => $meeting['zoom_meeting_id'] ?? null,
                 'zoom_join_url' => $meeting['zoom_join_url'] ?? null,
                 'zoom_start_url' => $meeting['zoom_start_url'] ?? null,
+                'start_token' => $meeting['start_token'] ?? null,
             ]
         ];
     }, $meetings)) ?>;
@@ -684,10 +694,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else if (hasHostMeeting && meetingNotEnded) {
                         hostForm.classList.add('hidden');
                         hostLocked.classList.remove('hidden');
-                    } else {
-                        hostForm.classList.add('hidden');
-                        hostLocked.classList.add('hidden');
-                    }
+} else {
+                    hostForm.classList.add('hidden');
+                    hostLocked.classList.add('hidden');
+                }
+
+                // Show host shortlink when start_token exists
+                var hostLinkArea = document.getElementById('zoomHostLinkArea');
+                var hostLinkInput = document.getElementById('zoomHostLinkInput');
+                if (props.start_token && props.start_token !== '') {
+                    hostLinkInput.value = '<?= base_url('zoom/start/') ?>' + props.start_token;
+                    hostLinkArea.classList.remove('hidden');
+                } else {
+                    hostLinkArea.classList.add('hidden');
+                }
                 } else {
                     zoomSection.classList.add('hidden');
                 }
@@ -723,6 +743,27 @@ document.addEventListener('DOMContentLoaded', function() {
             toast.classList.add('toast-hiding');
             setTimeout(function(){ toast.remove(); }, 300);
         }, 4000);
+    }
+
+    // Copy host shortlink in event modal
+    var hostLinkCopyBtn = document.getElementById('zoomHostLinkCopy');
+    if (hostLinkCopyBtn) {
+        hostLinkCopyBtn.addEventListener('click', function() {
+            var input = document.getElementById('zoomHostLinkInput');
+            if (!input || !input.value) return;
+            navigator.clipboard.writeText(input.value).then(function() {
+                hostLinkCopyBtn.innerHTML = '<i class="fas fa-check"></i> Tersalin';
+                hostLinkCopyBtn.style.color = '#16a34a';
+                hostLinkCopyBtn.style.borderColor = '#bbf7d0';
+                setTimeout(function() {
+                    hostLinkCopyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                    hostLinkCopyBtn.style.color = '';
+                    hostLinkCopyBtn.style.borderColor = '';
+                }, 2000);
+            }, function() {
+                alert('Gagal menyalin link.');
+            });
+        });
     }
 
     // Handle "Lainnya" checkbox

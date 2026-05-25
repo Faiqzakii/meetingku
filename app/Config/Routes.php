@@ -24,6 +24,9 @@ $routes->post('meeting/send-zoom/(:num)', 'MeetingController::sendZoom/$1');
 $routes->post('meeting/refresh-zoom/(:num)', 'MeetingController::refreshZoom/$1');
 $routes->post('meeting/manual-zoom/(:num)', 'MeetingController::updateManualZoomJoin/$1');
 
+// Public Zoom host shortlink — no login required
+$routes->get('zoom/start/(:any)', 'MeetingController::startHost/$1');
+
 // Pegawai Routes
 $routes->get('pegawai', 'PegawaiController::index');
 $routes->post('pegawai/create', 'PegawaiController::create');
