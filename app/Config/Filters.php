@@ -21,7 +21,7 @@ class Filters extends BaseConfig
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
-        'throttle'      => \CodeIgniter\Filters\Throttler::class,
+        'throttle'      => \App\Filters\ThrottleFilter::class,
         'auth'          => \App\Filters\LoginFilter::class,
         'admin'         => \App\Filters\AdminFilter::class,
         'public'        => \App\Filters\PublicFilter::class,
