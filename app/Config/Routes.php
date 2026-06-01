@@ -54,9 +54,24 @@ $routes->post('whatsapp/logout', 'WhatsappController::logout');
 $routes->post('whatsapp/api-keys', 'WhatsappController::createApiKey');
 $routes->post('whatsapp/api-keys/(:num)/revoke', 'WhatsappController::revokeApiKey/$1');
 
-// External WhatsApp API Routes
-$routes->post('api/whatsapp/messages', 'WhatsappApiController::createMessage');
-$routes->get('api/whatsapp/messages/(:num)', 'WhatsappApiController::showMessage/$1');
+// External API Routes
+$routes->group('api', ['filter' => 'throttle'], static function ($routes) {
+    // External WhatsApp API Routes
+    $routes->post('whatsapp/messages', 'WhatsappApiController::createMessage');
+    $routes->get('whatsapp/messages/(:num)', 'WhatsappApiController::showMessage/$1');
+
+    // Meeting API Routes
+    $routes->get('meetings', 'Api\MeetingApiController::index');
+    $routes->get('meetings/conflict', 'Api\MeetingApiController::conflict');
+    $routes->post('meetings', 'Api\MeetingApiController::create');
+    $routes->get('meetings/(:num)', 'Api\MeetingApiController::show/$1');
+    $routes->put('meetings/(:num)', 'Api\MeetingApiController::update/$1');
+    $routes->patch('meetings/(:num)/approve', 'Api\MeetingApiController::approve/$1');
+    $routes->delete('meetings/(:num)', 'Api\MeetingApiController::delete/$1');
+
+    // Rooms API Routes
+    $routes->get('rooms', 'Api\MeetingApiController::rooms');
+});
 
 // Default route
 $routes->get('/', 'MeetingController::calendar');

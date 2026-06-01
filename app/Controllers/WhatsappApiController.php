@@ -12,7 +12,7 @@ class WhatsappApiController extends ResourceController
 {
     public function createMessage(): ResponseInterface
     {
-        $apiKey = $this->request->getHeaderLine('X-API-KEY') ?: (string) $this->request->getGet('api_key');
+        $apiKey = $this->request->getHeaderLine('X-API-KEY');
         if ($apiKey === '') {
             return $this->respond(['success' => false, 'message' => 'API key required'], 401);
         }
@@ -56,13 +56,18 @@ class WhatsappApiController extends ResourceController
 
     public function showMessage(int $id): ResponseInterface
     {
-        $apiKey = $this->request->getHeaderLine('X-API-KEY') ?: (string) $this->request->getGet('api_key');
+        $apiKey = $this->request->getHeaderLine('X-API-KEY');
+        if ($apiKey === '') {
+            return $this->respond(['success' => false, 'message' => 'API key required'], 401);
+        }
+
         $apiKeyRow = (new WaApiKeyModel())
             ->where('key_hash', WaApiKeyService::hash($apiKey))
             ->where('is_active', true)
             ->first();
 
         if (!$apiKeyRow) {
+            log_message('warning', 'WA API auth failed: invalid/inactive key from IP=' . $this->request->getIPAddress());
             return $this->respond(['success' => false, 'message' => 'Invalid API key'], 403);
         }
 

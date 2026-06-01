@@ -21,6 +21,7 @@ class Filters extends BaseConfig
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
+        'throttle'      => \CodeIgniter\Filters\Throttler::class,
         'auth'          => \App\Filters\LoginFilter::class,
         'admin'         => \App\Filters\AdminFilter::class,
         'public'        => \App\Filters\PublicFilter::class,
@@ -36,6 +37,9 @@ class Filters extends BaseConfig
                 'auth/logout',
                 'api/whatsapp/messages',
                 'api/whatsapp/messages/*',
+                'api/meetings',
+                'api/meetings/*',
+                'api/rooms',
             ]],
             'invalidchars',
         ],
@@ -49,7 +53,9 @@ class Filters extends BaseConfig
      * List of filter aliases that works on a
      * particular HTTP method (GET, POST, etc.).
      */
-    public array $methods = [];
+    public array $methods = [
+        'POST' => ['throttle'],
+    ];
 
     /**
      * List of filter aliases that should run on any

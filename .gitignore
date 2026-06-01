@@ -145,3 +145,6 @@ nb-configuration.xml
 /tests/_support/Models/ExampleModel.php
 /tests/database/ExampleDatabaseTest.php
 /tests/session/ExampleSessionTest.php
+.claude/
+.omc/
+.omx/

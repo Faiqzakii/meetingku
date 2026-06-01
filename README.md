@@ -197,9 +197,27 @@ Atau:
 vendor/bin/phpunit -c phpunit.xml.dist
 ```
 
+## Public API
+
+MeetingKu menyediakan REST API untuk integrasi eksternal:
+
+- **Autentikasi:** Header `X-API-KEY` (wajib, tidak bisa via query parameter)
+- **Rate Limiting:** 60 request per menit per IP
+- **Endpoints:** CRUD meetings, rooms, WhatsApp messages
+
+Dokumentasi lengkap: [API.md](API.md)
+
+Contoh quick start:
+```bash
+curl -H "X-API-KEY: mku_your_key_here" \
+  https://meetingku.example.com/api/meetings
+```
+
 ## Catatan Keamanan
 
 - Jangan commit `.env`, session, log, cache, zip build, atau kredensial deploy.
 - Public webroot harus `public/`, bukan root project.
-- API key WhatsApp hanya untuk integrasi tepercaya; rotasi jika pernah terekspos.
+- API key WhatsApp dan Meeting hanya untuk integrasi tepercaya; rotasi jika pernah terekspos.
+- API key **hanya** via header `X-API-KEY`, tidak bisa via URL query parameter.
 - Pastikan `writable/` bisa ditulis runtime tetapi tidak dipublikasikan langsung.
+- Failed API auth attempts di-log dengan IP address.

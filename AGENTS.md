@@ -7,6 +7,7 @@
 - WhatsApp gateway code is split between PHP (`app/Commands`, `app/Libraries`, `app/Models`) and Node service `wa-sender/`.
 - Deploy assets live in `Dockerfile`, `docker-compose.yml`, and `docker/nginx/`.
 - Tests live in `tests/`; project-specific unit tests are under `tests/unit/`.
+- API documentation in `API.md`; README.md for general overview; AGENTS.md for dev guidelines.
 
 ## Build, Test, and Development Commands
 - `composer install` — install PHP dependencies.
@@ -47,3 +48,7 @@
 - Validate all request input; keep CSRF protections enabled for forms.
 - Treat WhatsApp API keys and sender secrets as credentials; rotate after exposure.
 - Never expose `wa-sender` publicly; it should stay on an internal network behind PHP app auth.
+- API keys (Meeting & WhatsApp) only accepted via `X-API-KEY` header, never query parameters.
+- API routes have rate limiting (60 req/min) via Throttler filter.
+- Failed API auth attempts are logged with IP address.
+- Error responses use generic messages; never expose internal details to clients.

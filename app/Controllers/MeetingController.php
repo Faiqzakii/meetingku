@@ -935,6 +935,8 @@ class MeetingController extends Controller
      */
     protected function renderHostError(string $message)
     {
+        // NOTE: All user-facing dynamic content in $message MUST be escaped via esc()
+        // before passing to renderHostError(). The view renders $message as raw HTML.
         return view('meeting/host_error', ['message' => $message]);
     }
 

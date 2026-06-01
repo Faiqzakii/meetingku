@@ -9,6 +9,11 @@ final class WaApiKeyService
         return 'mkwa_' . bin2hex(random_bytes(32));
     }
 
+    public static function generateMeetingKey(): string
+    {
+        return 'mku_' . bin2hex(random_bytes(32));
+    }
+
     public static function hash(string $plainKey): string
     {
         return hash('sha256', $plainKey);
