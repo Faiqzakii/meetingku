@@ -866,6 +866,9 @@
                 <a href="<?= base_url('whatsapp') ?>" class="nav-link <?= $is('whatsapp') ? 'is-active' : '' ?>">
                     <i class="fab fa-whatsapp" aria-hidden="true"></i> WhatsApp
                 </a>
+                <a href="<?= base_url('api-keys') ?>" class="nav-link <?= $is('api-keys') ? 'is-active' : '' ?>">
+                    <i class="fas fa-key" aria-hidden="true"></i> API Keys
+                </a>
             <?php endif; ?>
         </nav>
         <?php endif; ?>
@@ -896,6 +899,9 @@
                             </a>
                             <a href="<?= base_url('whatsapp') ?>" role="menuitem">
                                 <i class="fab fa-whatsapp" aria-hidden="true"></i> WhatsApp Gateway
+                            </a>
+                            <a href="<?= base_url('api-keys') ?>" role="menuitem">
+                                <i class="fas fa-key" aria-hidden="true"></i> API Keys
                             </a>
                         <?php endif; ?>
                         <a href="<?= base_url('auth/logout') ?>" role="menuitem" class="danger">
@@ -944,6 +950,9 @@
                 </a>
                 <a href="<?= base_url('whatsapp') ?>" class="drawer-link <?= $is('whatsapp') ? 'is-active' : '' ?>">
                     <i class="fab fa-whatsapp" aria-hidden="true"></i> WhatsApp
+                </a>
+                <a href="<?= base_url('api-keys') ?>" class="drawer-link <?= $is('api-keys') ? 'is-active' : '' ?>">
+                    <i class="fas fa-key" aria-hidden="true"></i> API Keys
                 </a>
             <?php endif; ?>
         </nav>

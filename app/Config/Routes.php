@@ -46,6 +46,11 @@ $routes->post('ruangan/delete/(:num)', 'RuanganController::delete/$1');
 // Ruangan meetings (daily filter)
 $routes->get('ruangan/(:num)/meetings', 'RuanganController::meetings/$1');
 
+// API Keys (Meeting) Routes
+$routes->get('api-keys', 'ApiKeysController::index');
+$routes->post('api-keys', 'ApiKeysController::create');
+$routes->post('api-keys/(:num)/revoke', 'ApiKeysController::revoke/$1');
+
 // WhatsApp Gateway Routes
 $routes->get('whatsapp', 'WhatsappController::index');
 $routes->post('whatsapp/pairing-code', 'WhatsappController::pairingCode');
