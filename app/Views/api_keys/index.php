@@ -1,148 +1,207 @@
-<?php $this->extend('layout'); ?>
+<?= $this->extend('layout') ?>
 
-<?php $this->section('content'); ?>
+<?= $this->section('content') ?>
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-key"></i> API Key Management</h2>
-        <a href="<?= site_url('/') ?>" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left"></i> Kembali
+<div class="page-header">
+    <div>
+        <h2 class="section-title">
+            <i class="fas fa-key" aria-hidden="true"></i>
+            API Key Management
+        </h2>
+        <p class="page-subtitle">Kelola API key untuk akses MeetingKU API.</p>
+    </div>
+    <div class="page-actions">
+        <a href="<?= site_url('/') ?>" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali
         </a>
-    </div>
-
-    <?php if (session()->getFlashdata('success')): ?>
-        <div class="alert alert-success alert-dismissible fade show">
-            <?= session()->getFlashdata('success') ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
-
-    <?php if (session()->getFlashdata('error')): ?>
-        <div class="alert alert-danger alert-dismissible fade show">
-            <?= session()->getFlashdata('error') ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
-
-    <?php if (!empty($newKey)): ?>
-        <div class="alert alert-warning alert-dismissible fade show">
-            <h5><i class="bi bi-exclamation-triangle"></i> API Key Baru — Simpan Sekarang!</h5>
-            <p class="mb-1">Pegawai: <strong><?= esc($newKey['pegawai']) ?></strong></p>
-            <p class="mb-2">Key ini hanya ditampilkan <strong>sekali</strong>:</p>
-            <div class="input-group">
-                <input type="text" class="form-control font-monospace" id="newKeyInput"
-                       value="<?= esc($newKey['key']) ?>" readonly>
-                <button class="btn btn-outline-primary" type="button" onclick="copyKey()">
-                    <i class="bi bi-clipboard"></i> Copy
-                </button>
-            </div>
-            <small class="text-muted">Gunakan header <code>X-API-KEY</code> saat memanggil API.</small>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
-
-    <!-- Generate New Key -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <i class="bi bi-plus-circle"></i> Generate API Key Baru
-        </div>
-        <div class="card-body">
-            <form action="<?= site_url('api-keys') ?>" method="post">
-                <?= csrf_field() ?>
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-4">
-                        <label class="form-label">Pegawai</label>
-                        <select name="pegawai_id" class="form-select" required>
-                            <option value="">-- Pilih Pegawai --</option>
-                            <?php foreach ($pegawaiList as $p): ?>
-                                <option value="<?= $p['id'] ?>"><?= esc($p['nama']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-5">
-                        <label class="form-label">Nama Key (opsional)</label>
-                        <input type="text" name="name" class="form-control" placeholder="Meeting API Key" value="Meeting API Key">
-                    </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-key-fill"></i> Generate Key
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- API Keys Table -->
-    <div class="card">
-        <div class="card-header">
-            <i class="bi bi-list"></i> Daftar API Keys (<?= count($keys) ?>)
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>#</th>
-                            <th>Nama</th>
-                            <th>Prefix</th>
-                            <th>Pegawai</th>
-                            <th>Status</th>
-                            <th>Dibuat</th>
-                            <th>Terakhir Dipakai</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($keys)): ?>
-                            <tr><td colspan="8" class="text-center text-muted py-3">Belum ada API key</td></tr>
-                        <?php else: ?>
-                            <?php foreach ($keys as $i => $key): ?>
-                                <tr>
-                                    <td><?= $i + 1 ?></td>
-                                    <td><?= esc($key['name'] ?? '-') ?></td>
-                                    <td><code><?= esc($key['prefix'] ?? '-') ?></code></td>
-                                    <td><?= esc($key['pegawai_nama'] ?? '-') ?></td>
-                                    <td>
-                                        <?php if ($key['is_active']): ?>
-                                            <span class="badge bg-success">Active</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-danger">Revoked</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td><small><?= $key['created_at'] ?? '-' ?></small></td>
-                                    <td><small><?= $key['last_used_at'] ?? 'Belum pernah' ?></small></td>
-                                    <td>
-                                        <?php if ($key['is_active']): ?>
-                                            <form action="<?= site_url('api-keys/' . $key['id'] . '/revoke') ?>" method="post" class="d-inline"
-                                                  onsubmit="return confirm('Yakin revoke key ini?')">
-                                                <?= csrf_field() ?>
-                                                <button type="submit" class="btn btn-outline-danger btn-sm">
-                                                    <i class="bi bi-x-circle"></i> Revoke
-                                                </button>
-                                            </form>
-                                        <?php else: ?>
-                                            <span class="text-muted">Revoked <?= $key['revoked_at'] ?? '' ?></span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </div>
 </div>
 
+<?php if (!empty($newKey)): ?>
+    <div class="card" style="border-color: var(--warning); background: var(--warning-soft); margin-bottom: 16px;">
+        <div class="card-section">
+            <div style="display:flex;align-items:start;gap:12px;">
+                <i class="fas fa-exclamation-triangle" style="color:var(--warning);font-size:1.25rem;margin-top:2px;"></i>
+                <div style="flex:1;">
+                    <p style="font-weight:700;margin:0 0 4px;">API Key Baru — Simpan Sekarang!</p>
+                    <p style="color:var(--body);font-size:.8125rem;margin:0 0 8px;">Pegawai: <strong><?= esc($newKey['pegawai']) ?></strong>. Key ini hanya ditampilkan <strong>sekali</strong>.</p>
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                        <input type="text" class="input" id="newKeyInput" value="<?= esc($newKey['key']) ?>" readonly style="font-family:ui-monospace,monospace;font-size:.8rem;max-width:420px;flex:1;min-width:200px;">
+                        <button class="btn btn-secondary btn-sm" type="button" onclick="copyKey()">
+                            <i class="fas fa-copy" aria-hidden="true"></i> Copy
+                        </button>
+                    </div>
+                    <p style="color:var(--mute);font-size:.75rem;margin:8px 0 0;">Gunakan header <code style="background:rgba(0,0,0,.06);padding:2px 6px;border-radius:4px;">X-API-KEY</code> saat memanggil API.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
+<!-- Generate New Key -->
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-section">
+        <h3 style="font-size:.9375rem;font-weight:700;margin:0 0 16px;">
+            <i class="fas fa-plus-circle" aria-hidden="true" style="color:var(--primary);"></i> Generate API Key Baru
+        </h3>
+        <form action="<?= site_url('api-keys') ?>" method="post">
+            <?= csrf_field() ?>
+            <div class="form-grid">
+                <div class="field">
+                    <label class="field-label" for="pegawai_id">Pegawai</label>
+                    <select class="input" id="pegawai_id" name="pegawai_id" required>
+                        <option value="">-- Pilih Pegawai --</option>
+                        <?php foreach ($pegawaiList as $p): ?>
+                            <option value="<?= $p['id'] ?>"><?= esc($p['nama']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="field">
+                    <label class="field-label" for="name">Nama Key (opsional)</label>
+                    <input class="input" type="text" id="name" name="name" placeholder="Meeting API Key" value="Meeting API Key">
+                </div>
+                <div class="field" style="align-self:end;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-key" aria-hidden="true"></i> Generate Key
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- API Keys Table -->
+<div class="card">
+    <div class="card-section" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div class="field" style="flex:1;min-width:240px;">
+            <label class="field-label sr-only" for="searchKeys" style="position:absolute;left:-9999px;">Cari API key</label>
+            <input type="search" id="searchKeys" class="input" placeholder="Cari nama, pegawai, prefix...">
+        </div>
+        <span style="color:var(--mute);font-size:.8125rem;">
+            <span id="rowCount"><?= count($keys) ?></span> dari <?= count($keys) ?> keys
+        </span>
+    </div>
+    <div class="card-divider"></div>
+    <div style="overflow-x:auto;">
+        <table class="table-modern" id="keysTable">
+            <thead>
+                <tr>
+                    <th style="width:48px;">#</th>
+                    <th>Nama</th>
+                    <th>Prefix</th>
+                    <th>Pegawai</th>
+                    <th>Status</th>
+                    <th>Dibuat</th>
+                    <th>Terakhir Dipakai</th>
+                    <th style="width:100px;text-align:right;">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($keys)): ?>
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <div class="empty-state-icon"><i class="fas fa-key" aria-hidden="true"></i></div>
+                                <p class="empty-state-title">Belum ada API key</p>
+                                <p class="empty-state-desc">Generate key pertama untuk pegawai.</p>
+                            </div>
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($keys as $i => $key): ?>
+                        <tr data-search="<?= esc(strtolower(($key['name'] ?? '') . ' ' . ($key['pegawai_nama'] ?? '') . ' ' . ($key['prefix'] ?? '')), 'attr') ?>">
+                            <td style="color:var(--mute);font-family:ui-monospace,monospace;font-size:.75rem;text-align:center;"><?= $i + 1 ?></td>
+                            <td style="font-weight:600;"><?= esc($key['name'] ?? '-') ?></td>
+                            <td><code style="font-family:ui-monospace,monospace;font-size:.8rem;background:var(--canvas-soft);padding:2px 8px;border-radius:4px;"><?= esc($key['prefix'] ?? '-') ?></code></td>
+                            <td><?= esc($key['pegawai_nama'] ?? '-') ?></td>
+                            <td>
+                                <?php if ($key['is_active']): ?>
+                                    <span class="badge-status badge-approved">Active</span>
+                                <?php else: ?>
+                                    <span class="badge-status badge-rejected">Revoked</span>
+                                <?php endif; ?>
+                            </td>
+                            <td style="font-size:.75rem;color:var(--mute);"><?= esc($key['created_at'] ?? '-') ?></td>
+                            <td style="font-size:.75rem;color:var(--mute);"><?= esc($key['last_used_at'] ?? 'Belum pernah') ?></td>
+                            <td style="text-align:right;">
+                                <?php if ($key['is_active']): ?>
+                                    <form action="<?= site_url('api-keys/' . $key['id'] . '/revoke') ?>" method="post" class="d-inline"
+                                          onsubmit="return confirm('Yakin revoke key ini?')">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-ban" aria-hidden="true"></i> Revoke
+                                        </button>
+                                    </form>
+                                <?php else: ?>
+                                    <span style="font-size:.75rem;color:var(--mute);">Revoked <?= esc($key['revoked_at'] ?? '') ?></span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Toast Notifications -->
+<div class="toast-container">
+    <?php if (session()->getFlashdata('success')): ?>
+        <div class="toast-notification toast-success" id="flashToast" role="status">
+            <i class="fas fa-circle-check" aria-hidden="true"></i>
+            <span><?= esc(session()->getFlashdata('success')) ?></span>
+            <button class="toast-close" type="button" aria-label="Tutup notifikasi"><i class="fas fa-times" aria-hidden="true"></i></button>
+        </div>
+    <?php endif; ?>
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="toast-notification toast-error" id="flashToast" role="alert">
+            <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+            <span><?= esc(session()->getFlashdata('error')) ?></span>
+            <button class="toast-close" type="button" aria-label="Tutup notifikasi"><i class="fas fa-times" aria-hidden="true"></i></button>
+        </div>
+    <?php endif; ?>
+</div>
+
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Search filter
+    var search = document.getElementById('searchKeys');
+    var rows = document.querySelectorAll('#keysTable tbody tr[data-search]');
+    var rowCount = document.getElementById('rowCount');
+    if (search) {
+        search.addEventListener('input', function() {
+            var q = (search.value || '').trim().toLowerCase();
+            var visible = 0;
+            rows.forEach(function(tr) {
+                var key = tr.getAttribute('data-search') || '';
+                var match = !q || key.indexOf(q) !== -1;
+                tr.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            if (rowCount) rowCount.textContent = visible;
+        });
+    }
+
+    // Toast auto-dismiss
+    var toast = document.getElementById('flashToast');
+    if (toast) {
+        var c = toast.querySelector('.toast-close');
+        if (c) c.addEventListener('click', function() { toast.classList.add('toast-hiding'); setTimeout(function(){ toast.remove(); }, 250); });
+        setTimeout(function() { toast.classList.add('toast-hiding'); setTimeout(function(){ toast.remove(); }, 250); }, 4000);
+    }
+});
+
 function copyKey() {
-    const input = document.getElementById('newKeyInput');
+    var input = document.getElementById('newKeyInput');
     input.select();
-    navigator.clipboard.writeText(input.value).then(() => {
-        alert('API Key copied!');
-    });
+    navigator.clipboard.writeText(input.value);
+    var btn = input.nextElementSibling;
+    var orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    setTimeout(function() { btn.innerHTML = orig; }, 2000);
 }
 </script>
-
-<?php $this->endSection(); ?>
+<?= $this->endSection() ?>
