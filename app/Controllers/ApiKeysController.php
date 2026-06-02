@@ -25,7 +25,7 @@ class ApiKeysController extends Controller
             ->orderBy('wa_api_keys.created_at', 'DESC')
             ->findAll();
 
-        $pegawaiList = $pegawaiModel->where('is_active', true)->orderBy('nama', 'ASC')->findAll();
+        $pegawaiList = $pegawaiModel->orderBy('nama', 'ASC')->findAll();
 
         $data = [
             'keys'        => $keys,
