@@ -806,6 +806,7 @@ class MeetingController extends Controller
 
         $this->meetingModel->setValidationRules([]);
         $zoomMeetingId = $this->extractZoomMeetingIdFromUrl($zoomJoinUrl);
+        $isFirstZoomLink = empty($meeting['zoom_join_url']);
         $updated = $this->meetingModel->update($id, [
             'zoom_join_url' => $zoomJoinUrl,
             'zoom_meeting_id' => $zoomMeetingId,
@@ -815,7 +816,17 @@ class MeetingController extends Controller
             return redirect()->back()->with('error', 'Gagal menyimpan link Zoom manual');
         }
 
-        return redirect()->back()->with('success', 'Link Zoom manual berhasil disimpan');
+        if ($isFirstZoomLink) {
+            $meeting['zoom_join_url'] = $zoomJoinUrl;
+            $meeting['zoom_meeting_id'] = $zoomMeetingId;
+            $this->sendWhatsAppToPegawai($meeting, 'zoom_manual_created');
+        }
+
+        $message = $isFirstZoomLink
+            ? 'Link Zoom manual berhasil disimpan dan dikirim ke pegawai'
+            : 'Link Zoom manual berhasil disimpan';
+
+        return redirect()->back()->with('success', $message);
     }
 
     /**
@@ -965,7 +976,7 @@ class MeetingController extends Controller
             $tempat       = ($ruangan['nama_ruangan'] ?? '') . ' - ' . ($ruangan['tipe'] ?? '');
             $waktu        = date('d M Y H:i', strtotime($meeting['waktu_mulai'])) . ' - ' . date('H:i', strtotime($meeting['waktu_selesai']));
 
-            if ($type === 'zoom_created') {
+            if (in_array($type, ['zoom_created', 'zoom_manual_created'], true)) {
                 $shortlink = !empty($meeting['start_token'])
                     ? base_url('zoom/start/' . $meeting['start_token'])
                     : '';
@@ -973,8 +984,11 @@ class MeetingController extends Controller
                     ? "\n\n🖥️ *Link Host (H-1 jam)*:\n{$shortlink}\nℹ️ _Link ini hanya aktif 1 jam sebelum meeting dimulai._"
                     : "\n\nℹ️ _Link Host tersedia 1 jam sebelum meeting pada website meetingku._";
 
+                $title = $type === 'zoom_manual_created'
+                    ? "✅ Link Zoom meeting telah tersedia\n\n"
+                    : "✅ Pengajuan meeting Anda telah disetujui\n\n";
                 $message = "*[Meetingku]*\n" .
-                           "✅ Pengajuan meeting Anda telah disetujui\n\n" .
+                           $title .
                            "*Nama Kegiatan*: $namaKegiatan\n" .
                            "*Tempat*: $tempat\n" .
                            "*Waktu*: $waktu\n\n" .

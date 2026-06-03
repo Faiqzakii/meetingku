@@ -114,6 +114,9 @@
                         <?php
                             $canOwnOrAdmin = ((int)($meeting['pegawai_id'] ?? 0) === (int)session()->get('pegawai_id')) || $isAdmin;
                             $zoomLink = $meeting['zoom_join_url'] ?? $meeting['manual_zoom_join'] ?? '';
+                            $isOnlineOrHybrid = in_array($meeting['tipe'] ?? '', ['Online', 'Hybrid'], true);
+                            $meetingNotEnded = time() < strtotime($meeting['waktu_selesai']);
+                            $canSetManualZoom = $isAdmin && $isOnlineOrHybrid && $meeting['status'] === 'approved' && $meetingNotEnded;
                         ?>
                         <tr>
                             <td class="cell-truncate" style="max-width:300px;" title="<?= esc($meeting['nama_keg'], 'attr') ?>">
@@ -163,6 +166,12 @@
                                                         <i class="fas fa-xmark" aria-hidden="true"></i> Tolak
                                                     </button>
                                                 <?php endif; ?>
+                                                <?php if ($canSetManualZoom): ?>
+                                                    <button type="button" data-zoom-action="manual" data-id="<?= esc($meeting['id'], 'attr') ?>"
+                                                            data-current="<?= esc($zoomLink, 'attr') ?>" role="menuitem">
+                                                        <i class="fas fa-link" aria-hidden="true"></i> Link manual...
+                                                    </button>
+                                                <?php endif; ?>
                                                 <button type="button" data-delete-form="<?= esc($meeting['id'], 'attr') ?>" role="menuitem" class="danger">
                                                     <i class="fas fa-trash-alt" aria-hidden="true"></i> Hapus
                                                 </button>
@@ -177,6 +186,12 @@
                                                 <input type="hidden" name="status" value="">
                                             </form>
                                         <?php endif; ?>
+                                        <?php if ($canSetManualZoom): ?>
+                                            <form action="<?= base_url('meeting/manual-zoom/' . $meeting['id']) ?>" method="POST" id="manualZoomForm-<?= esc($meeting['id']) ?>" style="display:none;">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="zoom_join_url" value="">
+                                            </form>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </td>
                             <?php endif; ?>
@@ -185,6 +200,31 @@
                 <?php endif; ?>
             </tbody>
         </table>
+    </div>
+</div>
+
+<div class="modal fade" id="manualZoomModal" tabindex="-1" aria-hidden="true" aria-labelledby="manualZoomTitle">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="manualZoomModalForm" method="POST" action="">
+                <?= csrf_field() ?>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="manualZoomTitle">Set link Zoom manual</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="field">
+                        <label class="field-label" for="manualZoomUrl">URL Zoom</label>
+                        <input class="input" type="url" id="manualZoomUrl" name="zoom_join_url" placeholder="https://us02web.zoom.us/j/..." required>
+                        <span class="field-help">Saat pertama kali disimpan, link dikirim otomatis ke WhatsApp pegawai.</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan link</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -233,6 +273,19 @@ document.addEventListener('DOMContentLoaded', function() {
             form.querySelector('input[name="status"]').value = status;
             if (confirm(status === 'approved' ? 'Setujui meeting ini?' : 'Tolak meeting ini?')) {
                 form.submit();
+            }
+            return;
+        }
+        var manualBtn = e.target.closest('[data-zoom-action="manual"]');
+        if (manualBtn) {
+            var modalEl = document.getElementById('manualZoomModal');
+            var form = document.getElementById('manualZoomModalForm');
+            var input = document.getElementById('manualZoomUrl');
+            if (!modalEl || !form || !input) return;
+            form.action = '<?= base_url('meeting/manual-zoom/') ?>' + manualBtn.getAttribute('data-id');
+            input.value = manualBtn.getAttribute('data-current') || '';
+            if (window.bootstrap) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
             }
             return;
         }
