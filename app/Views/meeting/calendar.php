@@ -256,22 +256,14 @@
                             </a>
                             <form id="zoomHostForm" method="POST" class="inline-block hidden" target="_blank">
                                 <?= csrf_field() ?>
-                                <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host (generate link baru)">
-                                    <i class="fas fa-play-circle"></i> Host
+                                <button id="zoomHostButton" type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host">
+                                    <i id="zoomHostIcon" class="fas fa-play-circle"></i> <span id="zoomHostLabel">Host</span>
                                 </button>
                             </form>
-<span id="zoomHostLocked" class="text-xs text-gray-400 italic hidden" title="Link Host tersedia 1 jam sebelum meeting">
-            <i class="fas fa-lock text-gray-300"></i> Host (H-1 jam)
-        </span>
-        <div id="zoomHostLinkArea" class="hidden mt-2" style="border-top:1px dashed #e2e8f0;padding-top:6px;">
-            <span class="text-xs text-gray-400">Host Shortlink (H-1 jam):</span>
-            <div class="flex items-center gap-1 mt-1">
-                <input id="zoomHostLinkInput" type="text" readonly class="text-xs" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:2px 6px;width:auto;min-width:0;flex:1;" value="">
-                <button type="button" id="zoomHostLinkCopy" class="btn-outline-custom" style="padding:0.25rem 0.5rem;font-size:0.7rem;flex-shrink:0;">
-                    <i class="fas fa-copy"></i> Copy
-                </button>
-            </div>
-        </div>
+                            <button type="button" id="zoomHostLinkCopy" class="btn-outline-custom hidden" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#334155; border-color:#cbd5e1;">
+                                <i class="fas fa-copy"></i> Copy Host Link
+                            </button>
+                            <input id="zoomHostLinkInput" type="text" readonly class="sr-only" value="">
                         </div>
                     </div>
                     <!-- Audit trail (admin only) -->
@@ -684,30 +676,34 @@ document.addEventListener('DOMContentLoaded', function() {
                     zoomSection.classList.remove('hidden');
                     document.getElementById('zoomJoinLink').href = joinUrl || '#';
                     var hostForm = document.getElementById('zoomHostForm');
-                    var hostLocked = document.getElementById('zoomHostLocked');
+                    var hostButton = document.getElementById('zoomHostButton');
+                    var hostIcon = document.getElementById('zoomHostIcon');
+                    var hostLabel = document.getElementById('zoomHostLabel');
+                    var hostLinkCopy = document.getElementById('zoomHostLinkCopy');
+                    var hostLinkInput = document.getElementById('zoomHostLinkInput');
                     var meetStart = Number(props.waktu_mulai_ts) * 1000;
                     var nowMs = Date.now();
-                    if (hasHostMeeting && meetingNotEnded && nowMs >= (meetStart - 3600000)) {
+                    var canHostNow = hasHostMeeting && meetingNotEnded && nowMs >= (meetStart - 3600000);
+
+                    if (hasHostMeeting && meetingNotEnded) {
                         hostForm.action = '<?= base_url('meeting/refresh-zoom/') ?>' + event.id;
                         hostForm.classList.remove('hidden');
-                        hostLocked.classList.add('hidden');
-                    } else if (hasHostMeeting && meetingNotEnded) {
+                        hostButton.disabled = !canHostNow;
+                        hostButton.setAttribute('aria-disabled', canHostNow ? 'false' : 'true');
+                        hostButton.title = canHostNow ? 'Buka sebagai Host' : 'Host aktif 1 jam sebelum meeting';
+                        hostIcon.className = 'fas ' + (canHostNow ? 'fa-play-circle' : 'fa-lock');
+                        hostLabel.textContent = canHostNow ? 'Host' : 'Host H-1 jam';
+                    } else {
                         hostForm.classList.add('hidden');
-                        hostLocked.classList.remove('hidden');
-} else {
-                    hostForm.classList.add('hidden');
-                    hostLocked.classList.add('hidden');
-                }
+                    }
 
-                // Show host shortlink when start_token exists
-                var hostLinkArea = document.getElementById('zoomHostLinkArea');
-                var hostLinkInput = document.getElementById('zoomHostLinkInput');
-                if (props.start_token && props.start_token !== '') {
-                    hostLinkInput.value = '<?= base_url('zoom/start/') ?>' + props.start_token;
-                    hostLinkArea.classList.remove('hidden');
-                } else {
-                    hostLinkArea.classList.add('hidden');
-                }
+                    if (props.start_token && props.start_token !== '') {
+                        hostLinkInput.value = '<?= base_url('zoom/start/') ?>' + props.start_token;
+                        hostLinkCopy.classList.remove('hidden');
+                    } else {
+                        hostLinkInput.value = '';
+                        hostLinkCopy.classList.add('hidden');
+                    }
                 } else {
                     zoomSection.classList.add('hidden');
                 }
@@ -826,3 +822,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <?= $this->endSection() ?>
+

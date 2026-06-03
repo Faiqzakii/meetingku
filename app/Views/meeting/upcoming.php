@@ -81,9 +81,14 @@
                                 <?php endif; ?>
 
                                 <?php if ($isOnlineOrHybrid && $meeting['status'] === 'approved' && $canOwnOrAdmin): ?>
-                                    <?php if ($hasJoinUrl && $hasHostMeeting && $meetingNotEnded && $withinOneHour): ?>
-                                        <button type="button" data-zoom-action="refresh" data-id="<?= esc($meeting['id'], 'attr') ?>" role="menuitem">
-                                            <i class="fas fa-play-circle" aria-hidden="true"></i> Refresh Host
+                                    <?php if ($hasJoinUrl && $hasHostMeeting && $meetingNotEnded): ?>
+                                        <button type="button"
+                                                data-zoom-action="refresh"
+                                                data-id="<?= esc($meeting['id'], 'attr') ?>"
+                                                role="menuitem"
+                                                <?= $withinOneHour ? '' : 'disabled aria-disabled="true" title="Host aktif 1 jam sebelum meeting"' ?>>
+                                            <i class="fas <?= $withinOneHour ? 'fa-play-circle' : 'fa-lock' ?>" aria-hidden="true"></i>
+                                            <?= $withinOneHour ? 'Refresh Host' : 'Host tersedia H-1 jam' ?>
                                         </button>
                                     <?php endif; ?>
                                     <?php if ($hasStartToken): ?>
@@ -379,3 +384,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <?= $this->endSection() ?>
+
