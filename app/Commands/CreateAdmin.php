@@ -16,31 +16,21 @@ class CreateAdmin extends BaseCommand
     {
         $pegawaiModel = new PegawaiModel();
 
-        // Get username
         $username = CLI::prompt('Enter username (3-25 characters)', null, 'required|min_length[3]|max_length[25]');
-        
-        // Check if username exists
         if ($pegawaiModel->where('username', $username)->first()) {
             CLI::error('Username already exists');
             return;
         }
 
-        // Get NIP
         $nip = CLI::prompt('Enter NIP (18 digits)', null, 'required|exact_length[18]|numeric');
-        
-        // Check if NIP exists
         if ($pegawaiModel->where('nip', $nip)->first()) {
             CLI::error('NIP already exists');
             return;
         }
 
-        // Get password
         $password = CLI::prompt('Enter password (min 6 characters)', null, 'required|min_length[6]');
-        
-        // Get name
         $nama = CLI::prompt('Enter full name (3-100 characters)', null, 'required|min_length[3]|max_length[100]');
 
-        // Create admin user
         $data = [
             'username' => $username,
             'password' => $password,
@@ -53,8 +43,6 @@ class CreateAdmin extends BaseCommand
             $created = $pegawaiModel->insert($data);
             if ($created !== false) {
                 CLI::write('Admin user created successfully', 'green');
-                
-                // Show created user details
                 $user = $pegawaiModel->where('username', $username)->first();
                 CLI::write('User Details:', 'yellow');
                 CLI::write("ID: {$user['id']}", 'white');
@@ -62,8 +50,6 @@ class CreateAdmin extends BaseCommand
                 CLI::write("Name: {$user['nama']}", 'white');
                 CLI::write("NIP: {$user['nip']}", 'white');
                 CLI::write("Is Admin: Yes", 'white');
-                
-                // Show login instructions
                 CLI::newLine();
                 CLI::write('Login Instructions:', 'yellow');
                 CLI::write("1. Go to: " . site_url('auth/login'), 'white');

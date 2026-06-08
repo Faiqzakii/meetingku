@@ -18,7 +18,6 @@ class RuanganModel extends Model
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
-    // Validation rules
     protected $validationRules = [
         'nama_ruangan' => 'required|min_length[3]|max_length[100]|is_unique[ruangan.nama_ruangan,id,{id}]',
         'tipe' => 'required|in_list[Online,Offline,Hybrid]'
@@ -37,14 +36,13 @@ class RuanganModel extends Model
         ]
     ];
 
-    // Check if room can be deleted (no approved meetings)
     public function canDelete($ruanganId)
     {
         $approvedMeetings = $this->db->table('meeting')
             ->where('ruangan_id', $ruanganId)
             ->where('status', 'approved')
             ->countAllResults();
-        
+
         return $approvedMeetings === 0;
     }
 
@@ -53,7 +51,6 @@ class RuanganModel extends Model
         return $this->where('is_active', true)->findAll();
     }
 
-    // Get meetings for a specific room, optionally filtered by date (Y-m-d)
     public function getMeetings($ruanganId, ?string $date = null)
     {
         $builder = $this->db->table('meeting')
@@ -70,20 +67,5 @@ class RuanganModel extends Model
         }
 
         return $builder->get()->getResultArray();
-    }
-
-    // Override insert to handle timestamps
-    public function insert($data = null, bool $returnID = true)
-    {
-        $data['created_at'] = date('Y-m-d H:i:s');
-        $data['updated_at'] = date('Y-m-d H:i:s');
-        return parent::insert($data, $returnID);
-    }
-
-    // Override update to handle timestamps
-    public function update($id = null, $data = null): bool
-    {
-        $data['updated_at'] = date('Y-m-d H:i:s');
-        return parent::update($id, $data);
     }
 }

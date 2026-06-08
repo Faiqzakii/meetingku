@@ -37,7 +37,6 @@ class MeetingModel extends Model
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
-    // Validation rules
     protected $validationRules = [
         'nama_keg' => 'permit_empty|min_length[3]|max_length[100]',
         'jumlah_peserta' => 'required|integer|greater_than[0]',
@@ -83,11 +82,9 @@ class MeetingModel extends Model
         ]
     ];
 
-    // Custom validation for end time
     protected function validateEndTime(array $data): bool
     {
-        // Only validate if both dates are present
-        if (!isset($data['waktu_mulai']) || !isset($data['waktu_selesai']) || 
+        if (!isset($data['waktu_mulai']) || !isset($data['waktu_selesai']) ||
             empty($data['waktu_mulai']) || empty($data['waktu_selesai'])) {
             return true;
         }
@@ -112,7 +109,6 @@ class MeetingModel extends Model
         return $this->validateEndTime($data);
     }
 
-    // Get meeting details with related data
     public function getMeetingDetails($meetingId)
     {
         return $this->db->table('meeting')
@@ -126,7 +122,6 @@ class MeetingModel extends Model
             ->getRowArray();
     }
 
-    // Get all meetings for a specific date range
     public function getMeetingsByDateRange($startDate, $endDate)
     {
         return $this->db->table('meeting')
@@ -137,18 +132,6 @@ class MeetingModel extends Model
             ->join('pegawai as status_pegawai', 'status_pegawai.id = meeting.status_changed_by', 'left')
             ->join('pegawai as edit_pegawai', 'edit_pegawai.id = meeting.last_edited_by', 'left')
             ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin, pegawai.no_hp as pegawai_no_hp, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
-            ->orderBy('waktu_mulai', 'ASC')
-            ->get()
-            ->getResultArray();
-    }
-
-    // Get all meetings with details
-    public function getAllMeetingsWithDetails()
-    {
-        return $this->db->table('meeting')
-            ->join('ruangan', 'ruangan.id = meeting.ruangan_id')
-            ->join('pegawai', 'pegawai.id = meeting.pegawai_id', 'left')
-            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin')
             ->orderBy('waktu_mulai', 'ASC')
             ->get()
             ->getResultArray();
@@ -168,12 +151,11 @@ class MeetingModel extends Model
             ->getResultArray();
     }
 
-    // Get today's meetings
     public function getTodayMeetings()
     {
         $today_start = date('Y-m-d 00:00:00');
         $today_end = date('Y-m-d 23:59:59');
-        
+
         return $this->db->table('meeting')
             ->where('waktu_mulai >=', $today_start)
             ->where('waktu_mulai <=', $today_end)
@@ -187,7 +169,6 @@ class MeetingModel extends Model
             ->getResultArray();
     }
 
-    // Get upcoming meetings (after today)
     public function getUpcomingMeetings()
     {
         $tomorrow = date('Y-m-d 00:00:00', strtotime('+1 day'));

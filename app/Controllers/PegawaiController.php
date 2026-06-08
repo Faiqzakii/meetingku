@@ -44,7 +44,7 @@ class PegawaiController extends Controller
             'no_hp' => $this->request->getPost('no_hp'),
             'username' => $this->request->getPost('username'),
             'password' => $this->request->getPost('password'),
-            'is_admin' => bool_val($this->request->getPost('is_admin')),
+            'is_admin' => (int) bool_val($this->request->getPost('is_admin')),
             'terima_notif_offline' => 0,
             'terima_notif_zoom' => 0
         ];
@@ -78,21 +78,16 @@ class PegawaiController extends Controller
             return redirect()->to('auth/login');
         }
 
-        // Get existing pegawai data
         $existingPegawai = $this->pegawaiModel->find($id);
         if (!$existingPegawai) {
             return redirect()->to('/pegawai')->with('error', 'Pegawai tidak ditemukan');
         }
 
-        // Get input data based on request method
-        $input = $this->request->getMethod() === 'put' 
+        $input = $this->request->getMethod() === 'put'
             ? $this->request->getRawInput()
             : $this->request->getPost();
 
-        // Prepare update data
         $data = [];
-
-        // Only update fields that have changed
         $nama = $input['nama'] ?? '';
         if ($nama && $nama !== $existingPegawai['nama']) {
             $data['nama'] = $nama;
@@ -108,23 +103,20 @@ class PegawaiController extends Controller
             $data['username'] = $username;
         }
 
-        $isAdmin = bool_val($input['is_admin'] ?? false);
-        if ($isAdmin !== bool_val($existingPegawai['is_admin'])) {
+        $isAdmin = (int) bool_val($input['is_admin'] ?? false);
+        if ($isAdmin !== (int) bool_val($existingPegawai['is_admin'])) {
             $data['is_admin'] = $isAdmin;
         }
 
-        // Update no_hp
         $no_hp = $input['no_hp'] ?? '';
         if ($no_hp !== ($existingPegawai['no_hp'] ?? '')) {
             $data['no_hp'] = $no_hp;
         }
 
-        // Only update password if a new one is provided
         if ($password = ($input['password'] ?? false)) {
             $data['password'] = $password;
         }
 
-        // If no fields have changed, redirect back with success
         if (empty($data)) {
             return redirect()->to('/pegawai')->with('success', 'Tidak ada perubahan pada data pegawai');
         }
@@ -169,7 +161,6 @@ class PegawaiController extends Controller
             $worksheet = $spreadsheet->getActiveSheet();
             $rows = $worksheet->toArray();
 
-            // Remove header row
             array_shift($rows);
 
             $successCount = 0;
@@ -177,17 +168,15 @@ class PegawaiController extends Controller
             $errors = [];
 
             foreach ($rows as $row) {
-                // Skip empty rows
                 if (empty($row[0])) continue;
 
-                // The password from Excel is already in plain text, so we need to hash it
                 $data = [
                     'nama' => trim($row[0]),
                     'nip' => trim($row[1]),
                     'no_hp' => isset($row[2]) ? trim($row[2]) : '',
                     'username' => trim($row[3]),
                     'password' => trim($row[4]),
-                    'is_admin' => isset($row[5]) && strtolower(trim($row[5])) === 'ya',
+                    'is_admin' => (int) (isset($row[5]) && strtolower(trim($row[5])) === 'ya'),
                     'terima_notif_offline' => 0,
                     'terima_notif_zoom' => 0
                 ];
@@ -220,31 +209,26 @@ class PegawaiController extends Controller
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         
-        // Set headers
         $sheet->setCellValue('A1', 'Nama');
         $sheet->setCellValue('B1', 'NIP');
         $sheet->setCellValue('C1', 'No HP');
         $sheet->setCellValue('D1', 'Username');
         $sheet->setCellValue('E1', 'Password');
         $sheet->setCellValue('F1', 'Admin (Ya/Tidak)');
-        
-        // Add example row
+
         $sheet->setCellValue('A2', 'John Doe');
         $sheet->setCellValue('B2', '198501012010011001');
         $sheet->setCellValue('C2', '08123456789');
         $sheet->setCellValue('D2', 'johndoe');
         $sheet->setCellValue('E2', 'password123');
         $sheet->setCellValue('F2', 'Tidak');
-        
-        // Auto-size columns
+
         foreach (range('A', 'F') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
-        
-        // Create Excel file
+
         $writer = new Xlsx($spreadsheet);
-        
-        // Set headers for download
+
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename="template_pegawai.xlsx"');
         header('Cache-Control: max-age=0');

@@ -31,6 +31,129 @@ class MeetingController extends Controller
         return session()->get('is_admin') === true;
     }
 
+    // ── Form token helpers ──────────────────────────────────────────
+
+    protected function consumeFormToken(): ?string
+    {
+        $formToken = $this->request->getPost('form_token');
+        if (!$formToken) {
+            return null;
+        }
+
+        $usedTokens = session()->get('used_form_tokens');
+        if (!is_array($usedTokens)) {
+            $usedTokens = [];
+        }
+        if (in_array($formToken, $usedTokens)) {
+            return '__duplicate__';
+        }
+
+        $usedTokens[] = $formToken;
+        session()->set('used_form_tokens', $usedTokens);
+        return $formToken;
+    }
+
+    protected function releaseFormToken(string $formToken): void
+    {
+        $currentTokens = session()->get('used_form_tokens');
+        if (!is_array($currentTokens)) {
+            $currentTokens = [];
+        }
+        $currentTokens = array_diff($currentTokens, [$formToken]);
+        session()->set('used_form_tokens', $currentTokens);
+    }
+
+    protected function pruneFormTokens(): void
+    {
+        $currentTokens = session()->get('used_form_tokens');
+        if (is_array($currentTokens) && count($currentTokens) > 10) {
+            session()->set('used_form_tokens', array_slice($currentTokens, -10));
+        }
+    }
+
+    // ── Shared meeting data helpers ─────────────────────────────────
+
+    protected function resolveTimeRange(): array
+    {
+        $waktuMulai = $this->request->getPost('waktu_mulai');
+        $durasi = $this->request->getPost('durasi');
+
+        $waktuMulai = date('Y-m-d H:i:s', strtotime($waktuMulai));
+
+        if ($durasi == 'Penuh') {
+            $waktuSelesai = date('Y-m-d 23:59:59', strtotime($waktuMulai));
+        } else {
+            $durasi = (int) $durasi;
+            $waktuSelesai = date('Y-m-d H:i:s', strtotime($waktuMulai . ' + ' . $durasi . ' minutes'));
+        }
+
+        return [$waktuMulai, $waktuSelesai];
+    }
+
+    protected function buildValidationRules(bool $isOnline): array
+    {
+        $rules = [
+            'nama_keg' => 'required|min_length[3]|max_length[100]',
+            'ruangan_id' => 'required|integer|is_not_unique[ruangan.id]',
+            'waktu_mulai' => 'required|valid_date[Y-m-d H:i:s]',
+            'waktu_selesai' => 'required|valid_date[Y-m-d H:i:s]',
+        ];
+        $rules['jumlah_peserta'] = $isOnline
+            ? 'permit_empty'
+            : 'required|integer|greater_than[0]';
+        return $rules;
+    }
+
+    protected function resolveFasilitas(): ?string
+    {
+        $fasilitas = $this->request->getPost('fasilitas');
+        $fasilitasLainnya = $this->request->getPost('fasilitas_lainnya');
+
+        if ($fasilitas && is_array($fasilitas)) {
+            if (($key = array_search('Lainnya', $fasilitas)) !== false) {
+                if (!empty($fasilitasLainnya)) {
+                    $fasilitas[$key] = 'Lainnya: ' . $fasilitasLainnya;
+                }
+            }
+        }
+
+        return $fasilitas ? json_encode($fasilitas) : null;
+    }
+
+    protected function notifyGroupWhatsApp(array $data, string $header): void
+    {
+        try {
+            if (!env('whatsapp.enabled', true)) {
+                return;
+            }
+
+            $ruangan = $this->ruanganModel->find($data['ruangan_id']);
+            $pegawai = $this->pegawaiModel->find($data['pegawai_id']);
+
+            $namaKegiatan = $data['nama_keg'];
+            $tempat       = ($ruangan['nama_ruangan'] ?? '') . ' - ' . ($ruangan['tipe'] ?? '');
+            $waktu        = date('d M Y H:i', strtotime($data['waktu_mulai'])) . ' - ' . date('H:i', strtotime($data['waktu_selesai']));
+            $oleh         = $pegawai['nama'] ?? '';
+            $jmlPeserta   = $data['jumlah_peserta'] ?? '';
+            $fasilitasStr = $data['fasilitas'] ? implode(', ', json_decode($data['fasilitas'], true) ?? []) : '-';
+
+            $message = "*[Meetingku]*\n"
+                . "{$header}\n\n"
+                . "*Nama Kegiatan*: {$namaKegiatan}\n"
+                . "*Tempat*: {$tempat}\n"
+                . "*Jumlah Peserta*: {$jmlPeserta}\n"
+                . "*Waktu*: {$waktu}\n"
+                . "*Fasilitas*: {$fasilitasStr}\n"
+                . "*Oleh*: {$oleh}";
+
+            $this->sendWhatsAppToGroup($message);
+        } catch (\Throwable $tex) {
+            log_message('error', 'WhatsApp notify exception: ' . $tex->getMessage());
+        }
+    }
+
+    // ── Zoom / WhatsApp helpers ─────────────────────────────────────
+
     protected function sendWhatsAppToGroup(string $message): bool
     {
         return $this->sendWhatsAppMessage(self::WHATSAPP_GROUP_ID, $message);
@@ -64,13 +187,12 @@ class MeetingController extends Controller
         return null;
     }
 
-    /**
-     * Generate a unique start_token for Zoom host shortlink.
-     */
     protected function generateStartToken(): string
     {
         return bin2hex(random_bytes(10));
     }
+
+    // ── Controller actions ──────────────────────────────────────────
 
     public function index()
     {
@@ -110,13 +232,11 @@ class MeetingController extends Controller
         $startParam = $this->request->getGet('start_date');
         $endParam   = $this->request->getGet('end_date');
 
-        // Default to this week
         $monday = date('Y-m-d 00:00:00', strtotime('monday this week'));
         $sunday = date('Y-m-d 23:59:59', strtotime('sunday this week'));
         $startDate = $startParam ? date('Y-m-d 00:00:00', strtotime($startParam)) : $monday;
         $endDate   = $endParam ? date('Y-m-d 23:59:59', strtotime($endParam)) : $sunday;
 
-        $data = [];
         $data['startDate'] = date('Y-m-d', strtotime($startDate));
         $data['endDate']   = date('Y-m-d', strtotime($endDate));
         $data['meetings'] = $this->meetingModel->getMeetingsByDateRange($startDate, $endDate);
@@ -132,87 +252,28 @@ class MeetingController extends Controller
             return redirect()->to('auth/login');
         }
 
-        // Check for form token to prevent double submission
-        $formToken = $this->request->getPost('form_token');
-        if (!$formToken) {
-            log_message('error', 'No form token provided');
-            return redirect()->back()
-                ->with('error', 'Token form tidak valid')
-                ->withInput();
+        $formToken = $this->consumeFormToken();
+        if ($formToken === null) {
+            return redirect()->back()->with('error', 'Token form tidak valid')->withInput();
+        }
+        if ($formToken === '__duplicate__') {
+            return redirect()->back()->with('error', 'Form telah dikirim. Mohon tunggu proses selesai.')->withInput();
         }
 
-        // Check if this token has been used before (stored in session)
-        $usedTokens = session()->get('used_form_tokens');
-        if (!is_array($usedTokens)) {
-            $usedTokens = [];
-        }
-        if (in_array($formToken, $usedTokens)) {
-            log_message('warning', 'Duplicate form submission detected with token: ' . $formToken);
-            return redirect()->back()
-                ->with('error', 'Form telah dikirim. Mohon tunggu proses selesai.')
-                ->withInput();
-        }
+        [$waktuMulai, $waktuSelesai] = $this->resolveTimeRange();
 
-        // Mark this token as used
-        $usedTokens[] = $formToken;
-        session()->set('used_form_tokens', $usedTokens);
-
-        // Debug: Log the POST data
-        log_message('debug', 'POST data: ' . print_r($this->request->getPost(), true));
-
-        // Get start time and duration
-        $waktuMulai = $this->request->getPost('waktu_mulai');
-        $durasi = $this->request->getPost('durasi');
-
-        // Convert start time to MySQL datetime format
-        $waktuMulai = date('Y-m-d H:i:s', strtotime($waktuMulai));
-        
-        if($durasi == 'Penuh'){
-            $waktuSelesai = date('Y-m-d 23:59:59', strtotime($waktuMulai));
-        } else {
-            // Calculate end time by adding duration (in minutes)
-            $durasi = (int)$durasi;
-            $waktuSelesai = date('Y-m-d H:i:s', strtotime($waktuMulai . ' + ' . $durasi . ' minutes'));
-        }
-        
-        // Check room type for conditional validation
         $ruanganId = $this->request->getPost('ruangan_id');
         $ruangan = $this->ruanganModel->find($ruanganId);
         $isOnline = ($ruangan && $ruangan['tipe'] === 'Online');
 
-        // Set validation rules for create
-        $validationRules = [
-            'nama_keg' => 'required|min_length[3]|max_length[100]',
-            'ruangan_id' => 'required|integer|is_not_unique[ruangan.id]',
-            'pegawai_id' => 'required|integer|is_not_unique[pegawai.id]',
-            'waktu_mulai' => 'required|valid_date[Y-m-d H:i:s]',
-            'waktu_selesai' => 'required|valid_date[Y-m-d H:i:s]',
-            'status' => 'required|in_list[pending,approved,rejected,cancelled]'
-        ];
+        $this->meetingModel->setValidationRules($this->buildValidationRules($isOnline));
 
-        if ($isOnline) {
-            $validationRules['jumlah_peserta'] = 'permit_empty';
-        } else {
-            $validationRules['jumlah_peserta'] = 'required|integer|greater_than[0]';
-        }
+        $fasilitasJson = $this->resolveFasilitas();
 
-        $this->meetingModel->setValidationRules($validationRules);
-
-        $fasilitas = $this->request->getPost('fasilitas');
-        $fasilitasLainnya = $this->request->getPost('fasilitas_lainnya');
-
-        if ($fasilitas && is_array($fasilitas)) {
-            if (($key = array_search('Lainnya', $fasilitas)) !== false) {
-                if (!empty($fasilitasLainnya)) {
-                    $fasilitas[$key] = 'Lainnya: ' . $fasilitasLainnya;
-                }
-            }
-        }
-        
         $data = [
             'nama_keg' => $this->request->getPost('nama_keg'),
             'jumlah_peserta' => $this->request->getPost('jumlah_peserta') ?: null,
-            'fasilitas' => $fasilitas ? json_encode($fasilitas) : null,
+            'fasilitas' => $fasilitasJson,
             'waktu_mulai' => $waktuMulai,
             'waktu_selesai' => $waktuSelesai,
             'ruangan_id' => $this->request->getPost('ruangan_id'),
@@ -220,84 +281,26 @@ class MeetingController extends Controller
             'status' => 'pending'
         ];
 
-        // Debug: Log the formatted data
-        log_message('debug', 'Formatted data: ' . print_r($data, true));
-
-        // Validate the data
         if (!$this->meetingModel->validate($data)) {
-            log_message('error', 'Validation errors: ' . print_r($this->meetingModel->errors(), true));
             return redirect()->back()
                 ->with('errors', $this->meetingModel->errors())
                 ->withInput();
         }
 
-        // Try to insert the data
         try {
             $result = $this->meetingModel->insert($data);
             if ($result === false) {
-                log_message('error', 'Insert failed: ' . print_r($this->meetingModel->errors(), true));
                 return redirect()->back()
                     ->with('error', 'Gagal membuat meeting: ' . implode(', ', $this->meetingModel->errors()))
                     ->withInput();
             }
-            
-            // Debug: Log successful insert
-            log_message('info', 'Meeting created successfully with ID: ' . $result);
-            
-            // Send notification via WhatsApp if configured
-            try {
-                $whatsappEnabled = env('whatsapp.enabled', true);
 
-                if ($whatsappEnabled) {
-                    $ruangan = $this->ruanganModel->find($data['ruangan_id']);
-                    $pegawai = $this->pegawaiModel->find($data['pegawai_id']);
-
-                    $namaKegiatan = $data['nama_keg'];
-                    $tempat       = ($ruangan['nama_ruangan'] ?? '') . ' - ' . ($ruangan['tipe'] ?? '');
-                    $waktu        = date('d M Y H:i', strtotime($data['waktu_mulai'])) . ' - ' . date('H:i', strtotime($data['waktu_selesai']));
-                    $oleh         = $pegawai['nama'] ?? '';
-                    $jmlPeserta   = $data['jumlah_peserta'] ?? '';
-                    $fasilitasStr = $data['fasilitas'] ? implode(', ', json_decode($data['fasilitas'], true) ?? []) : '-';
-
-                    $message = "*[Meetingku]*\n" .
-                               "Terdapat pengajuan meeting baru\n\n" .
-                               "*Nama Kegiatan*: $namaKegiatan\n" .
-                               "*Tempat*: $tempat\n" .
-                               "*Jumlah Peserta*: $jmlPeserta\n" .
-                               "*Waktu*: $waktu\n" .
-                               "*Fasilitas*: $fasilitasStr\n" .
-                               "*Oleh*: $oleh";
-
-                    $this->sendWhatsAppToGroup($message);
-                } else {
-                    log_message('debug', 'WhatsApp not configured or disabled; skipping notify.');
-                }
-            } catch (\Throwable $tex) {
-                log_message('error', 'WhatsApp notify exception: ' . $tex->getMessage());
-            }
-
-            // Clean up old tokens (keep only last 10 tokens)
-            $currentTokens = session()->get('used_form_tokens');
-            if (!is_array($currentTokens)) {
-                $currentTokens = [];
-            }
-            if (count($currentTokens) > 10) {
-                $currentTokens = array_slice($currentTokens, -10);
-                session()->set('used_form_tokens', $currentTokens);
-            }
+            $this->notifyGroupWhatsApp($data, 'Terdapat pengajuan meeting baru');
+            $this->pruneFormTokens();
 
             return redirect()->back()->with('success', 'Meeting berhasil dibuat');
         } catch (\Exception $e) {
-            log_message('error', 'Exception during insert: ' . $e->getMessage());
-            
-            // Remove token from used tokens on error so user can retry
-            $currentTokens = session()->get('used_form_tokens');
-            if (!is_array($currentTokens)) {
-                $currentTokens = [];
-            }
-            $currentTokens = array_diff($currentTokens, [$formToken]);
-            session()->set('used_form_tokens', $currentTokens);
-            
+            $this->releaseFormToken($formToken);
             return redirect()->back()
                 ->with('error', 'Gagal membuat meeting: ' . $e->getMessage())
                 ->withInput();
@@ -315,7 +318,6 @@ class MeetingController extends Controller
             return redirect()->to('/upcoming')->with('error', 'Meeting tidak ditemukan');
         }
 
-        // Only allow editing if user is admin or the meeting creator
         $currentPegawaiId = (int) session()->get('pegawai_id');
         if (!$this->isAdmin() && (int) $meeting['pegawai_id'] !== $currentPegawaiId) {
             return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk mengedit meeting ini');
@@ -338,88 +340,33 @@ class MeetingController extends Controller
             return redirect()->to('/upcoming')->with('error', 'Meeting tidak ditemukan');
         }
 
-        // Only allow updating if user is admin or the meeting creator
         $currentPegawaiId = (int) session()->get('pegawai_id');
         if (!$this->isAdmin() && (int) $meeting['pegawai_id'] !== $currentPegawaiId) {
             return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk mengupdate meeting ini');
         }
 
-        // Check for form token to prevent double submission
-        $formToken = $this->request->getPost('form_token');
-        if (!$formToken) {
-            log_message('error', 'No form token provided for update');
-            return redirect()->back()
-                ->with('error', 'Token form tidak valid')
-                ->withInput();
+        $formToken = $this->consumeFormToken();
+        if ($formToken === null) {
+            return redirect()->back()->with('error', 'Token form tidak valid')->withInput();
+        }
+        if ($formToken === '__duplicate__') {
+            return redirect()->back()->with('error', 'Form telah dikirim. Mohon tunggu proses selesai.')->withInput();
         }
 
-        // Check if this token has been used before (stored in session)
-        $usedTokens = session()->get('used_form_tokens');
-        if (!is_array($usedTokens)) {
-            $usedTokens = [];
-        }
-        if (in_array($formToken, $usedTokens)) {
-            log_message('warning', 'Duplicate form submission detected with token: ' . $formToken);
-            return redirect()->back()
-                ->with('error', 'Form telah dikirim. Mohon tunggu proses selesai.')
-                ->withInput();
-        }
+        [$waktuMulai, $waktuSelesai] = $this->resolveTimeRange();
 
-        // Mark this token as used
-        $usedTokens[] = $formToken;
-        session()->set('used_form_tokens', $usedTokens);
-
-        // Get start time and duration
-        $waktuMulai = $this->request->getPost('waktu_mulai');
-        $durasi = $this->request->getPost('durasi');
-
-        // Convert start time to MySQL datetime format
-        $waktuMulai = date('Y-m-d H:i:s', strtotime($waktuMulai));
-        
-        if ($durasi == 'Penuh') {
-            $waktuSelesai = date('Y-m-d 23:59:59', strtotime($waktuMulai));
-        } else {
-            // Calculate end time by adding duration (in minutes)
-            $durasi = (int)$durasi;
-            $waktuSelesai = date('Y-m-d H:i:s', strtotime($waktuMulai . ' + ' . $durasi . ' minutes'));
-        }
-        
-        // Check room type for conditional validation
         $ruanganId = $this->request->getPost('ruangan_id');
         $ruangan = $this->ruanganModel->find($ruanganId);
         $isOnline = ($ruangan && $ruangan['tipe'] === 'Online');
-        
-        // Set validation rules for update
-        $validationRules = [
-            'nama_keg' => 'required|min_length[3]|max_length[100]',
-            'ruangan_id' => 'required|integer|is_not_unique[ruangan.id]',
-            'waktu_mulai' => 'required|valid_date[Y-m-d H:i:s]',
-            'waktu_selesai' => 'required|valid_date[Y-m-d H:i:s]'
-        ];
 
-        if ($isOnline) {
-             $validationRules['jumlah_peserta'] = 'permit_empty';
-        } else {
-             $validationRules['jumlah_peserta'] = 'required|integer|greater_than[0]';
-        }
+        $this->meetingModel->setValidationRules($this->buildValidationRules($isOnline));
 
-        $this->meetingModel->setValidationRules($validationRules);
-
-        $fasilitas = $this->request->getPost('fasilitas');
-        $fasilitasLainnya = $this->request->getPost('fasilitas_lainnya');
-
-        if ($fasilitas && is_array($fasilitas)) {
-            if (($key = array_search('Lainnya', $fasilitas)) !== false) {
-                if (!empty($fasilitasLainnya)) {
-                    $fasilitas[$key] = 'Lainnya: ' . $fasilitasLainnya;
-                }
-            }
-        }
+        $fasilitasJson = $this->resolveFasilitas();
 
         $data = [
             'nama_keg' => $this->request->getPost('nama_keg'),
             'jumlah_peserta' => $this->request->getPost('jumlah_peserta') ?: null,
-            'fasilitas' => $fasilitas ? json_encode($fasilitas) : null,
+            'fasilitas' => $fasilitasJson,
             'waktu_mulai' => $waktuMulai,
             'waktu_selesai' => $waktuSelesai,
             'ruangan_id' => $this->request->getPost('ruangan_id'),
@@ -427,11 +374,7 @@ class MeetingController extends Controller
             'last_edited_at' => date('Y-m-d H:i:s'),
         ];
 
-        // Debug: Log the data being updated
-        log_message('debug', 'Updating meeting ' . $id . ' with data: ' . print_r($data, true));
-
         if (!$this->meetingModel->validate($data)) {
-            log_message('error', 'Validation errors: ' . print_r($this->meetingModel->errors(), true));
             return redirect()->back()
                 ->with('errors', $this->meetingModel->errors())
                 ->withInput();
@@ -439,113 +382,67 @@ class MeetingController extends Controller
 
         try {
             if ($this->meetingModel->update($id, $data) === false) {
-                log_message('error', 'Failed to update meeting: ' . print_r($this->meetingModel->errors(), true));
                 return redirect()->back()
                     ->with('error', 'Gagal mengupdate meeting: ' . implode(', ', $this->meetingModel->errors()))
                     ->withInput();
             }
 
-            log_message('info', 'Successfully updated meeting ' . $id);
-
-            // If meeting has Zoom and schedule changed, update Zoom meeting
             if (!empty($meeting['zoom_meeting_id'])) {
                 $scheduleChanged = ($meeting['waktu_mulai'] !== $data['waktu_mulai'])
                                 || ($meeting['waktu_selesai'] !== $data['waktu_selesai'])
                                 || ($meeting['nama_keg'] !== $data['nama_keg']);
                 if ($scheduleChanged) {
-                    try {
-                        $startTimestamp = strtotime($data['waktu_mulai']);
-                        $endTimestamp   = strtotime($data['waktu_selesai']);
-                        $duration       = max(30, (int) round(($endTimestamp - $startTimestamp) / 60));
-                        $startTimeISO   = date('Y-m-d\TH:i:s', $startTimestamp);
-
-                        $updated = $this->zoomLibrary->updateMeeting($meeting['zoom_meeting_id'], [
-                            'topic'      => $data['nama_keg'],
-                            'start_time' => $startTimeISO,
-                            'duration'   => $duration,
-                        ]);
-
-                        if ($updated) {
-                            // Refresh URLs from Zoom
-                            $zoomData = $this->zoomLibrary->getMeeting($meeting['zoom_meeting_id']);
-                            if ($zoomData) {
-                                $this->meetingModel->setValidationRules([]);
-                                $this->meetingModel->update($id, [
-                                    'zoom_start_url' => $zoomData['start_url'],
-                                    'zoom_join_url'  => $zoomData['join_url'],
-                                ]);
-                                $meeting['zoom_join_url']  = $zoomData['join_url'];
-                                $meeting['zoom_start_url'] = $zoomData['start_url'];
-                            }
-                            // Notify pegawai about schedule change
-                            $meeting['waktu_mulai']   = $data['waktu_mulai'];
-                            $meeting['waktu_selesai'] = $data['waktu_selesai'];
-                            $meeting['nama_keg']      = $data['nama_keg'];
-                            $this->sendWhatsAppToPegawai($meeting, 'zoom_updated');
-                            log_message('info', 'Zoom meeting updated for meeting ' . $id);
-                        }
-                    } catch (\Throwable $ze) {
-                        log_message('error', 'Failed to update Zoom meeting: ' . $ze->getMessage());
-                    }
+                    $this->syncZoomOnScheduleChange($id, $meeting, $data);
                 }
             }
 
-            // Send notification for update via WhatsApp if configured
-            try {
-                $whatsappEnabled = env('whatsapp.enabled', true);
-
-                if ($whatsappEnabled) {
-                    $ruangan = $this->ruanganModel->find($data['ruangan_id']);
-                    $pegawai = $this->pegawaiModel->find($meeting['pegawai_id']);
-
-                    $namaKegiatan = $data['nama_keg'];
-                    $tempat       = ($ruangan['nama_ruangan'] ?? '') . ' - ' . ($ruangan['tipe'] ?? '');
-                    $waktu        = date('d M Y H:i', strtotime($data['waktu_mulai'])) . ' - ' . date('H:i', strtotime($data['waktu_selesai']));
-                    $oleh         = $pegawai['nama'] ?? '';
-                    $jmlPeserta   = $data['jumlah_peserta'] ?? '';
-                    $fasilitasStr = $data['fasilitas'] ? implode(', ', json_decode($data['fasilitas'], true) ?? []) : '-';
-
-                    $message = "*[Meetingku]*\n" .
-                               "Terdapat edit detail meeting\n\n" .
-                               "*Nama Kegiatan*: $namaKegiatan\n" .
-                               "*Tempat*: $tempat\n" .
-                               "*Jumlah Peserta*: $jmlPeserta\n" .
-                               "*Waktu*: $waktu\n" .
-                               "*Fasilitas*: $fasilitasStr\n" .
-                               "*Oleh*: $oleh";
-
-                    $this->sendWhatsAppToGroup($message);
-                } else {
-                    log_message('debug', 'WhatsApp update not configured or disabled; skipping notify.');
-                }
-            } catch (\Throwable $tex) {
-                log_message('error', 'WhatsApp update notify exception: ' . $tex->getMessage());
-            }
-            // Clean up old tokens (keep only last 10 tokens)
-            $currentTokens = session()->get('used_form_tokens');
-            if (!is_array($currentTokens)) {
-                $currentTokens = [];
-            }
-            if (count($currentTokens) > 10) {
-                $currentTokens = array_slice($currentTokens, -10);
-                session()->set('used_form_tokens', $currentTokens);
-            }
+            $this->notifyGroupWhatsApp(
+                array_merge($data, ['pegawai_id' => $meeting['pegawai_id']]),
+                'Terdapat edit detail meeting'
+            );
+            $this->pruneFormTokens();
 
             return redirect()->to('/upcoming')->with('success', 'Meeting berhasil diupdate');
         } catch (\Exception $e) {
-            log_message('error', 'Exception during update: ' . $e->getMessage());
-            
-            // Remove token from used tokens on error so user can retry
-            $currentTokens = session()->get('used_form_tokens');
-            if (!is_array($currentTokens)) {
-                $currentTokens = [];
-            }
-            $currentTokens = array_diff($currentTokens, [$formToken]);
-            session()->set('used_form_tokens', $currentTokens);
-            
+            $this->releaseFormToken($formToken);
             return redirect()->back()
                 ->with('error', 'Gagal mengupdate meeting: ' . $e->getMessage())
                 ->withInput();
+        }
+    }
+
+    protected function syncZoomOnScheduleChange(int $id, array $meeting, array $data): void
+    {
+        try {
+            $startTimestamp = strtotime($data['waktu_mulai']);
+            $endTimestamp   = strtotime($data['waktu_selesai']);
+            $duration       = max(30, (int) round(($endTimestamp - $startTimestamp) / 60));
+            $startTimeISO   = date('Y-m-d\TH:i:s', $startTimestamp);
+
+            $updated = $this->zoomLibrary->updateMeeting($meeting['zoom_meeting_id'], [
+                'topic'      => $data['nama_keg'],
+                'start_time' => $startTimeISO,
+                'duration'   => $duration,
+            ]);
+
+            if ($updated) {
+                $zoomData = $this->zoomLibrary->getMeeting($meeting['zoom_meeting_id']);
+                if ($zoomData) {
+                    $this->meetingModel->setValidationRules([]);
+                    $this->meetingModel->update($id, [
+                        'zoom_start_url' => $zoomData['start_url'],
+                        'zoom_join_url'  => $zoomData['join_url'],
+                    ]);
+                    $meeting['zoom_join_url']  = $zoomData['join_url'];
+                    $meeting['zoom_start_url'] = $zoomData['start_url'];
+                }
+                $meeting['waktu_mulai']   = $data['waktu_mulai'];
+                $meeting['waktu_selesai'] = $data['waktu_selesai'];
+                $meeting['nama_keg']      = $data['nama_keg'];
+                $this->sendWhatsAppToPegawai($meeting, 'zoom_updated');
+            }
+        } catch (\Throwable $ze) {
+            log_message('error', 'Failed to update Zoom meeting: ' . $ze->getMessage());
         }
     }
 
@@ -560,17 +457,14 @@ class MeetingController extends Controller
             return redirect()->to('/meeting/upcoming')->with('error', 'Meeting tidak ditemukan');
         }
 
-        // Only allow deletion if user is admin or the meeting creator
         $currentPegawaiId = (int) session()->get('pegawai_id');
         if (!$this->isAdmin() && (int) $meeting['pegawai_id'] !== $currentPegawaiId) {
             return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk menghapus meeting ini');
         }
 
-        // Delete associated Zoom meeting if exists
         if (!empty($meeting['zoom_meeting_id'])) {
             try {
                 $this->zoomLibrary->deleteMeeting($meeting['zoom_meeting_id']);
-                log_message('info', 'Zoom meeting deleted for meeting ID: ' . $id);
             } catch (\Exception $e) {
                 log_message('error', 'Failed to delete Zoom meeting: ' . $e->getMessage());
                 // Continue with DB deletion even if Zoom fails
@@ -580,23 +474,17 @@ class MeetingController extends Controller
         try {
             if ($this->meetingModel->delete($id) === false) {
                 $errors = $this->meetingModel->errors();
-                log_message('error', 'Failed to delete meeting ID ' . $id . ': ' . print_r($errors, true));
                 return redirect()->back()->with('error', 'Gagal menghapus meeting: ' . implode(', ', $errors));
             }
         } catch (\Exception $e) {
-            log_message('error', 'Exception during meeting deletion ID ' . $id . ': ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan saat menghapus meeting: ' . $e->getMessage());
         }
 
         return redirect()->back()->with('success', 'Meeting berhasil dihapus');
     }
 
-
-
     public function updateStatus($id = null)
     {
-        log_message('debug', 'Status update request for meeting ' . $id . ': ' . print_r($this->request->getPost(), true));
-
         $meeting = $this->meetingModel->find($id);
         if (!$meeting) {
             return redirect()->to('/upcoming')->with('error', 'Meeting tidak ditemukan');
@@ -606,7 +494,6 @@ class MeetingController extends Controller
         $currentPegawaiId = (int) session()->get('pegawai_id');
         $isOwner = (int) $meeting['pegawai_id'] === $currentPegawaiId;
 
-        // Non-admin: only the meeting owner can cancel their own meeting
         if (!$this->isAdmin()) {
             if (!$isOwner || $status !== 'cancelled') {
                 return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk mengubah status meeting ini');
@@ -614,7 +501,6 @@ class MeetingController extends Controller
         }
 
         if (!in_array($status, ['approved', 'rejected', 'pending', 'cancelled'])) {
-            log_message('error', 'Invalid status: ' . $status);
             return redirect()->back()->with('error', 'Status tidak valid');
         }
 
@@ -629,11 +515,9 @@ class MeetingController extends Controller
                 'status_changed_at' => date('Y-m-d H:i:s'),
             ];
 
-            // If rejecting/cancelling and meeting has Zoom, delete the Zoom meeting
             if (in_array($status, ['rejected', 'cancelled']) && !empty($meeting['zoom_meeting_id'])) {
                 try {
                     $this->zoomLibrary->deleteMeeting($meeting['zoom_meeting_id']);
-                    log_message('info', 'Zoom meeting deleted for meeting ' . $id);
                 } catch (\Throwable $ze) {
                     log_message('error', 'Failed to delete Zoom meeting: ' . $ze->getMessage());
                 }
@@ -642,30 +526,23 @@ class MeetingController extends Controller
                 $updateData['zoom_start_url']  = null;
                 $updateData['start_token']     = null;
 
-                // Notify pegawai that Zoom link is cancelled
                 $this->sendWhatsAppToPegawai($meeting, 'cancelled');
             }
 
             $result = $this->meetingModel->update($id, $updateData);
             if ($result === false) {
-                log_message('error', 'Failed to update meeting status: ' . print_r($this->meetingModel->errors(), true));
                 return redirect()->back()
                     ->with('error', 'Gagal mengupdate status meeting: ' . implode(', ', $this->meetingModel->errors()));
             }
 
-            log_message('info', 'Successfully updated meeting ' . $id . ' status to ' . $status);
             return redirect()->back()
                 ->with('success', 'Status meeting berhasil diupdate menjadi ' . strtoupper($status));
         } catch (\Exception $e) {
-            log_message('error', 'Exception during status update: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Gagal mengupdate status meeting: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Send Zoom meeting link - called when admin clicks "Kirim Zoom" button
-     */
     public function sendZoom($id = null)
     {
         if (!$this->isAdmin()) {
@@ -681,35 +558,28 @@ class MeetingController extends Controller
             return redirect()->back()->with('error', 'Meeting harus disetujui terlebih dahulu');
         }
 
-        // Check if meeting time has passed
         if (strtotime($meeting['waktu_selesai']) < time()) {
             return redirect()->back()->with('error', 'Tidak bisa membuat Zoom — meeting sudah selesai/lewat');
         }
 
-        // Check if Zoom already created
         if (!empty($meeting['zoom_meeting_id'])) {
             return redirect()->back()->with('error', 'Zoom meeting sudah dibuat untuk meeting ini');
         }
 
-        // Check room type
         $ruangan = $this->ruanganModel->find($meeting['ruangan_id']);
         if (!$ruangan || !in_array($ruangan['tipe'], ['Online', 'Hybrid'])) {
             return redirect()->back()->with('error', 'Ruangan bukan tipe Online/Hybrid');
         }
 
-        // Check Zoom enabled
         if (!$this->zoomLibrary->isEnabled()) {
             return redirect()->back()->with('error', 'Integrasi Zoom belum dikonfigurasi');
         }
 
         try {
-            // Calculate duration in minutes
             $startTimestamp = strtotime($meeting['waktu_mulai']);
             $endTimestamp   = strtotime($meeting['waktu_selesai']);
             $duration       = max(30, (int) round(($endTimestamp - $startTimestamp) / 60));
-
-            // Format start time for Zoom API (ISO 8601)
-            $startTimeISO = date('Y-m-d\TH:i:s', $startTimestamp);
+            $startTimeISO   = date('Y-m-d\TH:i:s', $startTimestamp);
 
             $zoomResult = $this->zoomLibrary->createMeeting(
                 $meeting['nama_keg'],
@@ -722,7 +592,6 @@ class MeetingController extends Controller
                 return redirect()->back()->with('error', 'Gagal membuat Zoom meeting. Periksa konfigurasi Zoom API.');
             }
 
-            // Save Zoom data to DB with start_token for public host shortlink
             $startToken = $this->generateStartToken();
             $this->meetingModel->setValidationRules([]);
             $this->meetingModel->update($id, [
@@ -732,15 +601,12 @@ class MeetingController extends Controller
                 'start_token'     => $startToken,
             ]);
 
-            // Refresh meeting data for notification
             $meeting['zoom_join_url']  = $zoomResult['join_url'];
             $meeting['zoom_start_url'] = $zoomResult['start_url'];
             $meeting['start_token']    = $startToken;
 
-            // Send WhatsApp to pegawai with Zoom links
             $this->sendWhatsAppToPegawai($meeting, 'zoom_created');
 
-            // Check for conflicts and warn
             $conflicts = $this->meetingModel->getConflictingZoomMeetings(
                 $meeting['waktu_mulai'],
                 $meeting['waktu_selesai'],
@@ -761,9 +627,6 @@ class MeetingController extends Controller
         }
     }
 
-    /**
-     * Save manual Zoom join link for approved online/hybrid meetings.
-     */
     public function updateManualZoomJoin($id = null)
     {
         if (!$this->isAdmin()) {
@@ -829,10 +692,6 @@ class MeetingController extends Controller
         return redirect()->back()->with('success', $message);
     }
 
-    /**
-     * Refresh Zoom start_url and redirect to it.
-     * Used as the "Host" button action — generates a fresh start_url (valid 2h) on the fly.
-     */
     public function refreshZoom($id = null)
     {
         if (!session()->get('logged_in')) {
@@ -844,22 +703,18 @@ class MeetingController extends Controller
             return redirect()->back()->with('error', 'Meeting tidak memiliki Zoom');
         }
 
-        // Only allow owner or admin
         $currentPegawaiId = (int) session()->get('pegawai_id');
         if (!$this->isAdmin() && (int) $meeting['pegawai_id'] !== $currentPegawaiId) {
             return redirect()->back()->with('error', 'Anda tidak memiliki akses');
         }
 
-        // Do not allow host link when meeting is finished
         $meetingEnd = strtotime($meeting['waktu_selesai']);
         if (time() >= $meetingEnd) {
             return redirect()->back()->with('error', 'Meeting sudah selesai, link Host tidak tersedia');
         }
 
-        // Only allow within 1 hour before meeting start
         $meetingStart = strtotime($meeting['waktu_mulai']);
-        $now = time();
-        if ($now < ($meetingStart - 3600)) {
+        if (time() < ($meetingStart - 3600)) {
             return redirect()->back()->with('error', 'Link Host hanya tersedia 1 jam sebelum meeting dimulai');
         }
 
@@ -869,14 +724,12 @@ class MeetingController extends Controller
                 return redirect()->back()->with('error', 'Gagal mengambil data Zoom meeting');
             }
 
-            // Update the stored URLs
             $this->meetingModel->setValidationRules([]);
             $this->meetingModel->update($id, [
                 'zoom_start_url' => $zoomData['start_url'],
                 'zoom_join_url'  => $zoomData['join_url'],
             ]);
 
-            // Redirect directly to the fresh start_url
             return redirect()->to($zoomData['start_url']);
         } catch (\Exception $e) {
             log_message('error', 'Exception during refreshZoom: ' . $e->getMessage());
@@ -885,10 +738,6 @@ class MeetingController extends Controller
         }
     }
 
-    /**
-     * Public shortlink to host a Zoom meeting — no login required.
-     * Valid only within 1 hour before meeting start and until meeting ends.
-     */
     public function startHost($token = null)
     {
         if (empty($token)) {
@@ -941,9 +790,6 @@ class MeetingController extends Controller
         }
     }
 
-    /**
-     * Render a user-friendly error page for the host shortlink.
-     */
     protected function renderHostError(string $message)
     {
         // NOTE: All user-facing dynamic content in $message MUST be escaped via esc()
@@ -951,23 +797,15 @@ class MeetingController extends Controller
         return view('meeting/host_error', ['message' => $message]);
     }
 
-    /**
-     * Send WhatsApp notification to pegawai about Zoom
-     */
     protected function sendWhatsAppToPegawai(array $meeting, string $type = 'zoom_created'): void
     {
         try {
-            $whatsappEnabled = env('whatsapp.enabled', true);
-
-            if (!$whatsappEnabled) {
-                log_message('debug', 'WhatsApp not configured; skipping Zoom notification.');
+            if (!env('whatsapp.enabled', true)) {
                 return;
             }
 
-            // Get pegawai info
             $pegawai = $this->pegawaiModel->find($meeting['pegawai_id']);
             if (!$pegawai) {
-                log_message('warning', 'Pegawai not found for meeting ' . $meeting['id']);
                 return;
             }
 
@@ -987,36 +825,34 @@ class MeetingController extends Controller
                 $title = $type === 'zoom_manual_created'
                     ? "✅ Link Zoom meeting telah tersedia\n\n"
                     : "✅ Pengajuan meeting Anda telah disetujui\n\n";
-                $message = "*[Meetingku]*\n" .
-                           $title .
-                           "*Nama Kegiatan*: $namaKegiatan\n" .
-                           "*Tempat*: $tempat\n" .
-                           "*Waktu*: $waktu\n\n" .
-                           "🔗 *Link Join (Peserta)*:\n" . ($meeting['zoom_join_url'] ?? '-') .
-                           $shortlinkLine;
+                $message = "*[Meetingku]*\n"
+                    . $title
+                    . "*Nama Kegiatan*: {$namaKegiatan}\n"
+                    . "*Tempat*: {$tempat}\n"
+                    . "*Waktu*: {$waktu}\n\n"
+                    . "🔗 *Link Join (Peserta)*:\n" . ($meeting['zoom_join_url'] ?? '-')
+                    . $shortlinkLine;
             } elseif ($type === 'zoom_updated') {
-                $message = "*[Meetingku]*\n" .
-                           "📝 Jadwal Zoom meeting telah diubah\n\n" .
-                           "*Nama Kegiatan*: $namaKegiatan\n" .
-                           "*Waktu Baru*: $waktu\n\n" .
-                           "Link Zoom tetap sama:\n" .
-                           "🔗 *Join*: " . ($meeting['zoom_join_url'] ?? '-');
+                $message = "*[Meetingku]*\n"
+                    . "📝 Jadwal Zoom meeting telah diubah\n\n"
+                    . "*Nama Kegiatan*: {$namaKegiatan}\n"
+                    . "*Waktu Baru*: {$waktu}\n\n"
+                    . "Link Zoom tetap sama:\n"
+                    . "🔗 *Join*: " . ($meeting['zoom_join_url'] ?? '-');
             } elseif ($type === 'cancelled') {
-                $message = "*[Meetingku]*\n" .
-                           "❌ Meeting telah dibatalkan\n\n" .
-                           "*Nama Kegiatan*: $namaKegiatan\n" .
-                           "*Waktu*: $waktu\n\n" .
-                           "Link Zoom sudah tidak berlaku.";
+                $message = "*[Meetingku]*\n"
+                    . "❌ Meeting telah dibatalkan\n\n"
+                    . "*Nama Kegiatan*: {$namaKegiatan}\n"
+                    . "*Waktu*: {$waktu}\n\n"
+                    . "Link Zoom sudah tidak berlaku.";
             } else {
                 return;
             }
 
-            // Determine recipients: pegawai no_hp + admin fallback
             $recipients = [];
             if (!empty($pegawai['no_hp'])) {
                 $recipients[] = $pegawai['no_hp'];
             } else {
-                // Fallback to admin number only if pegawai has no phone
                 $adminTo = env('whatsapp.to');
                 if ($adminTo) {
                     $recipients[] = $adminTo;
@@ -1031,9 +867,6 @@ class MeetingController extends Controller
         }
     }
 
-    /**
-     * Queue a WhatsApp message for asynchronous delivery by wa:worker.
-     */
     protected function sendWhatsAppMessage(string $to, string $message): bool
     {
         $queueId = (new WaMessageQueueModel())->insert([
@@ -1051,8 +884,6 @@ class MeetingController extends Controller
             return false;
         }
 
-        log_message('info', 'WhatsApp queued via worker for ' . $to . ' with queue ID: ' . $queueId);
         return true;
-    }}
-
-
+    }
+}

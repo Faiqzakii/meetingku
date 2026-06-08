@@ -28,10 +28,6 @@ class MeetingApiController extends ResourceController
         $this->db           = db_connect();
     }
 
-    /**
-     * Authenticate request via X-API-KEY header.
-     * Returns pegawai info or null.
-     */
     private function authenticate(): ?array
     {
         $apiKey = $this->request->getHeaderLine('X-API-KEY');
@@ -55,7 +51,6 @@ class MeetingApiController extends ResourceController
             return null;
         }
 
-        // Update last_used_at
         (new WaApiKeyModel())->update($apiKeyRow['id'], ['last_used_at' => date('Y-m-d H:i:s')]);
 
         return [
@@ -65,12 +60,43 @@ class MeetingApiController extends ResourceController
         ];
     }
 
-    /**
-     * GET /api/meetings — List meetings
-     */
+    private function requireAuth(): ?array
+    {
+        return $this->authenticate();
+    }
+
+    private function validateFasilitasArray(array $fasilitas): ?ResponseInterface
+    {
+        if (count($fasilitas) > 20) {
+            return $this->failValidationErrors([
+                'errors' => ['fasilitas' => 'Maximum 20 fasilitas items allowed'],
+            ]);
+        }
+        foreach ($fasilitas as $item) {
+            if (!is_string($item) || strlen($item) > 100) {
+                return $this->failValidationErrors([
+                    'errors' => ['fasilitas' => 'Each fasilitas item must be a string (max 100 chars)'],
+                ]);
+            }
+        }
+        return null;
+    }
+
+    private function validateEndTimeAfterStart(string $startTime, string $endTime): ?ResponseInterface
+    {
+        if (strtotime($endTime) <= strtotime($startTime)) {
+            return $this->failValidationErrors([
+                'errors' => ['waktu_selesai' => 'Waktu selesai harus lebih besar dari waktu mulai'],
+            ]);
+        }
+        return null;
+    }
+
+    // ── Endpoints ───────────────────────────────────────────────────
+
     public function index(): ResponseInterface
     {
-        $auth = $this->authenticate();
+        $auth = $this->requireAuth();
         if (!$auth) {
             return $this->failUnauthorized('API key required or invalid');
         }
@@ -96,12 +122,9 @@ class MeetingApiController extends ResourceController
         ]);
     }
 
-    /**
-     * GET /api/meetings/{id} — Get meeting detail
-     */
     public function show($id = null): ResponseInterface
     {
-        $auth = $this->authenticate();
+        $auth = $this->requireAuth();
         if (!$auth) {
             return $this->failUnauthorized('API key required or invalid');
         }
@@ -117,59 +140,37 @@ class MeetingApiController extends ResourceController
         ]);
     }
 
-    /**
-     * POST /api/meetings — Create meeting
-     */
     public function create(): ResponseInterface
     {
-        $auth = $this->authenticate();
+        $auth = $this->requireAuth();
         if (!$auth) {
             return $this->failUnauthorized('API key required or invalid');
         }
 
         $payload = $this->request->getJSON(true) ?: $this->request->getPost();
 
-        // Validate required fields
         $rules = [
-            'nama_keg'    => 'required|min_length[3]|max_length[100]',
-            'ruangan_id'  => 'required|integer|is_not_unique[ruangan.id]',
-            'waktu_mulai' => 'required|valid_date[Y-m-d H:i:s]',
+            'nama_keg'      => 'required|min_length[3]|max_length[100]',
+            'ruangan_id'    => 'required|integer|is_not_unique[ruangan.id]',
+            'waktu_mulai'   => 'required|valid_date[Y-m-d H:i:s]',
             'waktu_selesai' => 'required|valid_date[Y-m-d H:i:s]',
         ];
 
-        // Check room type for conditional validation
         $ruanganId = $payload['ruangan_id'] ?? null;
         $ruangan = $ruanganId ? $this->ruanganModel->find($ruanganId) : null;
         $isOnline = ($ruangan && ($ruangan['tipe'] ?? '') === 'Online');
 
-        if ($isOnline) {
-            $rules['jumlah_peserta'] = 'permit_empty';
-        } else {
-            $rules['jumlah_peserta'] = 'permit_empty|integer|greater_than[0]';
-        }
+        $rules['jumlah_peserta'] = $isOnline
+            ? 'permit_empty'
+            : 'permit_empty|integer|greater_than[0]';
 
         $this->meetingModel->setValidationRules($rules);
 
-        // Handle fasilitas array
         $fasilitas = $payload['fasilitas'] ?? null;
         $fasilitasJson = null;
         if ($fasilitas && is_array($fasilitas)) {
-            if (count($fasilitas) > 20) {
-                return $this->failValidationErrors([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors'  => ['fasilitas' => 'Maximum 20 fasilitas items allowed'],
-                ]);
-            }
-            foreach ($fasilitas as $item) {
-                if (!is_string($item) || strlen($item) > 100) {
-                    return $this->failValidationErrors([
-                        'success' => false,
-                        'message' => 'Validation failed',
-                        'errors'  => ['fasilitas' => 'Each fasilitas item must be a string (max 100 chars)'],
-                    ]);
-                }
-            }
+            $err = $this->validateFasilitasArray($fasilitas);
+            if ($err) return $err;
             $fasilitasJson = json_encode($fasilitas);
         }
 
@@ -184,22 +185,14 @@ class MeetingApiController extends ResourceController
             'status'         => 'pending',
         ];
 
-        // Custom validation: end time > start time
         if (!empty($data['waktu_mulai']) && !empty($data['waktu_selesai'])) {
-            if (strtotime($data['waktu_selesai']) <= strtotime($data['waktu_mulai'])) {
-                return $this->failValidationErrors([
-                    'success' => false,
-                    'message' => 'waktu_selesai must be after waktu_mulai',
-                    'errors'  => ['waktu_selesai' => 'Waktu selesai harus lebih besar dari waktu mulai'],
-                ]);
-            }
+            $err = $this->validateEndTimeAfterStart($data['waktu_mulai'], $data['waktu_selesai']);
+            if ($err) return $err;
         }
 
         if (!$this->meetingModel->validate($data)) {
             return $this->failValidationErrors([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors'  => $this->meetingModel->errors(),
+                'errors' => $this->meetingModel->errors(),
             ]);
         }
 
@@ -231,12 +224,9 @@ class MeetingApiController extends ResourceController
         }
     }
 
-    /**
-     * PUT /api/meetings/{id} — Update meeting
-     */
     public function update($id = null): ResponseInterface
     {
-        $auth = $this->authenticate();
+        $auth = $this->requireAuth();
         if (!$auth) {
             return $this->failUnauthorized('API key required or invalid');
         }
@@ -246,7 +236,6 @@ class MeetingApiController extends ResourceController
             return $this->failNotFound('Meeting not found');
         }
 
-        // Authorization: owner or admin
         if (!$auth['is_admin'] && (int) $meeting['pegawai_id'] !== $auth['pegawai_id']) {
             return $this->failForbidden('You can only update your own meetings');
         }
@@ -254,12 +243,10 @@ class MeetingApiController extends ResourceController
         $payload = $this->request->getJSON(true) ?: $this->request->getPost();
         if (empty($payload)) {
             return $this->failValidationErrors([
-                'success' => false,
                 'message' => 'No data provided for update',
             ]);
         }
 
-        // Build update data (only include provided fields)
         $updateData = [];
 
         if (isset($payload['nama_keg'])) {
@@ -270,22 +257,8 @@ class MeetingApiController extends ResourceController
         }
         if (isset($payload['fasilitas'])) {
             if (is_array($payload['fasilitas'])) {
-                if (count($payload['fasilitas']) > 20) {
-                    return $this->failValidationErrors([
-                        'success' => false,
-                        'message' => 'Validation failed',
-                        'errors'  => ['fasilitas' => 'Maximum 20 fasilitas items allowed'],
-                    ]);
-                }
-                foreach ($payload['fasilitas'] as $item) {
-                    if (!is_string($item) || strlen($item) > 100) {
-                        return $this->failValidationErrors([
-                            'success' => false,
-                            'message' => 'Validation failed',
-                            'errors'  => ['fasilitas' => 'Each fasilitas item must be a string (max 100 chars)'],
-                        ]);
-                    }
-                }
+                $err = $this->validateFasilitasArray($payload['fasilitas']);
+                if ($err) return $err;
                 $updateData['fasilitas'] = json_encode($payload['fasilitas']);
             } else {
                 $updateData['fasilitas'] = $payload['fasilitas'];
@@ -303,27 +276,18 @@ class MeetingApiController extends ResourceController
 
         if (empty($updateData)) {
             return $this->failValidationErrors([
-                'success' => false,
                 'message' => 'No valid fields to update',
             ]);
         }
 
-        // Validate end time if both times provided
         $startTime = $updateData['waktu_mulai'] ?? $meeting['waktu_mulai'];
         $endTime   = $updateData['waktu_selesai'] ?? $meeting['waktu_selesai'];
-        if (strtotime($endTime) <= strtotime($startTime)) {
-            return $this->failValidationErrors([
-                'success' => false,
-                'message' => 'waktu_selesai must be after waktu_mulai',
-                'errors'  => ['waktu_selesai' => 'Waktu selesai harus lebih besar dari waktu mulai'],
-            ]);
-        }
+        $err = $this->validateEndTimeAfterStart($startTime, $endTime);
+        if ($err) return $err;
 
-        // Audit fields
         $updateData['last_edited_by'] = $auth['pegawai_id'];
         $updateData['last_edited_at'] = date('Y-m-d H:i:s');
 
-        // Skip model-level status validation for partial updates
         $this->meetingModel->setValidationRules([
             'nama_keg'       => 'permit_empty|min_length[3]|max_length[100]',
             'jumlah_peserta' => 'permit_empty|integer|greater_than[0]',
@@ -334,9 +298,7 @@ class MeetingApiController extends ResourceController
 
         if (!$this->meetingModel->validate($updateData)) {
             return $this->failValidationErrors([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors'  => $this->meetingModel->errors(),
+                'errors' => $this->meetingModel->errors(),
             ]);
         }
 
@@ -367,12 +329,9 @@ class MeetingApiController extends ResourceController
         }
     }
 
-    /**
-     * PATCH /api/meetings/{id}/approve — Approve/Reject/Cancel meeting (admin only)
-     */
     public function approve($id = null): ResponseInterface
     {
-        $auth = $this->authenticate();
+        $auth = $this->requireAuth();
         if (!$auth) {
             return $this->failUnauthorized('API key required or invalid');
         }
@@ -391,7 +350,6 @@ class MeetingApiController extends ResourceController
 
         if (!in_array($status, ['approved', 'rejected', 'cancelled'], true)) {
             return $this->failValidationErrors([
-                'success' => false,
                 'message' => 'Status must be one of: approved, rejected, cancelled',
             ]);
         }
@@ -406,11 +364,9 @@ class MeetingApiController extends ResourceController
             'status_changed_at' => date('Y-m-d H:i:s'),
         ];
 
-        // If rejecting/cancelling and has Zoom, clean up
         if (in_array($status, ['rejected', 'cancelled'], true) && !empty($meeting['zoom_meeting_id'])) {
             try {
                 $this->zoomLibrary->deleteMeeting($meeting['zoom_meeting_id']);
-                log_message('info', 'API: Zoom meeting deleted for meeting ' . $id);
             } catch (\Throwable $ze) {
                 log_message('error', 'API: Failed to delete Zoom meeting: ' . $ze->getMessage());
             }
@@ -442,17 +398,14 @@ class MeetingApiController extends ResourceController
             log_message('error', 'API approve meeting error: ' . $e->getMessage());
             return $this->failServerError([
                 'success' => false,
-                'message' => 'Gagal menyimpan data',
+                'message' => 'Gagal mengupdate status meeting',
             ]);
         }
     }
 
-    /**
-     * GET /api/rooms — List active rooms
-     */
     public function rooms(): ResponseInterface
     {
-        $auth = $this->authenticate();
+        $auth = $this->requireAuth();
         if (!$auth) {
             return $this->failUnauthorized('API key required or invalid');
         }
@@ -466,23 +419,18 @@ class MeetingApiController extends ResourceController
         ]);
     }
 
-    /**
-     * GET /api/meetings/conflict — Check room schedule conflicts
-     * Query params: ruangan_id, waktu_mulai, waktu_selesai, exclude_id (optional)
-     */
     public function conflict(): ResponseInterface
     {
-        $auth = $this->authenticate();
+        $auth = $this->requireAuth();
         if (!$auth) {
             return $this->failUnauthorized('API key required or invalid');
         }
 
-        $ruanganId   = $this->request->getGet('ruangan_id');
-        $waktuMulai  = $this->request->getGet('waktu_mulai');
+        $ruanganId    = $this->request->getGet('ruangan_id');
+        $waktuMulai   = $this->request->getGet('waktu_mulai');
         $waktuSelesai = $this->request->getGet('waktu_selesai');
-        $excludeId   = $this->request->getGet('exclude_id');
+        $excludeId    = $this->request->getGet('exclude_id');
 
-        // Validate required params
         $errors = [];
         if (empty($ruanganId) || !ctype_digit((string) $ruanganId)) {
             $errors['ruangan_id'] = 'ruangan_id required and must be integer';
@@ -495,29 +443,17 @@ class MeetingApiController extends ResourceController
         }
 
         if (!empty($errors)) {
-            return $this->failValidationErrors([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors'  => $errors,
-            ]);
+            return $this->failValidationErrors(['errors' => $errors]);
         }
 
-        // Validate end > start
-        if (strtotime($waktuSelesai) <= strtotime($waktuMulai)) {
-            return $this->failValidationErrors([
-                'success' => false,
-                'message' => 'waktu_selesai must be after waktu_mulai',
-                'errors'  => ['waktu_selesai' => 'Waktu selesai harus lebih besar dari waktu mulai'],
-            ]);
-        }
+        $err = $this->validateEndTimeAfterStart($waktuMulai, $waktuSelesai);
+        if ($err) return $err;
 
-        // Validate room exists
         $ruangan = $this->ruanganModel->find($ruanganId);
         if (!$ruangan) {
             return $this->failNotFound('Ruangan not found');
         }
 
-        // Query overlapping meetings (pending or approved)
         $builder = $this->meetingModel->db->table('meeting')
             ->select('meeting.id, meeting.nama_keg, meeting.waktu_mulai, meeting.waktu_selesai, meeting.status')
             ->where('ruangan_id', $ruanganId)
@@ -541,12 +477,9 @@ class MeetingApiController extends ResourceController
         ]);
     }
 
-    /**
-     * DELETE /api/meetings/{id} — Delete meeting
-     */
     public function delete($id = null): ResponseInterface
     {
-        $auth = $this->authenticate();
+        $auth = $this->requireAuth();
         if (!$auth) {
             return $this->failUnauthorized('API key required or invalid');
         }
@@ -556,16 +489,13 @@ class MeetingApiController extends ResourceController
             return $this->failNotFound('Meeting not found');
         }
 
-        // Authorization: owner or admin
         if (!$auth['is_admin'] && (int) $meeting['pegawai_id'] !== $auth['pegawai_id']) {
             return $this->failForbidden('You can only delete your own meetings');
         }
 
-        // Delete Zoom meeting if exists
         if (!empty($meeting['zoom_meeting_id'])) {
             try {
                 $this->zoomLibrary->deleteMeeting($meeting['zoom_meeting_id']);
-                log_message('info', 'API: Zoom meeting deleted for meeting ' . $id);
             } catch (\Throwable $ze) {
                 log_message('error', 'API: Failed to delete Zoom meeting: ' . $ze->getMessage());
             }
@@ -590,7 +520,7 @@ class MeetingApiController extends ResourceController
             log_message('error', 'API delete meeting error: ' . $e->getMessage());
             return $this->failServerError([
                 'success' => false,
-                'message' => 'Gagal menyimpan data',
+                'message' => 'Gagal menghapus meeting',
             ]);
         }
     }
