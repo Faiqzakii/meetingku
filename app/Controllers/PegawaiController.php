@@ -44,7 +44,7 @@ class PegawaiController extends Controller
             'no_hp' => $this->request->getPost('no_hp'),
             'username' => $this->request->getPost('username'),
             'password' => $this->request->getPost('password'),
-            'is_admin' => bool_val($this->request->getPost('is_admin')),
+            'is_admin' => bool_val($this->request->getPost('is_admin')) ? '1' : '0',
             'terima_notif_offline' => 0,
             'terima_notif_zoom' => 0
         ];
@@ -103,7 +103,7 @@ class PegawaiController extends Controller
 
         $isAdmin = bool_val($input['is_admin'] ?? false);
         if ($isAdmin !== bool_val($existingPegawai['is_admin'])) {
-            $data['is_admin'] = $isAdmin;
+            $data['is_admin'] = $isAdmin ? '1' : '0';
         }
 
         $no_hp = $input['no_hp'] ?? '';
