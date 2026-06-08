@@ -29,7 +29,7 @@ class PegawaiModel extends Model
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
-    // Validation rules
+    protected function hashPassword(array $data)
     protected $validationRules = [];
     protected $validationRulesCreate = [
         'nama' => 'required|min_length[3]|max_length[100]',
@@ -88,8 +88,8 @@ class PegawaiModel extends Model
         ]
     ];
 
-    protected $beforeInsert = ['hashPassword'];
-    protected $beforeUpdate = ['hashPassword'];
+    protected $beforeInsert = ['hashPassword', 'boolToPgString'];
+    protected $beforeUpdate = ['hashPassword', 'boolToPgString'];
 
     protected function hashPassword(array $data)
     {
@@ -99,6 +99,21 @@ class PegawaiModel extends Model
         }
 
         $data['data']['password'] = password_hash($data['data']['password'], PASSWORD_DEFAULT);
+        return $data;
+    }
+
+    /**
+     * Convert PHP bool to PostgreSQL string 't'/'f' for boolean columns.
+     * PostgreSQL PDO rejects integer 1/0 for boolean columns.
+     */
+    protected function boolToPgString(array $data): array
+    {
+        $boolFields = ['is_admin', 'terima_notif_offline', 'terima_notif_zoom'];
+        foreach ($boolFields as $field) {
+            if (isset($data['data'][$field])) {
+                $data['data'][$field] = $data['data'][$field] ? 't' : 'f';
+            }
+        }
         return $data;
     }
 }
