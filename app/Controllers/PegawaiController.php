@@ -44,7 +44,7 @@ class PegawaiController extends Controller
             'no_hp' => $this->request->getPost('no_hp'),
             'username' => $this->request->getPost('username'),
             'password' => $this->request->getPost('password'),
-            'is_admin' => (int) bool_val($this->request->getPost('is_admin')),
+            'is_admin' => bool_val($this->request->getPost('is_admin')),
             'terima_notif_offline' => 0,
             'terima_notif_zoom' => 0
         ];
@@ -101,8 +101,8 @@ class PegawaiController extends Controller
             $data['username'] = $username;
         }
 
-        $isAdmin = (int) bool_val($input['is_admin'] ?? false);
-        if ($isAdmin !== (int) bool_val($existingPegawai['is_admin'])) {
+        $isAdmin = bool_val($input['is_admin'] ?? false);
+        if ($isAdmin !== bool_val($existingPegawai['is_admin'])) {
             $data['is_admin'] = $isAdmin;
         }
 
@@ -174,7 +174,7 @@ class PegawaiController extends Controller
                     'no_hp' => isset($row[2]) ? trim($row[2]) : '',
                     'username' => trim($row[3]),
                     'password' => trim($row[4]),
-                    'is_admin' => (int) (isset($row[5]) && strtolower(trim($row[5])) === 'ya'),
+                    'is_admin' => isset($row[5]) && strtolower(trim($row[5])) === 'ya',
                     'terima_notif_offline' => 0,
                     'terima_notif_zoom' => 0
                 ];
