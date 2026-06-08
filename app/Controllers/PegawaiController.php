@@ -83,9 +83,7 @@ class PegawaiController extends Controller
             return redirect()->to('/pegawai')->with('error', 'Pegawai tidak ditemukan');
         }
 
-        $input = $this->request->getMethod() === 'put'
-            ? $this->request->getRawInput()
-            : $this->request->getPost();
+        $input = $this->request->getPost();
 
         $data = [];
         $nama = $input['nama'] ?? '';
