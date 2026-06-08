@@ -29,7 +29,6 @@ class PegawaiModel extends Model
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
-    protected function hashPassword(array $data)
     protected $validationRules = [];
     protected $validationRulesCreate = [
         'nama' => 'required|min_length[3]|max_length[100]',
