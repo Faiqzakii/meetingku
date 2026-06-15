@@ -18,13 +18,16 @@
 
 <div class="card">
     <div class="card-section">
-        <form action="<?= base_url('ruangan/update/' . $ruangan['id']) ?>" method="POST" class="stack">
+        <form action="<?= base_url('ruangan/update/' . $ruangan['id']) ?>" method="POST" class="stack js-validated" novalidate>
             <?= csrf_field() ?>
 
             <div class="field">
                 <label class="field-label" for="nama_ruangan">Nama ruangan</label>
                 <input class="input" type="text" id="nama_ruangan" name="nama_ruangan"
-                       value="<?= esc(old('nama_ruangan', $ruangan['nama_ruangan']), 'attr') ?>" required>
+                       value="<?= esc(old('nama_ruangan', $ruangan['nama_ruangan']), 'attr') ?>" required
+                       minlength="3" maxlength="100"
+                       data-rule-label="Nama ruangan"
+                       data-rule-min="3" data-rule-max="100">
             </div>
 
             <div class="field">

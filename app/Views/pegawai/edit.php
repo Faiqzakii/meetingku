@@ -31,33 +31,54 @@
 
 <div class="card">
     <div class="card-section">
-        <form action="<?= base_url('pegawai/update/' . $pegawai['id']) ?>" method="POST" class="stack">
+        <form action="<?= base_url('pegawai/update/' . $pegawai['id']) ?>" method="POST" class="stack js-validated" novalidate>
             <?= csrf_field() ?>
             <input type="hidden" name="_method" value="PUT">
 
             <div class="field">
                 <label class="field-label" for="nama">Nama lengkap</label>
-                <input class="input" type="text" id="nama" name="nama" value="<?= esc(old('nama', $pegawai['nama']), 'attr') ?>" required>
+                <input class="input" type="text" id="nama" name="nama" value="<?= esc(old('nama', $pegawai['nama']), 'attr') ?>" required
+                       minlength="3" maxlength="100"
+                       data-rule-label="Nama"
+                       data-rule-min="3" data-rule-max="100">
             </div>
 
             <div class="field">
                 <label class="field-label" for="nip">NIP</label>
-                <input class="input" type="text" id="nip" name="nip" value="<?= esc(old('nip', $pegawai['nip']), 'attr') ?>" required>
+                <input class="input" type="text" id="nip" name="nip" value="<?= esc(old('nip', $pegawai['nip']), 'attr') ?>" required
+                       minlength="18" maxlength="18" inputmode="numeric"
+                       pattern="\d{18}"
+                       data-rule-label="NIP"
+                       data-rule-min="18" data-rule-max="18"
+                       data-rule-pattern="^\d{18}$"
+                       data-rule-pattern-message="NIP harus terdiri dari 18 digit angka.">
             </div>
 
             <div class="field">
                 <label class="field-label" for="no_hp">Nomor telepon</label>
-                <input class="input" type="text" id="no_hp" name="no_hp" value="<?= esc(old('no_hp', $pegawai['no_hp'] ?? ''), 'attr') ?>" placeholder="08xxxxxxxxxx">
+                <input class="input" type="text" id="no_hp" name="no_hp" value="<?= esc(old('no_hp', $pegawai['no_hp'] ?? ''), 'attr') ?>" placeholder="08xxxxxxxxxx"
+                       maxlength="20" inputmode="tel"
+                       pattern="[0-9+\-\s]{8,20}"
+                       data-rule-label="Nomor telepon"
+                       data-rule-max="20"
+                       data-rule-pattern="^[0-9+\-\s]{8,20}$"
+                       data-rule-pattern-message="Nomor telepon hanya boleh angka, +, atau spasi (8–20 karakter).">
             </div>
 
             <div class="field">
                 <label class="field-label" for="username">Username</label>
-                <input class="input" type="text" id="username" name="username" value="<?= esc(old('username', $pegawai['username']), 'attr') ?>" required>
+                <input class="input" type="text" id="username" name="username" value="<?= esc(old('username', $pegawai['username']), 'attr') ?>" required
+                       minlength="3" maxlength="50"
+                       data-rule-label="Username"
+                       data-rule-min="3" data-rule-max="50">
             </div>
 
             <div class="field">
                 <label class="field-label" for="password">Password</label>
-                <input class="input" type="password" id="password" name="password" placeholder="Kosongkan jika tidak diubah">
+                <input class="input" type="password" id="password" name="password" placeholder="Kosongkan jika tidak diubah"
+                       minlength="3" maxlength="100"
+                       data-rule-label="Password"
+                       data-rule-min="3" data-rule-max="100">
                 <span class="field-help">Biarkan kosong untuk mempertahankan password lama.</span>
             </div>
 

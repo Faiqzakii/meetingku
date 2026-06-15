@@ -564,6 +564,52 @@
         @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes toastOut { to { opacity: 0; transform: translateY(8px); } }
 
+        /* ================= CENTER ALERT (form validation) ================= */
+        .center-alert-backdrop {
+            position: fixed; inset: 0; z-index: 10000;
+            background: rgba(15, 23, 42, .55);
+            display: flex; align-items: center; justify-content: center;
+            padding: 1rem;
+            animation: centerAlertFadeIn .15s ease-out;
+        }
+        .center-alert-backdrop.is-hiding { animation: centerAlertFadeOut .15s ease-in forwards; }
+        .center-alert {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-3);
+            border: 1px solid var(--border);
+            border-top: 4px solid var(--warning);
+            max-width: 440px; width: 100%;
+            padding: 22px 24px 18px;
+            animation: centerAlertPop .18s cubic-bezier(.21,1.02,.73,1);
+        }
+        .center-alert.is-error { border-top-color: var(--danger); }
+        .center-alert-title {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 1rem; font-weight: 700; color: var(--ink);
+            margin: 0 0 8px;
+        }
+        .center-alert.is-error .center-alert-title i { color: var(--danger); }
+        .center-alert-title i { color: var(--warning); font-size: 1.15rem; }
+        .center-alert-body {
+            color: var(--body); font-size: .875rem; line-height: 1.5;
+            margin: 0 0 16px;
+        }
+        .center-alert-list {
+            margin: 6px 0 0; padding-left: 18px;
+            color: var(--body); font-size: .85rem; line-height: 1.55;
+        }
+        .center-alert-list li { margin-bottom: 2px; }
+        .center-alert-actions {
+            display: flex; justify-content: flex-end; gap: 8px;
+        }
+        @keyframes centerAlertFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes centerAlertFadeOut { to { opacity: 0; } }
+        @keyframes centerAlertPop {
+            from { opacity: 0; transform: translateY(-6px) scale(.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
         /* ================= FULLCALENDAR THEMING ================= */
         .fc { font-family: var(--font-body); font-size: .875rem; }
         .fc .fc-toolbar.fc-header-toolbar { margin-bottom: 1.25em; gap: 8px; flex-wrap: wrap; }
@@ -1122,6 +1168,203 @@
             setTimeout(function() { el.remove(); }, 250);
         }, 3500);
     };
+
+    // ===== Center alert helper (global) =====
+    // Usage: showCenterAlert({ title, body, items, type, confirmText })
+    // Returns the backdrop element (so caller can dismiss programmatically).
+    window.showCenterAlert = function(opts) {
+        opts = opts || {};
+        var type = opts.type === 'error' ? 'error' : 'warning';
+        var title = opts.title || (type === 'error' ? 'Terjadi kesalahan' : 'Periksa kembali isian');
+        var body = opts.body || '';
+        var items = Array.isArray(opts.items) ? opts.items : null;
+        var confirmText = opts.confirmText || 'Mengerti';
+
+        var existing = document.querySelector('.center-alert-backdrop');
+        if (existing) existing.remove();
+
+        var backdrop = document.createElement('div');
+        backdrop.className = 'center-alert-backdrop';
+        backdrop.setAttribute('role', 'alertdialog');
+        backdrop.setAttribute('aria-modal', 'true');
+        backdrop.setAttribute('aria-labelledby', 'centerAlertTitle');
+
+        var alert = document.createElement('div');
+        alert.className = 'center-alert' + (type === 'error' ? ' is-error' : '');
+
+        var icon = type === 'error' ? 'circle-exclamation' : 'triangle-exclamation';
+        var listHtml = '';
+        if (items && items.length) {
+            listHtml = '<ul class="center-alert-list">';
+            for (var i = 0; i < items.length; i++) {
+                var li = document.createElement('li');
+                li.textContent = items[i];
+                listHtml += li.outerHTML;
+            }
+            listHtml += '</ul>';
+        }
+
+        // body is plain text; escape it via textContent then read innerHTML
+        var bodyEl = document.createElement('p');
+        bodyEl.className = 'center-alert-body';
+        bodyEl.textContent = body;
+
+        var titleEl = document.createElement('h5');
+        titleEl.className = 'center-alert-title';
+        titleEl.id = 'centerAlertTitle';
+        titleEl.innerHTML = '<i class="fas fa-' + icon + '" aria-hidden="true"></i><span></span>';
+        titleEl.querySelector('span').textContent = title;
+
+        alert.appendChild(titleEl);
+        if (body) alert.appendChild(bodyEl);
+        if (listHtml) {
+            var listWrap = document.createElement('div');
+            listWrap.innerHTML = listHtml;
+            alert.appendChild(listWrap.firstChild);
+        }
+
+        var actions = document.createElement('div');
+        actions.className = 'center-alert-actions';
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-primary';
+        btn.textContent = confirmText;
+        actions.appendChild(btn);
+        alert.appendChild(actions);
+        backdrop.appendChild(alert);
+        document.body.appendChild(backdrop);
+
+        function dismiss() {
+            backdrop.classList.add('is-hiding');
+            setTimeout(function() { backdrop.remove(); }, 150);
+            document.removeEventListener('keydown', onKey);
+        }
+        function onKey(e) {
+            if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); dismiss(); }
+        }
+        btn.addEventListener('click', dismiss);
+        backdrop.addEventListener('click', function(e) { if (e.target === backdrop) dismiss(); });
+        document.addEventListener('keydown', onKey);
+        setTimeout(function() { btn.focus(); }, 50);
+        return backdrop;
+    };
+
+    // ===== Form guard: client-side rule enforcement (global) =====
+    // Inputs declare rules via data-* attributes; mirror server-side rules so
+    // request never reaches server when user can fix the issue locally.
+    //   data-rule-label="Nama kegiatan"   (label dipakai di pesan)
+    //   data-rule-required="1"
+    //   data-rule-min="3"                  (min length / min value)
+    //   data-rule-max="100"                (max length / max value)
+    //   data-rule-pattern="^\\d{18}$"      (regex)
+    //   data-rule-pattern-message="..."    (custom message bila pattern gagal)
+    //   data-rule-type="number"            (treat min/max as numeric)
+    // Forms harus punya class .js-validated agar guard aktif otomatis.
+    (function setupFormGuard() {
+        function fieldLabel(input) {
+            var lbl = input.getAttribute('data-rule-label');
+            if (lbl) return lbl;
+            if (input.id) {
+                var byFor = document.querySelector('label[for="' + input.id + '"]');
+                if (byFor) return byFor.textContent.trim();
+            }
+            return input.getAttribute('name') || 'Input';
+        }
+
+        function validateInput(input) {
+            // Skip elemen yang tersembunyi atau dinonaktifkan: tidak akan dikirim.
+            if (input.disabled) return null;
+            // hidden via display:none container? Cek offsetParent kecuali type=hidden yang sah.
+            if (input.type !== 'hidden' && input.offsetParent === null && !input.required) return null;
+
+            var label = fieldLabel(input);
+            var raw = input.value == null ? '' : String(input.value);
+            var value = raw.trim();
+            var ruleType = input.getAttribute('data-rule-type') || '';
+            var isRequired = input.hasAttribute('required') || input.getAttribute('data-rule-required') === '1';
+
+            if (isRequired && value === '') {
+                return label + ' wajib diisi.';
+            }
+            if (value === '') return null; // optional & empty
+
+            var min = input.getAttribute('data-rule-min');
+            var max = input.getAttribute('data-rule-max');
+
+            if (ruleType === 'number') {
+                var num = Number(value);
+                if (!Number.isFinite(num)) return label + ' harus berupa angka.';
+                if (min !== null && num < Number(min)) return label + ' minimal ' + min + '.';
+                if (max !== null && num > Number(max)) return label + ' maksimal ' + max + '.';
+            } else {
+                if (min !== null && value.length < Number(min)) {
+                    return label + ' minimal ' + min + ' karakter (saat ini ' + value.length + ').';
+                }
+                if (max !== null && value.length > Number(max)) {
+                    return label + ' maksimal ' + max + ' karakter (saat ini ' + value.length + ').';
+                }
+            }
+
+            var pattern = input.getAttribute('data-rule-pattern');
+            if (pattern) {
+                try {
+                    var re = new RegExp(pattern);
+                    if (!re.test(value)) {
+                        return input.getAttribute('data-rule-pattern-message') || (label + ' format tidak valid.');
+                    }
+                } catch (_) { /* ignore bad regex */ }
+            }
+            return null;
+        }
+
+        function collectErrors(form) {
+            var errors = [];
+            var firstInvalid = null;
+            var inputs = form.querySelectorAll('input, select, textarea');
+            for (var i = 0; i < inputs.length; i++) {
+                var input = inputs[i];
+                // Skip elemen yang berada di container .hidden / display:none.
+                var hidden = input.closest('.hidden');
+                if (hidden && input.type !== 'hidden') continue;
+                var msg = validateInput(input);
+                if (msg) {
+                    errors.push(msg);
+                    if (!firstInvalid) firstInvalid = input;
+                }
+            }
+            return { errors: errors, firstInvalid: firstInvalid };
+        }
+
+        function reEnableSubmit(form) {
+            // Beberapa form punya tombol yang langsung di-disable di handler submit
+            // setelah event listener kita jalan. Pastikan tidak terkunci ketika invalid.
+            form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(function(b) {
+                b.disabled = false;
+            });
+        }
+
+        document.addEventListener('submit', function(e) {
+            var form = e.target;
+            if (!form || !(form instanceof HTMLFormElement)) return;
+            if (!form.classList.contains('js-validated')) return;
+
+            var result = collectErrors(form);
+            if (result.errors.length === 0) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+            reEnableSubmit(form);
+            window.showCenterAlert({
+                title: 'Periksa kembali isian',
+                body: 'Beberapa data belum sesuai aturan. Perbaiki dulu sebelum disimpan:',
+                items: result.errors,
+                type: 'warning'
+            });
+            if (result.firstInvalid && typeof result.firstInvalid.focus === 'function') {
+                try { result.firstInvalid.focus({ preventScroll: false }); } catch (_) { result.firstInvalid.focus(); }
+            }
+        }, true); // capture phase: jalan sebelum handler form yang men-disable submit
+    })();
 })();
 </script>
 <?= $this->renderSection('scripts') ?>

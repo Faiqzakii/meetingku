@@ -115,29 +115,50 @@
                 <h5 class="modal-title" id="addPegawaiTitle">Tambah Pegawai</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="<?= base_url('pegawai/create') ?>" method="POST">
+            <form action="<?= base_url('pegawai/create') ?>" method="POST" class="js-validated" novalidate>
                 <div class="modal-body">
                     <?= csrf_field() ?>
                     <div class="stack">
                         <div class="field">
                             <label class="field-label" for="add_nama">Nama lengkap</label>
-                            <input class="input" type="text" id="add_nama" name="nama" placeholder="Nama lengkap" required>
+                            <input class="input" type="text" id="add_nama" name="nama" placeholder="Nama lengkap" required
+                                   minlength="3" maxlength="100"
+                                   data-rule-label="Nama"
+                                   data-rule-min="3" data-rule-max="100">
                         </div>
                         <div class="field">
                             <label class="field-label" for="add_nip">NIP</label>
-                            <input class="input" type="text" id="add_nip" name="nip" placeholder="Nomor Induk Pegawai" required>
+                            <input class="input" type="text" id="add_nip" name="nip" placeholder="Nomor Induk Pegawai (18 digit)" required
+                                   minlength="18" maxlength="18" inputmode="numeric"
+                                   pattern="\d{18}"
+                                   data-rule-label="NIP"
+                                   data-rule-min="18" data-rule-max="18"
+                                   data-rule-pattern="^\d{18}$"
+                                   data-rule-pattern-message="NIP harus terdiri dari 18 digit angka.">
                         </div>
                         <div class="field">
                             <label class="field-label" for="add_no_hp">Nomor telepon</label>
-                            <input class="input" type="text" id="add_no_hp" name="no_hp" placeholder="08xxxxxxxxxx">
+                            <input class="input" type="text" id="add_no_hp" name="no_hp" placeholder="08xxxxxxxxxx"
+                                   maxlength="20" inputmode="tel"
+                                   pattern="[0-9+\-\s]{8,20}"
+                                   data-rule-label="Nomor telepon"
+                                   data-rule-max="20"
+                                   data-rule-pattern="^[0-9+\-\s]{8,20}$"
+                                   data-rule-pattern-message="Nomor telepon hanya boleh angka, +, atau spasi (8–20 karakter).">
                         </div>
                         <div class="field">
                             <label class="field-label" for="add_username">Username</label>
-                            <input class="input" type="text" id="add_username" name="username" placeholder="Untuk login" required>
+                            <input class="input" type="text" id="add_username" name="username" placeholder="Untuk login" required
+                                   minlength="3" maxlength="50"
+                                   data-rule-label="Username"
+                                   data-rule-min="3" data-rule-max="50">
                         </div>
                         <div class="field">
                             <label class="field-label" for="add_password">Password</label>
-                            <input class="input" type="password" id="add_password" name="password" placeholder="Password" required>
+                            <input class="input" type="password" id="add_password" name="password" placeholder="Password" required
+                                   minlength="3" maxlength="100"
+                                   data-rule-label="Password"
+                                   data-rule-min="3" data-rule-max="100">
                         </div>
                         <div class="field">
                             <label class="field-label" for="add_role">Role</label>

@@ -73,14 +73,17 @@
                 <h5 class="modal-title" id="modalTitle">Buat Meeting Baru</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="<?= base_url('meeting/create') ?>" method="POST" id="createMeetingForm">
+            <form action="<?= base_url('meeting/create') ?>" method="POST" id="createMeetingForm" class="js-validated" novalidate>
                 <div class="modal-body">
                     <?= csrf_field() ?>
                     <div class="meeting-form-grid">
                         <div class="field col-full">
                             <label class="field-label" for="nama_keg">Nama kegiatan</label>
                             <input class="input" type="text" id="nama_keg" name="nama_keg"
-                                   placeholder="Contoh: Rapat Koordinasi Bulanan" required>
+                                   placeholder="Contoh: Rapat Koordinasi Bulanan" required
+                                   minlength="3" maxlength="100"
+                                   data-rule-label="Nama kegiatan"
+                                   data-rule-min="3" data-rule-max="100">
                         </div>
 
                         <div class="field col-half" id="room_container">
@@ -97,7 +100,10 @@
                         <div class="field col-half" id="participants_container">
                             <label class="field-label" for="jumlah_peserta">Jumlah peserta</label>
                             <input class="input" type="number" id="jumlah_peserta" name="jumlah_peserta"
-                                   min="1" placeholder="0" required>
+                                   min="1" max="9999" placeholder="0" required
+                                   data-rule-label="Jumlah peserta"
+                                   data-rule-type="number"
+                                   data-rule-min="1" data-rule-max="9999">
                         </div>
 
                         <div class="field col-third">
@@ -159,6 +165,9 @@
                                 </label>
                                 <input type="text" id="fasilitas_lainnya_text" name="fasilitas_lainnya"
                                        class="input check-pill-wide hidden"
+                                       maxlength="200"
+                                       data-rule-label="Fasilitas lainnya"
+                                       data-rule-max="200"
                                        placeholder="Sebutkan fasilitas lainnya...">
                             </div>
                         </div>

@@ -18,14 +18,17 @@
 
 <div style="max-width:840px;">
     <div class="card">
-        <form action="<?= base_url('meeting/update/' . $meeting['id']) ?>" method="POST" class="card-section" id="editMeetingForm">
+        <form action="<?= base_url('meeting/update/' . $meeting['id']) ?>" method="POST" class="card-section js-validated" id="editMeetingForm" novalidate>
             <?= csrf_field() ?>
             <input type="hidden" name="form_token" value="<?= bin2hex(random_bytes(16)) ?>">
             <div class="form-grid">
                 <div class="field col-span-2">
                     <label class="field-label" for="nama_keg">Nama kegiatan</label>
                     <input class="input" type="text" id="nama_keg" name="nama_keg"
-                           value="<?= esc(old('nama_keg', $meeting['nama_keg']), 'attr') ?>" required>
+                           value="<?= esc(old('nama_keg', $meeting['nama_keg']), 'attr') ?>" required
+                           minlength="3" maxlength="100"
+                           data-rule-label="Nama kegiatan"
+                           data-rule-min="3" data-rule-max="100">
                 </div>
 
                 <div class="field">
@@ -45,7 +48,10 @@
                     <label class="field-label" for="jumlah_peserta">Jumlah peserta</label>
                     <input class="input" type="number" id="jumlah_peserta" name="jumlah_peserta"
                            value="<?= esc(old('jumlah_peserta', $meeting['jumlah_peserta'] ?? ''), 'attr') ?>"
-                           min="1" required>
+                           min="1" max="9999" required
+                           data-rule-label="Jumlah peserta"
+                           data-rule-type="number"
+                           data-rule-min="1" data-rule-max="9999">
                 </div>
 
                 <div class="field">
@@ -125,6 +131,9 @@
                         </label>
                         <input type="text" id="fasilitas_lainnya_text" name="fasilitas_lainnya"
                                class="input check-pill-wide <?= !$hasLainnya ? 'hidden' : '' ?>"
+                               maxlength="200"
+                               data-rule-label="Fasilitas lainnya"
+                               data-rule-max="200"
                                placeholder="Sebutkan fasilitas lainnya..."
                                value="<?= esc($lainnyaValue, 'attr') ?>">
                     </div>

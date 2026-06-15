@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Client-side form validation with center alerts** (2026-06-15)
+  - Global `showCenterAlert()` helper rendering modal alerts in viewport center
+    (replaces server-only validation that produced opaque 303 redirects).
+  - Auto form-guard on `<form class="js-validated">` enforcing `data-rule-*`
+    attributes before submit; errors aggregated into a single dialog and
+    focus jumps to the first invalid field.
+  - Mirrors server rules on every form input so users get immediate feedback:
+    - Meeting: `nama_keg` (3–100 char), `jumlah_peserta` (1–9999),
+      `fasilitas_lainnya` (≤200 char) on both create and edit.
+    - Pegawai: `nama` (3–100), `nip` (exactly 18 digits via regex),
+      `username` (3–50), `password` (3–100), `no_hp` (digits/`+`/space, 8–20).
+    - Ruangan: `nama_ruangan` (3–100).
+    - Login: `username` (3–50), `password` (≥3).
+  - Login page ships its own inline center-alert (it does not extend layout).
+
 ### Security
 - **API Hardening** (2026-06-01)
   - Removed `plain_key` from database storage (only hash stored now)

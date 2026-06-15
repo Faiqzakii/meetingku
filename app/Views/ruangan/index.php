@@ -105,13 +105,16 @@
                 <h5 class="modal-title" id="addRuanganTitle">Tambah Ruangan</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="<?= base_url('ruangan/create') ?>" method="POST">
+            <form action="<?= base_url('ruangan/create') ?>" method="POST" class="js-validated" novalidate>
                 <div class="modal-body">
                     <?= csrf_field() ?>
                     <div class="stack">
                         <div class="field">
                             <label class="field-label" for="add_nama_ruangan">Nama ruangan</label>
-                            <input class="input" type="text" id="add_nama_ruangan" name="nama_ruangan" required>
+                            <input class="input" type="text" id="add_nama_ruangan" name="nama_ruangan" required
+                                   minlength="3" maxlength="100"
+                                   data-rule-label="Nama ruangan"
+                                   data-rule-min="3" data-rule-max="100">
                         </div>
                         <div class="field">
                             <label class="field-label" for="add_tipe">Tipe</label>

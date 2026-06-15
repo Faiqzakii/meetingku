@@ -181,6 +181,49 @@
             *, *::before, *::after { animation: none !important; transition: none !important; }
         }
 
+
+        /* Center alert (form validation) */
+        .center-alert-backdrop {
+            position: fixed; inset: 0; z-index: 10000;
+            background: rgba(15, 23, 42, .55);
+            display: flex; align-items: center; justify-content: center;
+            padding: 1rem;
+            animation: caFadeIn .15s ease-out;
+        }
+        .center-alert-backdrop.is-hiding { animation: caFadeOut .15s ease-in forwards; }
+        .center-alert {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-3);
+            border: 1px solid var(--border);
+            border-top: 4px solid #d97706;
+            max-width: 420px; width: 100%;
+            padding: 22px 24px 18px;
+            animation: caPop .18s cubic-bezier(.21,1.02,.73,1);
+        }
+        .center-alert.is-error { border-top-color: var(--danger); }
+        .center-alert h5 {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 1rem; font-weight: 700; color: var(--ink);
+            margin: 0 0 8px;
+        }
+        .center-alert h5 i { color: #d97706; font-size: 1.15rem; }
+        .center-alert.is-error h5 i { color: var(--danger); }
+        .center-alert p { color: var(--body); font-size: .875rem; line-height: 1.5; margin: 0 0 16px; }
+        .center-alert ul { margin: 6px 0 14px; padding-left: 18px; color: var(--body); font-size: .85rem; line-height: 1.55; }
+        .center-alert ul li { margin-bottom: 2px; }
+        .center-alert .actions { display:flex; justify-content:flex-end; gap:8px; }
+        .center-alert .actions button {
+            padding: 8px 14px; border-radius: var(--radius-md); border: 0; cursor: pointer;
+            background: var(--primary); color: #fff; font-weight: 600; font-size: .85rem;
+        }
+        .center-alert .actions button:hover { background: var(--primary-dark); }
+        @keyframes caFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes caFadeOut { to { opacity: 0; } }
+        @keyframes caPop {
+            from { opacity: 0; transform: translateY(-6px) scale(.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
     </style>
 </head>
@@ -222,7 +265,7 @@
             </div>
         <?php endif; ?>
 
-        <form action="<?= base_url('auth/login') ?>" method="POST" novalidate>
+        <form action="<?= base_url('auth/login') ?>" method="POST" id="loginForm" novalidate>
             <?= csrf_field() ?>
 
             <div class="field">
@@ -231,6 +274,9 @@
                     <i class="fas fa-user lead" aria-hidden="true"></i>
                     <input id="username" name="username" type="text" required
                            placeholder="Masukkan username"
+                           minlength="3" maxlength="50"
+                           data-rule-label="Username"
+                           data-rule-min="3" data-rule-max="50"
                            value="<?= esc(old('username'), 'attr') ?>"
                            autocomplete="username" autocapitalize="off" autocorrect="off">
                 </div>
@@ -242,6 +288,9 @@
                     <i class="fas fa-lock lead" aria-hidden="true"></i>
                     <input id="password" name="password" type="password" required
                            class="has-toggle"
+                           minlength="3" maxlength="100"
+                           data-rule-label="Password"
+                           data-rule-min="3" data-rule-max="100"
                            placeholder="Masukkan password"
                            autocomplete="current-password">
                     <button type="button" class="password-toggle" id="togglePassword"
@@ -298,6 +347,115 @@
         passwordInput.addEventListener('keyup', updateCaps);
         passwordInput.addEventListener('blur', function() {
             capsHint && capsHint.classList.remove('is-on');
+        });
+    }
+
+    // ===== Center alert + form guard (login) =====
+    function showCenterAlert(opts) {
+        opts = opts || {};
+        var existing = document.querySelector('.center-alert-backdrop');
+        if (existing) existing.remove();
+
+        var backdrop = document.createElement('div');
+        backdrop.className = 'center-alert-backdrop';
+        backdrop.setAttribute('role', 'alertdialog');
+        backdrop.setAttribute('aria-modal', 'true');
+
+        var alert = document.createElement('div');
+        alert.className = 'center-alert' + (opts.type === 'error' ? ' is-error' : '');
+
+        var icon = opts.type === 'error' ? 'circle-exclamation' : 'triangle-exclamation';
+        var title = document.createElement('h5');
+        title.innerHTML = '<i class="fas fa-' + icon + '" aria-hidden="true"></i><span></span>';
+        title.querySelector('span').textContent = opts.title || 'Periksa kembali isian';
+        alert.appendChild(title);
+
+        if (opts.body) {
+            var p = document.createElement('p');
+            p.textContent = opts.body;
+            alert.appendChild(p);
+        }
+        if (Array.isArray(opts.items) && opts.items.length) {
+            var ul = document.createElement('ul');
+            opts.items.forEach(function(it) {
+                var li = document.createElement('li');
+                li.textContent = it;
+                ul.appendChild(li);
+            });
+            alert.appendChild(ul);
+        }
+
+        var actions = document.createElement('div');
+        actions.className = 'actions';
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = opts.confirmText || 'Mengerti';
+        actions.appendChild(btn);
+        alert.appendChild(actions);
+        backdrop.appendChild(alert);
+        document.body.appendChild(backdrop);
+
+        function dismiss() {
+            backdrop.classList.add('is-hiding');
+            setTimeout(function() { backdrop.remove(); }, 150);
+            document.removeEventListener('keydown', onKey);
+        }
+        function onKey(e) {
+            if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); dismiss(); }
+        }
+        btn.addEventListener('click', dismiss);
+        backdrop.addEventListener('click', function(e) { if (e.target === backdrop) dismiss(); });
+        document.addEventListener('keydown', onKey);
+        setTimeout(function() { btn.focus(); }, 50);
+    }
+
+    function fieldLabel(input) {
+        var l = input.getAttribute('data-rule-label');
+        if (l) return l;
+        if (input.id) {
+            var byFor = document.querySelector('label[for="' + input.id + '"]');
+            if (byFor) return byFor.textContent.trim();
+        }
+        return input.name || 'Input';
+    }
+
+    function validateLoginInput(input) {
+        var value = (input.value == null ? '' : String(input.value)).trim();
+        var label = fieldLabel(input);
+        if ((input.required || input.getAttribute('data-rule-required') === '1') && value === '') {
+            return label + ' wajib diisi.';
+        }
+        if (value === '') return null;
+        var min = input.getAttribute('data-rule-min');
+        var max = input.getAttribute('data-rule-max');
+        if (min !== null && value.length < Number(min)) return label + ' minimal ' + min + ' karakter (saat ini ' + value.length + ').';
+        if (max !== null && value.length > Number(max)) return label + ' maksimal ' + max + ' karakter (saat ini ' + value.length + ').';
+        return null;
+    }
+
+    var loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            var errors = [];
+            var firstInvalid = null;
+            loginForm.querySelectorAll('input').forEach(function(input) {
+                if (input.type === 'hidden') return;
+                var msg = validateLoginInput(input);
+                if (msg) {
+                    errors.push(msg);
+                    if (!firstInvalid) firstInvalid = input;
+                }
+            });
+            if (errors.length) {
+                e.preventDefault();
+                showCenterAlert({
+                    title: 'Periksa kembali isian',
+                    body: 'Lengkapi data login sebelum dikirim:',
+                    items: errors,
+                    type: 'warning'
+                });
+                if (firstInvalid) firstInvalid.focus();
+            }
         });
     }
 })();
