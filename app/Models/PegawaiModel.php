@@ -107,10 +107,14 @@ class PegawaiModel extends Model
      */
     protected function boolToPgString(array $data): array
     {
-        $boolFields = ['is_admin', 'terima_notif_offline', 'terima_notif_zoom'];
-        foreach ($boolFields as $field) {
+        // is_admin is a PostgreSQL BOOLEAN column → native PHP bool
+        if (isset($data['data']['is_admin'])) {
+            $data['data']['is_admin'] = (bool) $data['data']['is_admin'];
+        }
+        // terima_notif_offline and terima_notif_zoom are SMALLINT → integer 0/1
+        foreach (['terima_notif_offline', 'terima_notif_zoom'] as $field) {
             if (isset($data['data'][$field])) {
-                $data['data'][$field] = (bool) $data['data'][$field];
+                $data['data'][$field] = $data['data'][$field] ? 1 : 0;
             }
         }
         return $data;
