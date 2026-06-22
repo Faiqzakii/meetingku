@@ -102,14 +102,15 @@ class PegawaiModel extends Model
     }
 
     /**
-     * Convert boolean-like values to integer 1/0 for smallint columns.
+     * Convert values to native PHP bool for boolean columns.
+     * Works with both MySQL TINYINT(1) and PostgreSQL boolean.
      */
     protected function boolToPgString(array $data): array
     {
         $boolFields = ['is_admin', 'terima_notif_offline', 'terima_notif_zoom'];
         foreach ($boolFields as $field) {
             if (isset($data['data'][$field])) {
-                $data['data'][$field] = $data['data'][$field] ? 1 : 0;
+                $data['data'][$field] = (bool) $data['data'][$field];
             }
         }
         return $data;
