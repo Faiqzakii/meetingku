@@ -102,15 +102,14 @@ class PegawaiModel extends Model
     }
 
     /**
-     * Convert PHP bool to PostgreSQL string 't'/'f' for boolean columns.
-     * PostgreSQL PDO rejects integer 1/0 for boolean columns.
+     * Convert boolean-like values to integer 1/0 for smallint columns.
      */
     protected function boolToPgString(array $data): array
     {
         $boolFields = ['is_admin', 'terima_notif_offline', 'terima_notif_zoom'];
         foreach ($boolFields as $field) {
             if (isset($data['data'][$field])) {
-                $data['data'][$field] = $data['data'][$field] ? 't' : 'f';
+                $data['data'][$field] = $data['data'][$field] ? 1 : 0;
             }
         }
         return $data;
