@@ -81,7 +81,9 @@ class MeetingController extends Controller
         $waktuMulai = date('Y-m-d H:i:s', strtotime($waktuMulai));
 
         if ($durasi == 'Penuh') {
-            $waktuSelesai = date('Y-m-d 23:59:59', strtotime($waktuMulai));
+            $dayOfWeek = (int) date('N', strtotime($waktuMulai));
+            $closeTime = $dayOfWeek <= 4 ? '17:00:00' : '17:30:00';
+            $waktuSelesai = date('Y-m-d ' . $closeTime, strtotime($waktuMulai));
         } else {
             $durasi = (int) $durasi;
             $waktuSelesai = date('Y-m-d H:i:s', strtotime($waktuMulai . ' + ' . $durasi . ' minutes'));
@@ -190,6 +192,38 @@ class MeetingController extends Controller
     protected function generateStartToken(): string
     {
         return bin2hex(random_bytes(10));
+    }
+
+    protected function buildManualZoomUpdateData(
+        string $zoomJoinUrl,
+        ?string $zoomMeetingId,
+        array $meeting,
+        ?array $sourceMeeting
+    ): array {
+        $canonicalJoinUrl = $sourceMeeting['zoom_join_url'] ?? $zoomJoinUrl;
+
+        return [
+            'zoom_join_url' => $canonicalJoinUrl,
+            'zoom_meeting_id' => $zoomMeetingId,
+            'zoom_source_meeting_id' => isset($sourceMeeting['id']) ? (int) $sourceMeeting['id'] : null,
+            'start_token' => !empty($meeting['start_token'])
+                ? $meeting['start_token']
+                : $this->generateStartToken(),
+        ];
+    }
+
+    protected function findSharedZoomSource(?string $zoomMeetingId, int $excludeId): ?array
+    {
+        if (empty($zoomMeetingId)) {
+            return null;
+        }
+
+        return $this->meetingModel
+            ->where('zoom_meeting_id', $zoomMeetingId)
+            ->where('id !=', $excludeId)
+            ->where('start_token IS NOT NULL')
+            ->orderBy('waktu_mulai', 'ASC')
+            ->first();
     }
 
     // ── Controller actions ──────────────────────────────────────────
@@ -669,19 +703,19 @@ class MeetingController extends Controller
 
         $this->meetingModel->setValidationRules([]);
         $zoomMeetingId = $this->extractZoomMeetingIdFromUrl($zoomJoinUrl);
+        $sourceMeeting = $this->findSharedZoomSource($zoomMeetingId, (int) $id);
         $isFirstZoomLink = empty($meeting['zoom_join_url']);
-        $updated = $this->meetingModel->update($id, [
-            'zoom_join_url' => $zoomJoinUrl,
-            'zoom_meeting_id' => $zoomMeetingId,
-        ]);
+        $updateData = $this->buildManualZoomUpdateData($zoomJoinUrl, $zoomMeetingId, $meeting, $sourceMeeting);
+        $updated = $this->meetingModel->update($id, $updateData);
 
         if ($updated === false) {
             return redirect()->back()->with('error', 'Gagal menyimpan link Zoom manual');
         }
 
         if ($isFirstZoomLink) {
-            $meeting['zoom_join_url'] = $zoomJoinUrl;
-            $meeting['zoom_meeting_id'] = $zoomMeetingId;
+            $meeting['zoom_join_url'] = $updateData['zoom_join_url'];
+            $meeting['zoom_meeting_id'] = $updateData['zoom_meeting_id'];
+            $meeting['start_token'] = $updateData['start_token'];
             $this->sendWhatsAppToPegawai($meeting, 'zoom_manual_created');
         }
 
@@ -771,14 +805,23 @@ class MeetingController extends Controller
             );
         }
 
+        $zoomMeeting = $meeting;
+        if (!empty($meeting['zoom_source_meeting_id'])) {
+            $zoomMeeting = $this->meetingModel->find($meeting['zoom_source_meeting_id']) ?: $meeting;
+        }
+
+        if (empty($zoomMeeting['zoom_start_url'])) {
+            return redirect()->to($zoomMeeting['zoom_join_url']);
+        }
+
         try {
-            $zoomData = $this->zoomLibrary->getMeeting($meeting['zoom_meeting_id']);
+            $zoomData = $this->zoomLibrary->getMeeting($zoomMeeting['zoom_meeting_id']);
             if (!$zoomData || empty($zoomData['start_url'])) {
-                return $this->renderHostError('Gagal mengambil data Zoom meeting. Silakan coba lagi.');
+                return redirect()->to($zoomMeeting['zoom_join_url']);
             }
 
             $this->meetingModel->setValidationRules([]);
-            $this->meetingModel->update($meeting['id'], [
+            $this->meetingModel->update($zoomMeeting['id'], [
                 'zoom_start_url' => $zoomData['start_url'],
                 'zoom_join_url'  => $zoomData['join_url'],
             ]);

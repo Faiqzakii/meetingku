@@ -189,6 +189,23 @@
     </div>
 </div>
 
+<div class="modal fade" id="timeRangeErrorModal" tabindex="-1" aria-labelledby="timeRangeErrorTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="timeRangeErrorTitle">Waktu meeting tidak valid</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Jam mulai harus lebih kecil dari jam selesai.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Mengerti</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Event Details Modal -->
 <div class="modal fade" id="eventDetailsModal" tabindex="-1" aria-labelledby="eventDetailsModalTitle" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -405,6 +422,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    function hasInvalidTimeRange() {
+        var startTime = document.getElementById('waktu_mulai').value;
+        var endTime = document.getElementById('waktu_selesai').value;
+        return startTime && endTime && new Date(startTime) >= new Date(endTime);
+    }
+
+    function showTimeRangeError() {
+        var modal = new bootstrap.Modal(document.getElementById('timeRangeErrorModal'));
+        modal.show();
+    }
+
     // Handle form submission to prevent double submit
     function handleFormSubmit() {
         const form = document.getElementById('createMeetingForm');
@@ -415,6 +443,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (form && submitBtn) {
             form.addEventListener('submit', function(e) {
                 combineDateTime();
+                updateEndTime();
+                if (hasInvalidTimeRange()) {
+                    e.preventDefault();
+                    showTimeRangeError();
+                    return;
+                }
+
                 addTokenToForm();
                 submitBtn.disabled = true;
                 submitText.textContent = 'Menyimpan...';
@@ -459,6 +494,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function formatDateTimeLocal(date) {
+        var offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return offsetDate.toISOString().slice(0, 16);
+    }
+
     // Handle duration change to auto-compute end time
     function updateEndTime() {
         combineDateTime();
@@ -468,11 +508,12 @@ document.addEventListener('DOMContentLoaded', function() {
             var duration = parseInt(durasi);
             var endTime = new Date(startTime);
             endTime.setMinutes(endTime.getMinutes() + duration);
-            document.getElementById('waktu_selesai').value = endTime.toISOString().slice(0, 16);
+            document.getElementById('waktu_selesai').value = formatDateTimeLocal(endTime);
         } else if (startTime && durasi === 'Penuh') {
             var d = new Date(startTime);
-            d.setHours(17, 0, 0, 0);
-            document.getElementById('waktu_selesai').value = d.toISOString().slice(0, 16);
+            var closesAtHalfPast = d.getDay() === 0 || d.getDay() >= 5;
+            d.setHours(17, closesAtHalfPast ? 30 : 0, 0, 0);
+            document.getElementById('waktu_selesai').value = formatDateTimeLocal(d);
         }
     }
 
@@ -506,7 +547,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 'created_at' => $meeting['created_at'] ?? null,
                 'zoom_meeting_id' => $meeting['zoom_meeting_id'] ?? null,
                 'zoom_join_url' => $meeting['zoom_join_url'] ?? null,
-                'zoom_start_url' => $meeting['zoom_start_url'] ?? null,
                 'start_token' => $meeting['start_token'] ?? null,
             ]
         ];

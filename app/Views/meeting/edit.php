@@ -70,7 +70,8 @@
                             $end = new DateTime($meeting['waktu_selesai']);
                             $diff = $start->diff($end);
                             $diffMinutes = ($diff->h * 60) + $diff->i + ($diff->days * 24 * 60);
-                            if ($diffMinutes >= 480) {
+                            $fullDayEndTime = ((int) $start->format('N') <= 4) ? '17:00:00' : '17:30:00';
+                            if ($start->format('Y-m-d') === $end->format('Y-m-d') && $end->format('H:i:s') === $fullDayEndTime) {
                                 $defaultDurasi = 'Penuh';
                             } else {
                                 $defaultDurasi = $diffMinutes;
@@ -191,6 +192,23 @@
     </div>
 </div>
 
+<div class="modal fade" id="timeRangeErrorModal" tabindex="-1" aria-labelledby="timeRangeErrorTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="timeRangeErrorTitle">Waktu meeting tidak valid</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Jam mulai harus lebih kecil dari jam selesai.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Mengerti</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Toast Flash Messages -->
 <div class="toast-container">
     <?php if (session()->getFlashdata('success')): ?>
@@ -214,17 +232,52 @@
 <?= $this->section('scripts') ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    function formatDateTimeLocal(date) {
+        var offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return offsetDate.toISOString().slice(0, 16);
+    }
+
     // Duration / end time calculation
     function updateEndTime() {
         var startEl = document.getElementById('waktu_mulai');
         var durasiEl = document.getElementById('durasi');
         if (!startEl || !durasiEl) return;
+        if (startEl.value && durasiEl.value === 'Penuh') {
+            var fullDayEndTime = new Date(startEl.value);
+            var closesAtHalfPast = fullDayEndTime.getDay() === 0 || fullDayEndTime.getDay() >= 5;
+            fullDayEndTime.setHours(17, closesAtHalfPast ? 30 : 0, 0, 0);
+            document.getElementById('waktu_selesai').value = formatDateTimeLocal(fullDayEndTime);
+            return;
+        }
+
         var duration = parseInt(durasiEl.value);
         if (startEl.value && !isNaN(duration)) {
             var endTime = new Date(startEl.value);
             endTime.setMinutes(endTime.getMinutes() + duration);
-            document.getElementById('waktu_selesai').value = endTime.toISOString().slice(0, 16);
+            document.getElementById('waktu_selesai').value = formatDateTimeLocal(endTime);
         }
+    }
+
+    function hasInvalidTimeRange() {
+        var startTime = document.getElementById('waktu_mulai').value;
+        var endTime = document.getElementById('waktu_selesai').value;
+        return startTime && endTime && new Date(startTime) >= new Date(endTime);
+    }
+
+    function showTimeRangeError() {
+        var modal = new bootstrap.Modal(document.getElementById('timeRangeErrorModal'));
+        modal.show();
+    }
+
+    var editForm = document.getElementById('editMeetingForm');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            updateEndTime();
+            if (hasInvalidTimeRange()) {
+                e.preventDefault();
+                showTimeRangeError();
+            }
+        });
     }
     document.getElementById('waktu_mulai').addEventListener('change', updateEndTime);
     document.getElementById('durasi').addEventListener('change', updateEndTime);

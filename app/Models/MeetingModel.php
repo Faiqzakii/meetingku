@@ -25,6 +25,7 @@ class MeetingModel extends Model
         'zoom_join_url',
         'zoom_start_url',
         'start_token',
+        'zoom_source_meeting_id',
         'status_changed_by',
         'status_changed_at',
         'last_edited_by',
