@@ -280,12 +280,9 @@
                             <a id="zoomJoinLink" href="#" target="_blank" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe;">
                                 <i class="fas fa-video"></i> Join Zoom
                             </a>
-                            <form id="zoomHostForm" method="POST" class="inline-block hidden" target="_blank">
-                                <?= csrf_field() ?>
-                                <button id="zoomHostButton" type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host">
-                                    <i id="zoomHostIcon" class="fas fa-play-circle"></i> <span id="zoomHostLabel">Host</span>
-                                </button>
-                            </form>
+                            <a id="zoomHostLink" href="#" target="_blank" rel="noopener" class="btn-outline-custom hidden" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host">
+                                <i class="fas fa-play-circle"></i> Host
+                            </a>
                             <button type="button" id="zoomHostLinkCopy" class="btn-outline-custom hidden" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#334155; border-color:#cbd5e1;">
                                 <i class="fas fa-copy"></i> Copy Host Link
                             </button>
@@ -720,36 +717,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 var isOwner = parseInt(props.pegawai_id) === currentPegawaiId;
                 var canSeeZoom = isAdmin || isOwner;
                 var meetingNotEnded = Date.now() < (Number(props.waktu_selesai_ts) * 1000);
+                var meetingStart = Number(props.waktu_mulai_ts) * 1000;
+                var canHostNow = meetingNotEnded && Date.now() >= (meetingStart - 3600000);
                 var joinUrl = safeHttpUrl(props.zoom_join_url);
                 if (isOnlineOrHybrid && props.status === 'approved' && hasJoinUrl && canSeeZoom) {
                     zoomSection.classList.remove('hidden');
                     document.getElementById('zoomJoinLink').href = joinUrl || '#';
-                    var hostForm = document.getElementById('zoomHostForm');
-                    var hostButton = document.getElementById('zoomHostButton');
-                    var hostIcon = document.getElementById('zoomHostIcon');
-                    var hostLabel = document.getElementById('zoomHostLabel');
+                    var hostLink = document.getElementById('zoomHostLink');
                     var hostLinkCopy = document.getElementById('zoomHostLinkCopy');
                     var hostLinkInput = document.getElementById('zoomHostLinkInput');
-                    var meetStart = Number(props.waktu_mulai_ts) * 1000;
-                    var nowMs = Date.now();
-                    var canHostNow = hasHostMeeting && meetingNotEnded && nowMs >= (meetStart - 3600000);
 
-                    if (hasHostMeeting && meetingNotEnded) {
-                        hostForm.action = '<?= base_url('meeting/refresh-zoom/') ?>' + event.id;
-                        hostForm.classList.remove('hidden');
-                        hostButton.disabled = !canHostNow;
-                        hostButton.setAttribute('aria-disabled', canHostNow ? 'false' : 'true');
-                        hostButton.title = canHostNow ? 'Buka sebagai Host' : 'Host aktif 1 jam sebelum meeting';
-                        hostIcon.className = 'fas ' + (canHostNow ? 'fa-play-circle' : 'fa-lock');
-                        hostLabel.textContent = canHostNow ? 'Host' : 'Host H-1 jam';
-                    } else {
-                        hostForm.classList.add('hidden');
-                    }
-
-                    if (props.start_token && props.start_token !== '') {
-                        hostLinkInput.value = '<?= base_url('zoom/start/') ?>' + props.start_token;
+                    if (hasHostMeeting && canHostNow && props.start_token && props.start_token !== '') {
+                        var hostUrl = <?= json_encode(base_url('zoom/start/')) ?> + encodeURIComponent(props.start_token);
+                        hostLink.href = hostUrl;
+                        hostLink.classList.remove('hidden');
+                        hostLinkInput.value = hostUrl;
                         hostLinkCopy.classList.remove('hidden');
                     } else {
+                        hostLink.href = '#';
+                        hostLink.classList.add('hidden');
                         hostLinkInput.value = '';
                         hostLinkCopy.classList.add('hidden');
                     }

@@ -82,4 +82,23 @@ final class MeetingControllerZoomUrlTest extends CIUnitTestCase
         $this->assertIsString($calendarView);
         $this->assertStringNotContainsString("'zoom_start_url'", $calendarView);
     }
+    public function testCalendarHostButtonUsesShortlinkInsteadOfRefreshEndpoint(): void
+    {
+        $calendarView = file_get_contents(ROOTPATH . 'app/Views/meeting/calendar.php');
+
+        $this->assertIsString($calendarView);
+        $this->assertStringContainsString("base_url('zoom/start/')", $calendarView);
+        $this->assertStringNotContainsString("base_url('meeting/refresh-zoom/')", $calendarView);
+    }
+    public function testUpcomingUiUsesShortlinkInsteadOfRefreshEndpoint(): void
+    {
+        $upcomingView = file_get_contents(ROOTPATH . 'app/Views/meeting/upcoming.php');
+
+        $this->assertIsString($upcomingView);
+        $this->assertStringContainsString("base_url('zoom/start/' . \$meeting['start_token'])", $upcomingView);
+        $this->assertStringNotContainsString('meeting/refresh-zoom/', $upcomingView);
+        $this->assertStringNotContainsString('data-zoom-action="refresh"', $upcomingView);
+    }
+
+
 }

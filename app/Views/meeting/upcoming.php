@@ -81,15 +81,16 @@
                                 <?php endif; ?>
 
                                 <?php if ($isOnlineOrHybrid && $meeting['status'] === 'approved' && $canOwnOrAdmin): ?>
-                                    <?php if ($hasJoinUrl && $hasHostMeeting && $meetingNotEnded): ?>
-                                        <button type="button"
-                                                data-zoom-action="refresh"
-                                                data-id="<?= esc($meeting['id'], 'attr') ?>"
-                                                role="menuitem"
-                                                <?= $withinOneHour ? '' : 'disabled aria-disabled="true" title="Host aktif 1 jam sebelum meeting"' ?>>
-                                            <i class="fas <?= $withinOneHour ? 'fa-play-circle' : 'fa-lock' ?>" aria-hidden="true"></i>
-                                            <?= $withinOneHour ? 'Refresh Host' : 'Host tersedia H-1 jam' ?>
-                                        </button>
+                                    <?php if ($hasJoinUrl && $hasHostMeeting && $hasStartToken && $meetingNotEnded): ?>
+                                        <?php if ($withinOneHour): ?>
+                                            <a href="<?= esc(base_url('zoom/start/' . $meeting['start_token']), 'attr') ?>" target="_blank" rel="noopener" role="menuitem">
+                                                <i class="fas fa-play-circle" aria-hidden="true"></i> Host
+                                            </a>
+                                        <?php else: ?>
+                                            <button type="button" role="menuitem" disabled aria-disabled="true" title="Host aktif 1 jam sebelum meeting">
+                                                <i class="fas fa-lock" aria-hidden="true"></i> Host tersedia H-1 jam
+                                            </button>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                     <?php if ($hasStartToken): ?>
                                         <button type="button" data-copy-host-link="<?= esc(base_url('zoom/start/' . $meeting['start_token']), 'attr') ?>" role="menuitem">
@@ -127,9 +128,6 @@
                             </form>
                         <?php endif; ?>
                         <?php if ($isOnlineOrHybrid && $meeting['status'] === 'approved' && $canOwnOrAdmin): ?>
-                            <form action="<?= base_url('meeting/refresh-zoom/' . $meeting['id']) ?>" method="POST" id="zoomRefresh-<?= esc($meeting['id']) ?>" target="_blank" style="display:none;">
-                                <?= csrf_field() ?>
-                            </form>
                             <form action="<?= base_url('meeting/send-zoom/' . $meeting['id']) ?>" method="POST" id="zoomSend-<?= esc($meeting['id']) ?>" style="display:none;">
                                 <?= csrf_field() ?>
                             </form>
@@ -351,9 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (zoomBtn) {
             var action = zoomBtn.getAttribute('data-zoom-action');
             var zid = zoomBtn.getAttribute('data-id');
-            if (action === 'refresh') {
-                document.getElementById('zoomRefresh-' + zid).submit();
-            } else if (action === 'send') {
+            if (action === 'send') {
                 if (confirm('Buat Zoom meeting dan kirim link ke pegawai?')) {
                     document.getElementById('zoomSend-' + zid).submit();
                 }
