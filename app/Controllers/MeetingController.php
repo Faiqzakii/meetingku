@@ -122,8 +122,13 @@ class MeetingController extends Controller
         return $fasilitas ? json_encode($fasilitas) : null;
     }
 
-    protected function notifyGroupWhatsApp(array $data, string $header): void
-    {
+    protected function notifyGroupWhatsApp(
+        array $data,
+        string $header,
+        string $kind,
+        int $meetingId,
+        ?string $scheduledAt = null
+    ): void {
         try {
             if (!env('whatsapp.enabled', true)) {
                 return;
@@ -148,18 +153,228 @@ class MeetingController extends Controller
                 . "*Fasilitas*: {$fasilitasStr}\n"
                 . "*Oleh*: {$oleh}";
 
-            $this->sendWhatsAppToGroup($message);
+            $this->sendWhatsAppToGroup($message, [
+                'meta_kind'       => $kind,
+                'meta_meeting_id' => $meetingId,
+            ], $scheduledAt);
         } catch (\Throwable $tex) {
             log_message('error', 'WhatsApp notify exception: ' . $tex->getMessage());
         }
     }
 
-    // ── Zoom / WhatsApp helpers ─────────────────────────────────────
+    /**
+     * H-2 schedule for the new-meeting group notification:
+   * fires two days before $waktuMulai at 09:00 local time.
+   * Past H-2 (meeting <2 days away) collapses to "now" so we never miss it.
+   */
+    protected function scheduleNewMeetingGroupNotification(
+        string $waktuMulai,
+        ?int $now = null
+    ): string {
+        $now = $now ?? time();
+        $meetingTs  = strtotime($waktuMulai);
+        $hMinusTwo  = strtotime('-2 days', strtotime(date('Y-m-d 09:00:00', $meetingTs)));
+        $scheduleTs = max($now, $hMinusTwo);
 
-    protected function sendWhatsAppToGroup(string $message): bool
-    {
-        return $this->sendWhatsAppMessage(self::WHATSAPP_GROUP_ID, $message);
+        return date('Y-m-d H:i:s', $scheduleTs);
     }
+
+    /**
+     * Edit notif only goes out once the matching new-meeting notif has
+     * actually been sent (status='sent' on the queue row) AND we are inside
+     * the H-2..meeting-end window. Pre-H-2 edits are silent — the new
+     * notif itself will carry the updated payload at H-2.
+     */
+    protected function isEditGroupNotificationEligible(
+        int $meetingId,
+        string $waktuMulai,
+        string $waktuSelesai,
+        ?int $now = null
+    ): bool {
+        $now   = $now ?? time();
+        $start = strtotime($waktuMulai);
+        $end   = strtotime($waktuSelesai);
+        if ($start === false || $end === false || $now >= $end) {
+            return false;
+        }
+
+        $hMinusTwo = strtotime('-2 days', strtotime(date('Y-m-d 09:00:00', $start)));
+        if ($now < $hMinusTwo) {
+            return false;
+        }
+
+        $row = db_connect()
+            ->table('wa_message_queue')
+            ->select('id')
+            ->where('meta_kind', 'new_meeting')
+            ->where('meta_meeting_id', $meetingId)
+            ->where('status', 'sent')
+            ->limit(1)
+            ->get()
+            ->getRowArray();
+
+        return $row !== null;
+    }
+
+    /**
+     * Build a field-by-field diff of meeting editable columns.
+     * Returns array of [label, before, after] for fields that actually
+     * changed; empty array if nothing in the whitelisted set differs.
+   * Fasilitas compared as a sorted set; waktu rendered for humans.
+     */
+    protected function buildMeetingEditDiff(array $before, array $after): array
+    {
+        $diff = [];
+
+        if (($before['nama_keg'] ?? null) !== ($after['nama_keg'] ?? null)) {
+            $diff[] = ['label' => 'Nama Kegiatan', 'before' => (string) ($before['nama_keg'] ?? '-'), 'after' => (string) ($after['nama_keg'] ?? '-')];
+        }
+
+        if (($before['jumlah_peserta'] ?? null) !== ($after['jumlah_peserta'] ?? null)) {
+            $diff[] = [
+                'label' => 'Jumlah Peserta',
+                'before' => (string) ($before['jumlah_peserta'] ?? '-'),
+                'after'  => (string) ($after['jumlah_peserta'] ?? '-'),
+            ];
+        }
+
+        if (($before['waktu_mulai'] ?? null) !== ($after['waktu_mulai'] ?? null)
+            || ($before['waktu_selesai'] ?? null) !== ($after['waktu_selesai'] ?? null)) {
+            $beforeWaktu = $this->formatWaktuRange(
+                $before['waktu_mulai'] ?? null,
+                $before['waktu_selesai'] ?? null
+            );
+            $afterWaktu = $this->formatWaktuRange(
+                $after['waktu_mulai'] ?? null,
+                $after['waktu_selesai'] ?? null
+            );
+            $diff[] = ['label' => 'Waktu', 'before' => $beforeWaktu, 'after' => $afterWaktu];
+        }
+
+        if (($before['ruangan_id'] ?? null) !== ($after['ruangan_id'] ?? null)) {
+            $diff[] = [
+                'label' => 'Ruangan',
+                'before' => $this->resolveRuanganLabel($before['ruangan_id'] ?? null),
+                'after'  => $this->resolveRuanganLabel($after['ruangan_id'] ?? null),
+            ];
+        }
+
+        $beforeFasilitas = $this->normalizeFasilitasForDisplay($before['fasilitas'] ?? null);
+        $afterFasilitas  = $this->normalizeFasilitasForDisplay($after['fasilitas'] ?? null);
+        if ($beforeFasilitas !== $afterFasilitas) {
+            $diff[] = ['label' => 'Fasilitas', 'before' => $beforeFasilitas, 'after' => $afterFasilitas];
+        }
+
+        return $diff;
+    }
+
+    /**
+     * Render the edit WhatsApp message: header line, meeting context,
+     * then a "Sebelum → Menjadi" line per changed field.
+     */
+    protected function renderMeetingEditMessage(array $after, array $diff, ?string $ruanganName, ?string $ruanganTipe, ?string $pegawaiName): string
+    {
+        $tempat = trim(($ruanganName ?? '-') . ' - ' . ($ruanganTipe ?? ''), " -");
+        $waktu  = $this->formatWaktuRange($after['waktu_mulai'] ?? null, $after['waktu_selesai'] ?? null);
+        $oleh   = $pegawaiName ?? '-';
+
+        $lines = [
+            '*[Meetingku]*',
+            'Terdapat edit detail meeting',
+            '',
+            '*Nama Kegiatan*: ' . ($after['nama_keg'] ?? '-'),
+            '*Tempat*: ' . $tempat,
+            '*Waktu*: ' . $waktu,
+            '*Oleh*: ' . $oleh,
+            '',
+            '*Perubahan*:',
+        ];
+
+        foreach ($diff as $change) {
+            $lines[] = '• *' . $change['label'] . '*: ' . $change['before'] . ' → ' . $change['after'];
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Enqueue the edit-notification when the gate is open. Compares
+     * the row before the update with the new payload, and short-circuits
+     * if the whitelisted editable fields are all unchanged.
+     */
+    protected function notifyGroupEditIfChanged(array $before, array $after, int $meetingId): void
+    {
+        $diff = $this->buildMeetingEditDiff($before, $after);
+        if ($diff === []) {
+            log_message('info', 'Group edit notif skipped for meeting ' . $meetingId . ' (no whitelisted field changed)');
+            return;
+        }
+
+        $ruangan = !empty($after['ruangan_id']) ? $this->ruanganModel->find($after['ruangan_id']) : null;
+        $pegawai = !empty($after['pegawai_id']) ? $this->pegawaiModel->find($after['pegawai_id']) : null;
+
+        $message = $this->renderMeetingEditMessage(
+            $after,
+            $diff,
+            $ruangan['nama_ruangan'] ?? null,
+            $ruangan['tipe'] ?? null,
+            $pegawai['nama'] ?? null
+        );
+
+        $this->sendWhatsAppToGroup($message, [
+            'meta_kind'       => 'edit_meeting',
+            'meta_meeting_id' => $meetingId,
+        ]);
+    }
+
+    protected function formatWaktuRange(?string $mulai, ?string $selesai): string
+    {
+        if (empty($mulai) || empty($selesai)) {
+            return '-';
+        }
+        $start = strtotime($mulai);
+        $end   = strtotime($selesai);
+        if ($start === false || $end === false) {
+            return '-';
+        }
+
+        return date('d M Y H:i', $start) . ' - ' . date('H:i', $end);
+    }
+
+    protected function resolveRuanganLabel($ruanganId): string
+    {
+        if (empty($ruanganId)) {
+            return '-';
+        }
+        $row = $this->ruanganModel->find($ruanganId);
+        if (!$row) {
+            return '#' . $ruanganId;
+        }
+
+        return ($row['nama_ruangan'] ?? '-') . ' - ' . ($row['tipe'] ?? '-');
+    }
+
+    protected function normalizeFasilitasForDisplay($value): string
+    {
+        if (empty($value)) {
+            return '-';
+        }
+        $decoded = json_decode((string) $value, true);
+        if (!is_array($decoded) || $decoded === []) {
+            return '-';
+        }
+        sort($decoded, SORT_STRING);
+
+        return implode(', ', $decoded);
+    }
+
+
+    // ── Zoom / WhatsApp helpers ─────────────────────────────────────
+    protected function sendWhatsAppToGroup(string $message, array $meta = [], ?string $scheduledAt = null): bool
+    {
+        return $this->sendWhatsAppMessage(self::WHATSAPP_GROUP_ID, $message, $meta, $scheduledAt);
+    }
+
 
     protected function extractZoomMeetingIdFromUrl(string $zoomUrl): ?string
     {
@@ -285,15 +500,6 @@ class MeetingController extends Controller
         if (!session()->get('logged_in')) {
             return redirect()->to('auth/login');
         }
-
-        $formToken = $this->consumeFormToken();
-        if ($formToken === null) {
-            return redirect()->back()->with('error', 'Token form tidak valid')->withInput();
-        }
-        if ($formToken === '__duplicate__') {
-            return redirect()->back()->with('error', 'Form telah dikirim. Mohon tunggu proses selesai.')->withInput();
-        }
-
         [$waktuMulai, $waktuSelesai] = $this->resolveTimeRange();
 
         $ruanganId = $this->request->getPost('ruangan_id');
@@ -329,7 +535,14 @@ class MeetingController extends Controller
                     ->withInput();
             }
 
-            $this->notifyGroupWhatsApp($data, 'Terdapat pengajuan meeting baru');
+            $meetingId = (int) $result;
+            $this->notifyGroupWhatsApp(
+                $data,
+                'Terdapat pengajuan meeting baru',
+                'new_meeting',
+                $meetingId,
+                $this->scheduleNewMeetingGroupNotification($waktuMulai)
+            );
             $this->pruneFormTokens();
 
             return redirect()->back()->with('success', 'Meeting berhasil dibuat');
@@ -430,10 +643,16 @@ class MeetingController extends Controller
                 }
             }
 
-            $this->notifyGroupWhatsApp(
-                array_merge($data, ['pegawai_id' => $meeting['pegawai_id']]),
-                'Terdapat edit detail meeting'
-            );
+            $meetingId = (int) $id;
+            if ($this->isEditGroupNotificationEligible($meetingId, $data['waktu_mulai'], $data['waktu_selesai'])) {
+                $this->notifyGroupEditIfChanged(
+                    array_merge($meeting, ['pegawai_id' => $meeting['pegawai_id']]),
+                    array_merge($data, ['pegawai_id' => $meeting['pegawai_id']]),
+                    $meetingId
+                );
+            } else {
+                log_message('info', 'Group edit notif skipped for meeting ' . $meetingId . ' (new-meeting notif not yet sent or outside H-2 window)');
+            }
             $this->pruneFormTokens();
 
             return redirect()->to('/upcoming')->with('success', 'Meeting berhasil diupdate');
@@ -910,16 +1129,22 @@ class MeetingController extends Controller
         }
     }
 
-    protected function sendWhatsAppMessage(string $to, string $message): bool
-    {
+    protected function sendWhatsAppMessage(
+        string $to,
+        string $message,
+        array $meta = [],
+        ?string $scheduledAt = null
+    ): bool {
         $queueId = (new WaMessageQueueModel())->insert([
-            'api_key_id' => null,
-            'to_number' => $to,
-            'message' => $message,
-            'status' => 'pending',
-            'attempts' => 0,
-            'max_attempts' => 3,
-            'scheduled_at' => date('Y-m-d H:i:s'),
+            'api_key_id'       => null,
+            'to_number'        => $to,
+            'message'          => $message,
+            'meta_kind'        => $meta['meta_kind'] ?? null,
+            'meta_meeting_id'  => isset($meta['meta_meeting_id']) ? (int) $meta['meta_meeting_id'] : null,
+            'status'           => 'pending',
+            'attempts'         => 0,
+            'max_attempts'     => 3,
+            'scheduled_at'     => $scheduledAt ?? date('Y-m-d H:i:s'),
         ], true);
 
         if ($queueId === false) {
