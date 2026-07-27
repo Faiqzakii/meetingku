@@ -107,7 +107,7 @@
                         $hasLainnya = false;
                         foreach ($fasilitasArr as $f) {
                             if (!in_array($f, $knownFasilitas) && strtolower($f) !== 'lainnya') {
-                                $lainnyaValue = $f;
+                                $lainnyaValue = trim(preg_replace('/^(?:\s*Lainnya\s*:\s*)+/i', '', $f) ?? '');
                                 $hasLainnya = true;
                             } elseif (strtolower($f) === 'lainnya') {
                                 $hasLainnya = true;

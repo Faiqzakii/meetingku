@@ -157,4 +157,15 @@ final class MeetingControllerEditDiffTest extends CIUnitTestCase
             $labels
         );
     }
+    public function testNormalizesRepeatedLainnyaPrefix(): void
+    {
+        $controller = (new ReflectionClass(MeetingController::class))->newInstanceWithoutConstructor();
+        $method = new ReflectionMethod(MeetingController::class, 'normalizeFasilitasLainnya');
+
+        self::assertSame(
+            'Setting ruangan seminar',
+            $method->invoke($controller, ' Lainnya: Lainnya: Setting ruangan seminar ')
+        );
+    }
+
 }

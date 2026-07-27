@@ -106,16 +106,22 @@ class MeetingController extends Controller
         return $rules;
     }
 
+    protected function normalizeFasilitasLainnya(?string $value): string
+    {
+        return trim(preg_replace('/^(?:\s*Lainnya\s*:\s*)+/i', '', $value ?? '') ?? '');
+    }
+
     protected function resolveFasilitas(): ?string
     {
         $fasilitas = $this->request->getPost('fasilitas');
-        $fasilitasLainnya = $this->request->getPost('fasilitas_lainnya');
+        $fasilitasLainnya = $this->normalizeFasilitasLainnya($this->request->getPost('fasilitas_lainnya'));
 
         if ($fasilitas && is_array($fasilitas)) {
             if (($key = array_search('Lainnya', $fasilitas)) !== false) {
-                if (!empty($fasilitasLainnya)) {
+                if ($fasilitasLainnya !== '') {
                     $fasilitas[$key] = 'Lainnya: ' . $fasilitasLainnya;
                 }
+
             }
         }
 
