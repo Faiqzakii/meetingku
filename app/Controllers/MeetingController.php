@@ -929,7 +929,8 @@ class MeetingController extends Controller
         $this->meetingModel->setValidationRules([]);
         $zoomMeetingId = $this->extractZoomMeetingIdFromUrl($zoomJoinUrl);
         $sourceMeeting = $this->findSharedZoomSource($zoomMeetingId, (int) $id);
-        $isFirstZoomLink = empty($meeting['zoom_join_url']);
+        $previousJoinUrl = (string) ($meeting['zoom_join_url'] ?? '');
+        $isFirstZoomLink = $previousJoinUrl === '';
         $updateData = $this->buildManualZoomUpdateData($zoomJoinUrl, $zoomMeetingId, $meeting, $sourceMeeting);
         $updated = $this->meetingModel->update($id, $updateData);
 
@@ -937,16 +938,19 @@ class MeetingController extends Controller
             return redirect()->back()->with('error', 'Gagal menyimpan link Zoom manual');
         }
 
-        if ($isFirstZoomLink) {
-            $meeting['zoom_join_url'] = $updateData['zoom_join_url'];
-            $meeting['zoom_meeting_id'] = $updateData['zoom_meeting_id'];
-            $meeting['start_token'] = $updateData['start_token'];
-            $this->sendWhatsAppToPegawai($meeting, 'zoom_manual_created');
-        }
+        $meeting['zoom_join_url'] = $updateData['zoom_join_url'];
+        $meeting['zoom_meeting_id'] = $updateData['zoom_meeting_id'];
+        $meeting['start_token'] = $updateData['start_token'];
 
-        $message = $isFirstZoomLink
-            ? 'Link Zoom manual berhasil disimpan dan dikirim ke pegawai'
-            : 'Link Zoom manual berhasil disimpan';
+        if ($isFirstZoomLink) {
+            $this->sendWhatsAppToPegawai($meeting, 'zoom_manual_created');
+            $message = 'Link Zoom manual berhasil disimpan dan dikirim ke pegawai';
+        } elseif ($previousJoinUrl !== $meeting['zoom_join_url']) {
+            $this->sendWhatsAppToPegawai($meeting, 'zoom_manual_updated', $previousJoinUrl);
+            $message = 'Link Zoom manual berhasil diubah dan notifikasi dikirim ke pegawai';
+        } else {
+            $message = 'Link Zoom manual berhasil disimpan';
+        }
 
         return redirect()->back()->with('success', $message);
     }
@@ -1060,73 +1064,43 @@ class MeetingController extends Controller
 
     protected function renderHostError(string $message)
     {
-        // NOTE: All user-facing dynamic content in $message MUST be escaped via esc()
         // before passing to renderHostError(). The view renders $message as raw HTML.
         return view('meeting/host_error', ['message' => $message]);
     }
 
-    protected function sendWhatsAppToPegawai(array $meeting, string $type = 'zoom_created'): void
+    protected function sendWhatsAppToPegawai(array $meeting, string $type = 'zoom_created', ?string $previousJoinUrl = null): void
     {
         try {
             if (!env('whatsapp.enabled', true)) {
                 return;
             }
-
             $pegawai = $this->pegawaiModel->find($meeting['pegawai_id']);
             if (!$pegawai) {
                 return;
             }
-
             $ruangan = $this->ruanganModel->find($meeting['ruangan_id']);
             $namaKegiatan = $meeting['nama_keg'];
-            $tempat       = ($ruangan['nama_ruangan'] ?? '') . ' - ' . ($ruangan['tipe'] ?? '');
-            $waktu        = date('d M Y H:i', strtotime($meeting['waktu_mulai'])) . ' - ' . date('H:i', strtotime($meeting['waktu_selesai']));
-
+            $tempat = ($ruangan['nama_ruangan'] ?? '') . ' - ' . ($ruangan['tipe'] ?? '');
+            $waktu = date('d M Y H:i', strtotime($meeting['waktu_mulai'])) . ' - ' . date('H:i', strtotime($meeting['waktu_selesai']));
             if (in_array($type, ['zoom_created', 'zoom_manual_created'], true)) {
-                $shortlink = !empty($meeting['start_token'])
-                    ? base_url('zoom/start/' . $meeting['start_token'])
-                    : '';
-                $shortlinkLine = $shortlink
-                    ? "\n\n🖥️ *Link Host (H-1 jam)*:\n{$shortlink}\nℹ️ _Link ini hanya aktif 1 jam sebelum meeting dimulai._"
-                    : "\n\nℹ️ _Link Host tersedia 1 jam sebelum meeting pada website meetingku._";
-
-                $title = $type === 'zoom_manual_created'
-                    ? "✅ Link Zoom meeting telah tersedia\n\n"
-                    : "✅ Pengajuan meeting Anda telah disetujui\n\n";
-                $message = "*[Meetingku]*\n"
-                    . $title
-                    . "*Nama Kegiatan*: {$namaKegiatan}\n"
-                    . "*Tempat*: {$tempat}\n"
-                    . "*Waktu*: {$waktu}\n\n"
-                    . "🔗 *Link Join (Peserta)*:\n" . ($meeting['zoom_join_url'] ?? '-')
-                    . $shortlinkLine;
+                $title = $type === 'zoom_manual_created' ? "✅ Link Zoom meeting telah tersedia\n\n" : "✅ Pengajuan meeting Anda telah disetujui\n\n";
+                $message = "*[Meetingku]*\n{$title}*Nama Kegiatan*: {$namaKegiatan}\n*Tempat*: {$tempat}\n*Waktu*: {$waktu}\n\n🔗 *Link Join (Peserta)*:\n" . ($meeting['zoom_join_url'] ?? '-');
+                if (!empty($meeting['start_token'])) {
+                    $message .= "\n\n🖥️ *Link Host (H-1 jam)*:\n" . base_url('zoom/start/' . $meeting['start_token']);
+                }
+            } elseif ($type === 'zoom_manual_updated') {
+                $message = "*[Meetingku]*\n📝 Detail meeting diperbarui\n\n*Nama Kegiatan*: {$namaKegiatan}\n*Tempat*: {$tempat}\n*Waktu*: {$waktu}\n\n*Perubahan*:\n• *Link Zoom*: " . ($previousJoinUrl ?: '-') . ' → ' . ($meeting['zoom_join_url'] ?? '-') . "\n\n🔗 *Link Join (Peserta)*:\n" . ($meeting['zoom_join_url'] ?? '-');
+                if (!empty($meeting['start_token'])) {
+                    $message .= "\n\n🖥️ *Link Host (H-1 jam)*:\n" . base_url('zoom/start/' . $meeting['start_token']);
+                }
             } elseif ($type === 'zoom_updated') {
-                $message = "*[Meetingku]*\n"
-                    . "📝 Jadwal Zoom meeting telah diubah\n\n"
-                    . "*Nama Kegiatan*: {$namaKegiatan}\n"
-                    . "*Waktu Baru*: {$waktu}\n\n"
-                    . "Link Zoom tetap sama:\n"
-                    . "🔗 *Join*: " . ($meeting['zoom_join_url'] ?? '-');
+                $message = "*[Meetingku]*\n📝 Jadwal Zoom meeting telah diubah\n\n*Nama Kegiatan*: {$namaKegiatan}\n*Waktu Baru*: {$waktu}\n\nLink Zoom tetap sama:\n🔗 *Join*: " . ($meeting['zoom_join_url'] ?? '-');
             } elseif ($type === 'cancelled') {
-                $message = "*[Meetingku]*\n"
-                    . "❌ Meeting telah dibatalkan\n\n"
-                    . "*Nama Kegiatan*: {$namaKegiatan}\n"
-                    . "*Waktu*: {$waktu}\n\n"
-                    . "Link Zoom sudah tidak berlaku.";
+                $message = "*[Meetingku]*\n❌ Meeting telah dibatalkan\n\n*Nama Kegiatan*: {$namaKegiatan}\n*Waktu*: {$waktu}\n\nLink Zoom sudah tidak berlaku.";
             } else {
                 return;
             }
-
-            $recipients = [];
-            if (!empty($pegawai['no_hp'])) {
-                $recipients[] = $pegawai['no_hp'];
-            } else {
-                $adminTo = env('whatsapp.to');
-                if ($adminTo) {
-                    $recipients[] = $adminTo;
-                }
-            }
-
+            $recipients = !empty($pegawai['no_hp']) ? [$pegawai['no_hp']] : array_filter([(string) env('whatsapp.to')]);
             foreach ($recipients as $to) {
                 $this->sendWhatsAppMessage($to, $message);
             }
