@@ -25,8 +25,8 @@ RUN composer dump-autoload --optimize \
 
 EXPOSE 9000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD php-fpm -t || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD php -r '$socket = @fsockopen("127.0.0.1", 9000, $errno, $error, 3); if (!$socket) { exit(1); } fclose($socket);'
 
 CMD ["php-fpm"]
 
@@ -39,7 +39,7 @@ COPY --from=app /var/www/html/public /var/www/html/public
 
 EXPOSE 80
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -q -O - http://127.0.0.1/healthz >/dev/null || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD wget -q -T 4 -O /dev/null http://127.0.0.1/healthz || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]

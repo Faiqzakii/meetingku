@@ -10,10 +10,17 @@ services:
       SERVICE_FQDN_REVERSE_PROXY_80: ${APP_PROXY_FQDN:?Set APP_PROXY_FQDN in your environment}
     expose:
       - "80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-T", "4", "-O", "/dev/null", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     volumes:
       - writable_data:/var/www/html/writable:ro
     depends_on:
-      - meetingku-app
+      meetingku-app:
+        condition: service_healthy
     networks:
       - coolify
       - meetingku-internal
@@ -27,6 +34,12 @@ services:
       target: app
     image: ${APP_IMAGE:-meetingku-app}:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "php", "-r", "$$socket = @fsockopen('127.0.0.1', 9000, $$errno, $$error, 3); if (!$$socket) { exit(1); } fclose($$socket);"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     environment:
       TZ: ${APP_TZ:-Asia/Makassar}
       CI_ENVIRONMENT: production
@@ -61,6 +74,8 @@ services:
     image: ${APP_IMAGE:-meetingku-app}:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
     command: php spark wa:worker --sleep=3 --limit=20
+    healthcheck:
+      disable: true
     environment:
       TZ: ${APP_TZ:-Asia/Makassar}
       CI_ENVIRONMENT: production
@@ -94,6 +109,8 @@ services:
     image: ${APP_IMAGE:-meetingku-app}:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
     command: php spark wa:daily-summary-scheduler --time=15:00 --sleep=60
+    healthcheck:
+      disable: true
     environment:
       TZ: ${APP_TZ:-Asia/Makassar}
       CI_ENVIRONMENT: production
