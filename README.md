@@ -1,15 +1,15 @@
 # MeetingKu
 
-MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwalkan rapat, mengelola pegawai/ruangan, menyimpan tautan Zoom/manual, serta mengirim notifikasi WhatsApp grup melalui worker dan gateway internal.
+MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwalkan rapat, mengelola pegawai/ruangan, menyimpan tautan Zoom/manual, serta mengirim notifikasi WhatsApp grup melalui worker dan layanan WAHA eksternal.
 
 ## Fitur Utama
 
 - Kalender dan daftar rapat mendatang/semua rapat.
 - CRUD pegawai dan ruangan, termasuk impor pegawai dari spreadsheet.
 - Tautan Zoom/manual meeting dan pengiriman ulang tautan.
-- WhatsApp admin page untuk status koneksi, QR/pairing code, API key, dan antrean pesan.
+- WhatsApp admin page untuk status sesi WAHA, tautan dashboard WAHA, API key MeetingKu, dan antrean pesan.
 - Worker retry WhatsApp dengan backoff dan scheduler pengingat agenda besok pukul 15:00 WITA.
-- Docker Compose untuk PHP-FPM, Nginx reverse proxy, worker, scheduler, dan Node `wa-sender`.
+- Docker Compose untuk PHP-FPM, Nginx reverse proxy, worker, dan scheduler; WAHA dikelola terpisah.
 
 ## Stack
 
@@ -17,7 +17,7 @@ MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwal
 - PHPUnit 10 untuk test.
 - MySQL/MariaDB lokal; PostgreSQL didukung untuk deploy container via env.
 - UI server-rendered PHP views dengan Tailwind CDN, Bootstrap, Font Awesome, FullCalendar.
-- Node.js service `wa-sender` memakai Baileys untuk koneksi WhatsApp internal.
+- WAHA eksternal di `https://waha.kaltarastats.id` untuk pengiriman WhatsApp.
 
 ## Struktur Penting
 
@@ -25,7 +25,6 @@ MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwal
 - `app/Commands` — worker dan scheduler WhatsApp.
 - `app/Database/Migrations` — migrasi tabel WhatsApp.
 - `docker/`, `Dockerfile`, `docker-compose.yml` — deploy container.
-- `wa-sender/` — service Node internal untuk WhatsApp.
 - `writable/` — runtime logs/cache/session/uploads; tidak untuk commit.
 
 ## Setup Lokal
@@ -73,15 +72,22 @@ MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwal
 
 ## WhatsApp Gateway
 
-Untuk fitur WhatsApp lokal, jalankan `wa-sender` terpisah atau gunakan Docker Compose.
+MeetingKu memakai WAHA eksternal di `https://waha.kaltarastats.id`; tidak menjalankan gateway WhatsApp sendiri. Pengelolaan sesi **hanya** dilakukan melalui [dashboard WAHA](https://waha.kaltarastats.id/dashboard), bukan melalui MeetingKu.
 
-Env penting:
+Env backend (lokal di `.env`, deployment di secret/env platform):
 
 ```ini
-WA_SENDER_URL=http://localhost:3001
-WA_SENDER_SECRET=change-me
+WAHA_BASE_URL=https://waha.kaltarastats.id
+WAHA_API_KEY=replace-with-plain-waha-api-token
+WAHA_SESSION=default
 WA_DAILY_SUMMARY_GROUP_ID=120363425375670792@g.us
 ```
+
+`WAHA_API_KEY` wajib berupa **token asli/plain**, bukan hash SHA-512 dari konfigurasi WAHA. `WAHA_BASE_URL` dan `WAHA_SESSION` memiliki default seperti contoh. Key ini berbeda dari API key MeetingKu (`mku_`/`mkwa_`) dan hanya dikirim backend sebagai header `X-Api-Key` ke WAHA; jangan menaruhnya di UI, URL, atau request publik MeetingKu.
+
+Sebelum menjalankan worker, buat/pilih sesi dengan nama persis `WAHA_SESSION` di dashboard WAHA, hubungkan akun WhatsApp di sana, dan pastikan statusnya **`WORKING`**. MeetingKu hanya membaca status dan mengirim teks: tidak membuat, memulai, menghapus, memasangkan, atau me-restart sesi. Halaman WhatsApp MeetingKu menyediakan status dan tautan dashboard; jika base URL diubah, tautan menggunakan `<WAHA_BASE_URL>/dashboard`.
+
+Pastikan host/container app dan worker dapat menjangkau WAHA melalui HTTPS dengan sertifikat TLS valid. Batasi akses API/dashboard WAHA pada jaringan tepercaya/VPN atau allowlist sumber deployment; jangan mengekspos token ke browser. Pertahankan verifikasi TLS dan autentikasi WAHA.
 
 Command aplikasi:
 
@@ -107,7 +113,9 @@ DB_PASSWORD=secret
 DB_DRIVER=Postgre
 DB_PORT=5432
 DB_SCHEMA=public
-WA_SENDER_SECRET=secret-internal
+WAHA_BASE_URL=https://waha.kaltarastats.id
+WAHA_API_KEY=replace-with-plain-waha-api-token
+WAHA_SESSION=default
 WA_DAILY_SUMMARY_GROUP_ID=120363425375670792@g.us
 ```
 
@@ -123,7 +131,43 @@ Service utama:
 - `meetingku-app` — PHP-FPM app.
 - `meetingku-worker` — proses antrean WhatsApp.
 - `meetingku-scheduler` — ringkasan harian.
-- `wa-sender` — service internal WhatsApp.
+
+### Migrasi dari gateway lama ke WAHA
+
+1. Siapkan sesi WAHA melalui dashboard hingga `WORKING`. Auth/session Baileys lama **tidak dimigrasikan**; lakukan pairing/login baru di WAHA.
+2. Ganti `WA_SENDER_URL`/`WA_SENDER_SECRET` dengan konfigurasi `WAHA_*` di secret/env platform. Terapkan nilai yang sama pada app dan worker. Tidak ada migrasi database; antrean, retry/backoff, dan API publik MeetingKu tetap dipakai.
+3. Rebuild/recreate app dan worker agar kode dan environment baru dimuat. Worker merupakan proses panjang; restart/recreate wajib setelah perubahan konfigurasi (restart saja tidak menerapkan environment Compose yang berubah):
+
+   ```bash
+   docker compose up -d --build --force-recreate meetingku-app meetingku-worker
+   docker compose up -d --remove-orphans
+   ```
+
+   Perintah kedua menghentikan dan menghapus container orphan `wa-sender` dari project Compose yang sama, **tanpa menghapus volume auth lama**. Jika gateway dahulu dijalankan terpisah/di project lain, hentikan container tersebut secara eksplisit di platform deployment agar tidak terus berjalan. Jangan gunakan `down -v`, `docker volume prune`, atau hapus direktori auth/session lama saat cutover; simpan untuk kebutuhan operasional/rollback.
+4. Pastikan gateway lama tidak berjalan, halaman WhatsApp menampilkan status WAHA, dan worker memproses antrean yang ada. Compose tidak lagi mendeklarasikan service gateway atau volume auth, tetapi volume lama tetap ada hingga dihapus manual oleh operator.
+
+
+### Healthcheck Coolify
+
+Compose mendeklarasikan healthcheck untuk `reverse-proxy` dan `meetingku-app`:
+
+- `GET /healthz` pada port `80` mengembalikan HTTP `200` dengan body `ok` setelah request melewati Nginx, PHP-FPM, dan bootstrap CodeIgniter. Endpoint publik ini tidak memerlukan login dan tidak memeriksa database atau koneksi WhatsApp.
+- `reverse-proxy` memanggil endpoint tersebut setiap 30 detik, dengan timeout 5 detik, masa startup 30 detik, dan 3 kegagalan sebelum `unhealthy`.
+- `meetingku-app` memeriksa listener PHP-FPM di port `9000`; reverse proxy menunggu status `healthy` sebelum mulai. Pemeriksaan HTTP pada reverse proxy tetap menjadi bukti bahwa aplikasi dapat melayani request.
+- Worker dan scheduler menonaktifkan healthcheck PHP-FPM bawaan image karena keduanya menjalankan proses CLI, bukan FPM. Statusnya tetap berbasis proses; healthcheck ini tidak mengklaim kesehatan pemrosesan antrean.
+
+Setelah perubahan, rebuild dan recreate service di Coolify agar konfigurasi healthcheck diterapkan. Jika menggunakan pengaturan HTTP healthcheck Coolify, pilih method `GET`, path `/healthz`, port `80`, dan expected status `200` pada service `reverse-proxy`. Jangan arahkan probe HTTP ke port FastCGI `9000`.
+
+Verifikasi di server deployment:
+
+```bash
+docker compose config --quiet
+docker compose up -d --build --force-recreate
+docker compose ps
+docker compose exec reverse-proxy wget -q -O - http://127.0.0.1/healthz
+```
+
+Output probe yang diharapkan: `ok`. `unhealthy` tidak otomatis me-restart container; restart policy `unless-stopped` berlaku saat proses container berhenti.
 
 ## Import Data MySQL ke PostgreSQL
 

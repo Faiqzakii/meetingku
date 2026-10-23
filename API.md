@@ -254,6 +254,11 @@ GET /api/rooms
 
 ## WhatsApp Endpoints
 
+Pengiriman tetap melalui antrean dan worker MeetingKu dengan retry/backoff; endpoint, autentikasi, payload, dan status publik di bawah tidak berubah. Provider backend adalah WAHA eksternal. Sesi yang dikonfigurasi harus sudah ada dan berstatus `WORKING`, dengan seluruh pengelolaan/pairing sesi dilakukan di dashboard WAHA, bukan melalui API MeetingKu.
+
+`WAHA_API_KEY` adalah token provider backend (plain token, bukan hash SHA-512), **bukan** API key publik `mkwa_`/`mku_`. Integrator tetap mengirim API key MeetingKu melalui `X-API-KEY`; jangan mengirim atau mengekspos kredensial WAHA ke klien. Konfigurasi dan langkah migrasi operator tersedia di [README.md](README.md#whatsapp-gateway).
+
+
 ### Send WhatsApp Message
 
 ```http
