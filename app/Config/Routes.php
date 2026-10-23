@@ -6,6 +6,9 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 
+// Public liveness probe: framework and PHP, without database or session access.
+$routes->get('healthz', 'HealthController::index');
+
 // Auth Routes
 $routes->get('auth/login', 'AuthController::login');
 $routes->post('auth/login', 'AuthController::attemptLogin');
