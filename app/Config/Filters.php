@@ -34,6 +34,7 @@ class Filters extends BaseConfig
     public array $globals = [
         'before' => [
             'csrf' => ['except' => [
+                'healthz', // Read-only internal HTTP probe must not issue secure CSRF cookies.
                 'auth/logout',
                 'api/whatsapp/messages',
                 'api/whatsapp/messages/*',

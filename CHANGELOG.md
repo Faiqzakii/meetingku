@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Normalize both string message IDs and WEBJS `id._serialized` responses before storing the provider ID, so successful WEBJS sends are not incorrectly retried.
 - Removed the API Keys section and new-key flash display from the WhatsApp admin page; WAHA connection status now spans the page above the queue log. Backend API/key capabilities are unchanged.
 - Refined the WAHA session card with a single semantic connection summary, responsive session details, and a keyboard-visible dashboard action. Working, starting, QR, stopped, failed, unknown, and status-fetch error states are distinct; queue and backend behavior are unchanged.
+- Exclude the read-only `/healthz` route from CSRF cookie generation so internal HTTP probes work with production secure cookies enabled; form CSRF protection remains unchanged.
 
 ### Deployment migration
 - Configure WAHA secrets in the deployment platform, ensure the named session already exists and is `WORKING` via the WAHA dashboard, then rebuild/recreate app and worker. The long-running worker must restart to load code/config; changed Compose environment requires recreation.
