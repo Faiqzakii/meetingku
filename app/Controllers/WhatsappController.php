@@ -3,7 +3,7 @@
 namespace App\Controllers;
 
 use App\Libraries\WaApiKeyService;
-use App\Libraries\WaSenderClient;
+use App\Libraries\WahaClient;
 use App\Models\WaApiKeyModel;
 use App\Models\WaMessageQueueModel;
 use CodeIgniter\Controller;
@@ -12,19 +12,20 @@ class WhatsappController extends Controller
 {
     public function index()
     {
-        $status = ['connected' => false, 'state' => 'unreachable'];
+        $client = new WahaClient();
+        $status = ['status' => 'UNKNOWN'];
         try {
-            $status = (new WaSenderClient())->status();
+            $status = $client->status();
         } catch (\Throwable $e) {
-            $status['error'] = $e->getMessage();
+            $status['error'] = 'Status WhatsApp tidak dapat diambil.';
         }
 
         return view('whatsapp/index', [
             'pageTitle' => 'WhatsApp',
             'status' => $status,
-            'apiKeys' => (new WaApiKeyModel())->orderBy('created_at', 'DESC')->findAll(),
+            'sessionName' => $client->sessionName(),
+            'dashboardUrl' => $client->dashboardUrl(),
             'queue' => (new WaMessageQueueModel())->orderBy('id', 'DESC')->limit(20)->findAll(),
-            'newApiKey' => session()->getFlashdata('newApiKey'),
         ]);
     }
 
@@ -54,38 +55,4 @@ class WhatsappController extends Controller
         return redirect()->to(base_url('whatsapp'))->with('success', 'API key revoked.');
     }
 
-    public function pairingCode()
-    {
-        $phoneNumber = preg_replace('/\D+/', '', (string) $this->request->getPost('phone_number'));
-        if ($phoneNumber === '') {
-            return redirect()->to(base_url('whatsapp'))->with('error', 'Nomor WA wajib diisi.');
-        }
-
-        try {
-            $result = (new WaSenderClient())->requestPairingCode($phoneNumber);
-            return redirect()->to(base_url('whatsapp'))->with('success', 'Pairing code: ' . ($result['pairingCode'] ?? '-'));
-        } catch (\Throwable $e) {
-            return redirect()->to(base_url('whatsapp'))->with('error', $e->getMessage());
-        }
-    }
-
-    public function logout()
-    {
-        try {
-            (new WaSenderClient())->logout();
-            return redirect()->to(base_url('whatsapp'))->with('success', 'WhatsApp logout berhasil.');
-        } catch (\Throwable $e) {
-            return redirect()->to(base_url('whatsapp'))->with('error', $e->getMessage());
-        }
-    }
-
-    public function resetSession()
-    {
-        try {
-            (new WaSenderClient())->resetSession();
-            return redirect()->to(base_url('whatsapp'))->with('success', 'Session WhatsApp direset.');
-        } catch (\Throwable $e) {
-            return redirect()->to(base_url('whatsapp'))->with('error', $e->getMessage());
-        }
-    }
 }

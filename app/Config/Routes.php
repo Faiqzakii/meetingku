@@ -56,9 +56,6 @@ $routes->post('api-keys/(:num)/revoke', 'ApiKeysController::revoke/$1');
 
 // WhatsApp Gateway Routes
 $routes->get('whatsapp', 'WhatsappController::index');
-$routes->post('whatsapp/pairing-code', 'WhatsappController::pairingCode');
-$routes->post('whatsapp/reset-session', 'WhatsappController::resetSession');
-$routes->post('whatsapp/logout', 'WhatsappController::logout');
 $routes->post('whatsapp/api-keys', 'WhatsappController::createApiKey');
 $routes->post('whatsapp/api-keys/(:num)/revoke', 'WhatsappController::revokeApiKey/$1');
 

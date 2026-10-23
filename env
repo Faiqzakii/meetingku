@@ -92,3 +92,14 @@ cookie.secure = false
 cookie.httponly = true
 cookie.samesite = 'Lax'
 
+#--------------------------------------------------------------------
+# WHATSAPP (external WAHA; backend only)
+#--------------------------------------------------------------------
+
+# WAHA_BASE_URL = 'https://waha.kaltarastats.id'
+# WAHA_API_KEY = 'replace-with-plain-waha-api-token'
+# WAHA_SESSION = 'default'
+# Required: WAHA_API_KEY is the plain token, not its SHA-512 hash.
+# Create/connect the session in the WAHA dashboard first; status must be WORKING.
+# Never put this provider key in browser code or public API requests.
+# WA_DAILY_SUMMARY_GROUP_ID = '120363425375670792@g.us'

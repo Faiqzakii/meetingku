@@ -51,8 +51,9 @@ services:
       database.default.DBDriver: ${DB_DRIVER:-Postgre}
       database.default.port: ${DB_PORT:-5432}
       database.default.schema: ${DB_SCHEMA:-public}
-      WA_SENDER_URL: http://wa-sender:3001
-      WA_SENDER_SECRET: ${WA_SENDER_SECRET:?Set WA_SENDER_SECRET in your environment}
+      WAHA_BASE_URL: ${WAHA_BASE_URL:-https://waha.kaltarastats.id}
+      WAHA_API_KEY: ${WAHA_API_KEY:?Set WAHA_API_KEY in your environment}
+      WAHA_SESSION: ${WAHA_SESSION:-default}
       zoom.enabled: ${ZOOM_ENABLED:-false}
       zoom.account_id: ${ZOOM_ACCOUNT_ID:-}
       zoom.client_id: ${ZOOM_CLIENT_ID:-}
@@ -60,8 +61,6 @@ services:
       zoom.password: ${ZOOM_PASSWORD:-bps6500}
     volumes:
       - writable_data:/var/www/html/writable
-    depends_on:
-      - wa-sender
     networks:
       - coolify
       - meetingku-internal
@@ -86,8 +85,9 @@ services:
       database.default.DBDriver: ${DB_DRIVER:-Postgre}
       database.default.port: ${DB_PORT:-5432}
       database.default.schema: ${DB_SCHEMA:-public}
-      WA_SENDER_URL: http://wa-sender:3001
-      WA_SENDER_SECRET: ${WA_SENDER_SECRET:?Set WA_SENDER_SECRET in your environment}
+      WAHA_BASE_URL: ${WAHA_BASE_URL:-https://waha.kaltarastats.id}
+      WAHA_API_KEY: ${WAHA_API_KEY:?Set WAHA_API_KEY in your environment}
+      WAHA_SESSION: ${WAHA_SESSION:-default}
       zoom.enabled: ${ZOOM_ENABLED:-false}
       zoom.account_id: ${ZOOM_ACCOUNT_ID:-}
       zoom.client_id: ${ZOOM_CLIENT_ID:-}
@@ -95,8 +95,6 @@ services:
       zoom.password: ${ZOOM_PASSWORD:-bps6500}
     volumes:
       - writable_data:/var/www/html/writable
-    depends_on:
-      - wa-sender
     networks:
       - coolify
       - meetingku-internal
@@ -133,23 +131,8 @@ services:
       - coolify
       - meetingku-internal
 
-  wa-sender:
-    build: ./wa-sender
-    restart: unless-stopped
-    environment:
-      INTERNAL_WA_SECRET: ${WA_SENDER_SECRET:?Set WA_SENDER_SECRET in your environment}
-      WA_AUTH_DIR: /app/auth_info_baileys/default
-      LOG_LEVEL: info
-    volumes:
-      - wa_auth:/app/auth_info_baileys
-    expose:
-      - "3001"
-    networks:
-      - meetingku-internal
-
 volumes:
   writable_data:
-  wa_auth:
 
 networks:
   coolify:

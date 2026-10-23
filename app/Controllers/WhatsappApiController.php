@@ -27,7 +27,10 @@ class WhatsappApiController extends ResourceController
         }
 
         $payload = $this->request->getJSON(true) ?: $this->request->getPost();
-        $to = preg_replace('/[^0-9@g\.us-]/', '', (string) ($payload['to'] ?? ''));
+        $to = trim((string) ($payload['to'] ?? ''));
+        if (!preg_match('/^(?:[0-9]+@(?:c\.us|s\.whatsapp\.net)|[0-9-]+@g\.us)$/', $to)) {
+            $to = preg_replace('/[^0-9@g\.us-]/', '', $to);
+        }
         $message = trim((string) ($payload['message'] ?? ''));
 
         if ($to === '' || $message === '') {

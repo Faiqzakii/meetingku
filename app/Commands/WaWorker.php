@@ -2,7 +2,7 @@
 
 namespace App\Commands;
 
-use App\Libraries\WaSenderClient;
+use App\Libraries\WahaClient;
 use App\Libraries\WaRetrySchedule;
 use App\Models\WaMessageQueueModel;
 use CodeIgniter\CLI\BaseCommand;
@@ -36,7 +36,7 @@ class WaWorker extends BaseCommand
     {
         $db = db_connect();
         $queueModel = new WaMessageQueueModel();
-        $client = new WaSenderClient();
+        $client = new WahaClient();
         $processed = 0;
 
         $db->transStart();
@@ -69,7 +69,7 @@ class WaWorker extends BaseCommand
                 $queueModel->update($row['id'], [
                     'status' => 'sent',
                     'sent_at' => date('Y-m-d H:i:s'),
-                    'provider_message_id' => (string) ($result['messageId'] ?? ''),
+                    'provider_message_id' => $result['id'],
                     'last_error' => null,
                 ]);
             } catch (\Throwable $e) {
