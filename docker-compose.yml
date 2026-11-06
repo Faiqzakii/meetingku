@@ -51,9 +51,10 @@ services:
       database.default.DBDriver: ${DB_DRIVER:-Postgre}
       database.default.port: ${DB_PORT:-5432}
       database.default.schema: ${DB_SCHEMA:-public}
-      WAHA_BASE_URL: ${WAHA_BASE_URL:-https://waha.kaltarastats.id}
-      WAHA_API_KEY: ${WAHA_API_KEY:?Set WAHA_API_KEY in your environment}
-      WAHA_SESSION: ${WAHA_SESSION:-default}
+      GOWA_BASE_URL: ${GOWA_BASE_URL:-https://gowa.kaltarastats.id}
+      GOWA_USERNAME: ${GOWA_USERNAME:?Set GOWA_USERNAME in your environment}
+      GOWA_PASSWORD: ${GOWA_PASSWORD:?Set GOWA_PASSWORD in your environment}
+      GOWA_DEVICE_ID: ${GOWA_DEVICE_ID:-Meetingku}
       zoom.enabled: ${ZOOM_ENABLED:-false}
       zoom.account_id: ${ZOOM_ACCOUNT_ID:-}
       zoom.client_id: ${ZOOM_CLIENT_ID:-}
@@ -85,9 +86,10 @@ services:
       database.default.DBDriver: ${DB_DRIVER:-Postgre}
       database.default.port: ${DB_PORT:-5432}
       database.default.schema: ${DB_SCHEMA:-public}
-      WAHA_BASE_URL: ${WAHA_BASE_URL:-https://waha.kaltarastats.id}
-      WAHA_API_KEY: ${WAHA_API_KEY:?Set WAHA_API_KEY in your environment}
-      WAHA_SESSION: ${WAHA_SESSION:-default}
+      GOWA_BASE_URL: ${GOWA_BASE_URL:-https://gowa.kaltarastats.id}
+      GOWA_USERNAME: ${GOWA_USERNAME:?Set GOWA_USERNAME in your environment}
+      GOWA_PASSWORD: ${GOWA_PASSWORD:?Set GOWA_PASSWORD in your environment}
+      GOWA_DEVICE_ID: ${GOWA_DEVICE_ID:-Meetingku}
       zoom.enabled: ${ZOOM_ENABLED:-false}
       zoom.account_id: ${ZOOM_ACCOUNT_ID:-}
       zoom.client_id: ${ZOOM_CLIENT_ID:-}

@@ -30,7 +30,6 @@ class ImportMysqlDumpToPostgres extends BaseCommand
         'ruangan',
         'meeting',
         'wa_settings',
-        'wa_api_keys',
         'wa_message_queue',
     ];
 
@@ -220,11 +219,23 @@ class ImportMysqlDumpToPostgres extends BaseCommand
             return null;
         }
 
-        return [
-            'table' => $matches[1],
-            'columns' => array_map(static fn (string $column): string => trim($column, " `\t\n\r\0\x0B"), explode(',', $matches[2])),
-            'rows' => $this->parseValuesList($matches[3]),
-        ];
+        $table = $matches[1];
+        $columns = array_map(static fn (string $column): string => trim($column, " `\t\n\r\0\x0B"), explode(',', $matches[2]));
+        $rows = $this->parseValuesList($matches[3]);
+
+        // Legacy queue dumps contain a credential association removed from the current schema.
+        if ($table === 'wa_message_queue') {
+            $keyIndex = array_search('api_key_id', $columns, true);
+            if ($keyIndex !== false) {
+                array_splice($columns, $keyIndex, 1);
+                foreach ($rows as &$row) {
+                    array_splice($row, $keyIndex, 1);
+                }
+                unset($row);
+            }
+        }
+
+        return ['table' => $table, 'columns' => $columns, 'rows' => $rows];
     }
 
     /** @return list<list<mixed>> */

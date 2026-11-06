@@ -1116,7 +1116,6 @@ class MeetingController extends Controller
         ?string $scheduledAt = null
     ): bool {
         $queueId = (new WaMessageQueueModel())->insert([
-            'api_key_id'       => null,
             'to_number'        => $to,
             'message'          => $message,
             'meta_kind'        => $meta['meta_kind'] ?? null,

@@ -1,15 +1,15 @@
 # MeetingKu
 
-MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwalkan rapat, mengelola pegawai/ruangan, menyimpan tautan Zoom/manual, serta mengirim notifikasi WhatsApp grup melalui worker dan layanan WAHA eksternal.
+MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwalkan rapat, mengelola pegawai/ruangan, menyimpan tautan Zoom/manual, serta mengirim notifikasi WhatsApp grup melalui worker dan layanan GOWA eksternal.
 
 ## Fitur Utama
 
 - Kalender dan daftar rapat mendatang/semua rapat.
 - CRUD pegawai dan ruangan, termasuk impor pegawai dari spreadsheet.
 - Tautan Zoom/manual meeting dan pengiriman ulang tautan.
-- WhatsApp admin page untuk status sesi WAHA, tautan dashboard WAHA, API key MeetingKu, dan antrean pesan.
+- WhatsApp admin page untuk status perangkat GOWA, tautan dashboard GOWA, dan riwayat antrean pesan.
 - Worker retry WhatsApp dengan backoff dan scheduler pengingat agenda besok pukul 15:00 WITA.
-- Docker Compose untuk PHP-FPM, Nginx reverse proxy, worker, dan scheduler; WAHA dikelola terpisah.
+- Docker Compose untuk PHP-FPM, Nginx reverse proxy, worker, dan scheduler; GOWA dikelola terpisah.
 
 ## Stack
 
@@ -17,7 +17,7 @@ MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwal
 - PHPUnit 10 untuk test.
 - MySQL/MariaDB lokal; PostgreSQL didukung untuk deploy container via env.
 - UI server-rendered PHP views dengan Tailwind CDN, Bootstrap, Font Awesome, FullCalendar.
-- WAHA eksternal di `https://waha.kaltarastats.id` untuk pengiriman WhatsApp.
+- GOWA eksternal di `https://gowa.kaltarastats.id`, device ID `Meetingku`, untuk pengiriman WhatsApp.
 
 ## Struktur Penting
 
@@ -56,7 +56,7 @@ MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwal
    database.default.port = 3306
    ```
 
-4. Jalankan migrasi jika memakai schema baru:
+4. Jalankan migrasi (backup database terlebih dahulu untuk upgrade instalasi lama; lihat catatan breaking change di bawah):
 
    ```bash
    php spark migrate
@@ -72,22 +72,23 @@ MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwal
 
 ## WhatsApp Gateway
 
-MeetingKu memakai WAHA eksternal di `https://waha.kaltarastats.id`; tidak menjalankan gateway WhatsApp sendiri. Pengelolaan sesi **hanya** dilakukan melalui [dashboard WAHA](https://waha.kaltarastats.id/dashboard), bukan melalui MeetingKu.
+MeetingKu memakai GOWA eksternal di `https://gowa.kaltarastats.id` dengan device ID **`Meetingku`** (peka huruf besar/kecil). Pengelolaan perangkat dan pairing dilakukan melalui [dashboard GOWA](https://gowa.kaltarastats.id/).
 
 Env backend (lokal di `.env`, deployment di secret/env platform):
 
 ```ini
-WAHA_BASE_URL=https://waha.kaltarastats.id
-WAHA_API_KEY=replace-with-plain-waha-api-token
-WAHA_SESSION=default
+GOWA_BASE_URL=https://gowa.kaltarastats.id
+GOWA_USERNAME=replace-with-gowa-basic-auth-username
+GOWA_PASSWORD=replace-with-gowa-basic-auth-password
+GOWA_DEVICE_ID=Meetingku
 WA_DAILY_SUMMARY_GROUP_ID=120363425375670792@g.us
 ```
 
-`WAHA_API_KEY` wajib berupa **token asli/plain**, bukan hash SHA-512 dari konfigurasi WAHA. `WAHA_BASE_URL` dan `WAHA_SESSION` memiliki default seperti contoh. Key ini berbeda dari API key MeetingKu (`mku_`/`mkwa_`) dan hanya dikirim backend sebagai header `X-Api-Key` ke WAHA; jangan menaruhnya di UI, URL, atau request publik MeetingKu.
+`GOWA_USERNAME` dan `GOWA_PASSWORD` wajib diisi dengan kredensial **HTTP Basic Auth GOWA**. Keduanya dikirim backend melalui autentikasi HTTP, bukan token WAHA atau API key MeetingKu. Jangan menaruh kredensial di UI, URL, log, atau request publik MeetingKu. `GOWA_BASE_URL` dan `GOWA_DEVICE_ID` memiliki default seperti contoh; konfigurasi `WAHA_*` tidak lagi digunakan. URL harus HTTPS tanpa username/password, query, atau fragment; jika server memakai base path, sertakan pada `GOWA_BASE_URL`.
 
-Sebelum menjalankan worker, buat/pilih sesi dengan nama persis `WAHA_SESSION` di dashboard WAHA, hubungkan akun WhatsApp di sana, dan pastikan statusnya **`WORKING`**. MeetingKu hanya membaca status dan mengirim teks: tidak membuat, memulai, menghapus, memasangkan, atau me-restart sesi. Halaman WhatsApp MeetingKu menyediakan status dan tautan dashboard; jika base URL diubah, tautan menggunakan `<WAHA_BASE_URL>/dashboard`.
+Sebelum menjalankan worker, pastikan perangkat `Meetingku` sudah login dan terhubung di dashboard GOWA. MeetingKu membaca `GET /app/status` dan mengirim teks melalui `POST /send/message` dengan payload `phone` dan `message`; kedua request selalu memakai header **`X-Device-Id: Meetingku`** (atau nilai `GOWA_DEVICE_ID`). Pemilihan perangkat di browser GOWA tidak mengatur perangkat untuk worker. Status siap kirim memerlukan `is_connected=true` dan `is_logged_in=true`. ID dari `results.message_id` disimpan sebagai ID provider dalam antrean. Nomor personal menggunakan `@s.whatsapp.net` (tujuan lama `@c.us` dikonversi), sedangkan ID grup `@g.us` dipertahankan. Lihat [kontrak API resmi GOWA](https://github.com/aldinokemal/go-whatsapp-web-multidevice/blob/main/docs/openapi.yaml).
 
-Pastikan host/container app dan worker dapat menjangkau WAHA melalui HTTPS dengan sertifikat TLS valid. Batasi akses API/dashboard WAHA pada jaringan tepercaya/VPN atau allowlist sumber deployment; jangan mengekspos token ke browser. Pertahankan verifikasi TLS dan autentikasi WAHA.
+MeetingKu hanya membaca status dan mengirim teks; pengelolaan perangkat tetap di dashboard eksternal. Tautan dashboard menggunakan `<GOWA_BASE_URL>/`. Pastikan app dan worker dapat menjangkau GOWA melalui HTTPS dengan sertifikat TLS valid, dan batasi akses API/dashboard pada jaringan tepercaya/VPN atau allowlist sumber deployment.
 
 Command aplikasi:
 
@@ -113,9 +114,10 @@ DB_PASSWORD=secret
 DB_DRIVER=Postgre
 DB_PORT=5432
 DB_SCHEMA=public
-WAHA_BASE_URL=https://waha.kaltarastats.id
-WAHA_API_KEY=replace-with-plain-waha-api-token
-WAHA_SESSION=default
+GOWA_BASE_URL=https://gowa.kaltarastats.id
+GOWA_USERNAME=replace-with-gowa-basic-auth-username
+GOWA_PASSWORD=replace-with-gowa-basic-auth-password
+GOWA_DEVICE_ID=Meetingku
 WA_DAILY_SUMMARY_GROUP_ID=120363425375670792@g.us
 ```
 
@@ -132,19 +134,44 @@ Service utama:
 - `meetingku-worker` — proses antrean WhatsApp.
 - `meetingku-scheduler` — ringkasan harian.
 
-### Migrasi dari gateway lama ke WAHA
+Keempat service tersebut masih diperlukan dan tetap aktif setelah penghapusan API inbound. Tidak ada container tambahan yang perlu dihapus untuk perubahan ini; pertahankan volume `writable_data` dan volume/direktori auth lama.
 
-1. Siapkan sesi WAHA melalui dashboard hingga `WORKING`. Auth/session Baileys lama **tidak dimigrasikan**; lakukan pairing/login baru di WAHA.
-2. Ganti `WA_SENDER_URL`/`WA_SENDER_SECRET` dengan konfigurasi `WAHA_*` di secret/env platform. Terapkan nilai yang sama pada app dan worker. Tidak ada migrasi database; antrean, retry/backoff, dan API publik MeetingKu tetap dipakai.
+### Penghapusan API inbound dan API key MeetingKu
+
+**Breaking change:** seluruh API inbound meeting, ruangan, dan pesan/antrean WhatsApp beserta pengelolaan key MeetingKu telah dihapus. Endpoint lama tidak dijadikan publik tanpa autentikasi dan tidak memiliki pengganti publik. Hentikan integrasi pemanggil API lama sebelum upgrade. UI CRUD meeting/ruangan, Zoom, notifikasi internal, status/dashboard GOWA, antrean/riwayat, worker, scheduler, dan `/healthz` tetap tersedia.
+
+1. Jadwalkan maintenance dan hentikan penulisan melalui UI serta proses worker/scheduler sementara. Backup database lengkap (schema dan data) sebelum migrasi; simpan backup secara aman di luar repository. Pastikan backup dapat dipulihkan, termasuk tabel `wa_api_keys` dan relasi antrean lama. Jangan commit dump atau kredensial.
+2. Deploy kode/image baru tanpa menjalankan kode lama bersamaan saat schema berubah. Jalankan migrasi menggunakan konfigurasi database target:
+
+   ```bash
+   php spark migrate
+   ```
+
+   Untuk Compose, setelah image baru dibangun, jalankan migrasi dari service app dengan environment deployment:
+
+   ```bash
+   docker compose build
+   docker compose run --rm --no-deps meetingku-app php spark migrate
+   docker compose up -d --force-recreate
+   ```
+
+3. Migrasi baru `2026-10-23-000001_RemoveWhatsappApiKeys.php` menghapus foreign key `wa_message_queue.api_key_id`, kolom tersebut, lalu tabel `wa_api_keys`. Baris antrean/riwayat, status retry, dan `wa_settings` dipertahankan. Kredensial key dan asosiasi key ke antrean yang dihapus **tidak dapat dipulihkan tanpa backup pra-migrasi**. Simpan `GOWA_USERNAME` dan `GOWA_PASSWORD` di secret/env platform untuk pengiriman outbound dan pembacaan status GOWA.
+4. Aktifkan kembali akses UI dan keempat service. Periksa login/CRUD, halaman WhatsApp, pemrosesan antrean, scheduler, dan `/healthz` setelah deployment. Penghapusan API tidak memerlukan penghapusan container atau volume.
+
+**Rollback:** `down()` migrasi hanya membuat ulang schema key kosong dan kolom/FK antrean yang nullable; tidak mengembalikan key maupun asosiasi sebelumnya. Rollback schema saja juga tidak mengembalikan route API yang dihapus. Untuk pemulihan penuh, hentikan penulisan/worker/scheduler, pulihkan backup pra-upgrade yang sesuai, lalu deploy kode lama yang cocok dengan schema tersebut. Restore backup mengembalikan antrean ke keadaan saat backup; rekonsiliasi pesan yang sudah terkirim sejak backup sebelum menyalakan worker agar tidak terjadi pengiriman ulang. Simpan volume auth/session; jangan gunakan `down -v` atau volume pruning.
+
+### Migrasi dari WAHA ke GOWA
+
+1. Pastikan device ID `Meetingku` sudah login dan terhubung di dashboard GOWA. Sesi/auth WAHA tidak dipindahkan oleh aplikasi.
+2. Hentikan worker sementara dan tunggu pengiriman aktif selesai. Ganti `WAHA_*` dengan `GOWA_BASE_URL`, `GOWA_USERNAME`, `GOWA_PASSWORD`, dan `GOWA_DEVICE_ID` di secret/env platform. Terapkan nilai yang sama pada app dan worker. Pergantian provider sendiri tidak memerlukan migrasi database; jika penghapusan API/key belum diterapkan, migrasi terpisah di atas **tetap wajib**. Antrean, riwayat, dan retry/backoff tetap dipakai. Jangan menjalankan worker WAHA dan GOWA bersamaan pada antrean yang sama.
 3. Rebuild/recreate app dan worker agar kode dan environment baru dimuat. Worker merupakan proses panjang; restart/recreate wajib setelah perubahan konfigurasi (restart saja tidak menerapkan environment Compose yang berubah):
 
    ```bash
    docker compose up -d --build --force-recreate meetingku-app meetingku-worker
-   docker compose up -d --remove-orphans
    ```
 
-   Perintah kedua menghentikan dan menghapus container orphan `wa-sender` dari project Compose yang sama, **tanpa menghapus volume auth lama**. Jika gateway dahulu dijalankan terpisah/di project lain, hentikan container tersebut secara eksplisit di platform deployment agar tidak terus berjalan. Jangan gunakan `down -v`, `docker volume prune`, atau hapus direktori auth/session lama saat cutover; simpan untuk kebutuhan operasional/rollback.
-4. Pastikan gateway lama tidak berjalan, halaman WhatsApp menampilkan status WAHA, dan worker memproses antrean yang ada. Compose tidak lagi mendeklarasikan service gateway atau volume auth, tetapi volume lama tetap ada hingga dihapus manual oleh operator.
+   Tidak perlu menghapus container gateway eksternal atau volume. Pertahankan keempat service Compose. Jika orphan `wa-sender` dari cutover Baileys terdahulu masih ada, tinjau daftar orphan sebelum menghentikan/menghapus hanya orphan tersebut dan simpan volume/direktori auth lama. Jangan gunakan `down -v` atau volume pruning.
+4. Pastikan halaman WhatsApp menampilkan `CONNECTED` untuk device ID `Meetingku`, kemudian periksa pemrosesan antrean dan scheduler. Pengiriman nyata harus diverifikasi pada lingkungan deployment dengan kredensial GOWA. Untuk rollback provider, hentikan worker GOWA, kembalikan kode/konfigurasi WAHA yang sesuai, dan rekonsiliasi pesan yang sudah terkirim sebelum memulai antrean kembali.
 
 
 ### Healthcheck Coolify
@@ -223,7 +250,7 @@ Gunakan saat aplikasi lama masih memakai MySQL dan deployment baru memakai Postg
 
 Catatan:
 
-- Command hanya membaca `INSERT` untuk tabel MeetingKu yang dikenal: `pegawai`, `ruangan`, `meeting`, `wa_settings`, `wa_api_keys`, `wa_message_queue`.
+- Command hanya mengimpor `INSERT` untuk tabel aktif MeetingKu: `pegawai`, `ruangan`, `meeting`, `wa_settings`, `wa_message_queue`. Tabel lama `wa_api_keys` tidak diimpor dan kolom lama `wa_message_queue.api_key_id` diabaikan; backup lama tetap sensitif karena dapat berisi data kredensial key.
 - `--truncate` menghapus isi tabel target dulu; jangan pakai jika target sudah berisi data baru.
 - ID lama dipertahankan dan sequence PostgreSQL di-reset setelah import.
 - Database target selalu dari konfigurasi CodeIgniter/`.env`; tidak perlu tulis password di command.
@@ -241,27 +268,13 @@ Atau:
 vendor/bin/phpunit -c phpunit.xml.dist
 ```
 
-## Public API
+## API Inbound Dihapus
 
-MeetingKu menyediakan REST API untuk integrasi eksternal:
-
-- **Autentikasi:** Header `X-API-KEY` (wajib, tidak bisa via query parameter)
-- **Rate Limiting:** 60 request per menit per IP
-- **Endpoints:** CRUD meetings, rooms, WhatsApp messages
-
-Dokumentasi lengkap: [API.md](API.md)
-
-Contoh quick start:
-```bash
-curl -H "X-API-KEY: mku_your_key_here" \
-  https://meetingku.example.com/api/meetings
-```
+API meeting, ruangan, dan pesan WhatsApp serta penerbitan/pengelolaan API key MeetingKu telah dihapus sepenuhnya, bukan dibuka tanpa autentikasi. Gunakan UI yang memerlukan login untuk pengelolaan aplikasi. [API.md](API.md) kini hanya berisi pemberitahuan penghentian; lihat [prosedur upgrade dan rollback](#penghapusan-api-inbound-dan-api-key-meetingku) sebelum deployment. Integrasi outbound GOWA memakai HTTP Basic Auth backend.
 
 ## Catatan Keamanan
 
 - Jangan commit `.env`, session, log, cache, zip build, atau kredensial deploy.
 - Public webroot harus `public/`, bukan root project.
-- API key WhatsApp dan Meeting hanya untuk integrasi tepercaya; rotasi jika pernah terekspos.
-- API key **hanya** via header `X-API-KEY`, tidak bisa via URL query parameter.
+- `GOWA_USERNAME` dan `GOWA_PASSWORD` adalah kredensial outbound backend; rotasi jika terekspos dan jangan tampilkan di browser, URL, atau log.
 - Pastikan `writable/` bisa ditulis runtime tetapi tidak dipublikasikan langsung.
-- Failed API auth attempts di-log dengan IP address.

@@ -39,7 +39,6 @@ class WaDailySummary extends BaseCommand
 
         $message = WaDailySummaryFormatter::format($date, $meetings);
         $queueId = (new WaMessageQueueModel())->insert([
-            'api_key_id' => null,
             'to_number' => $groupId,
             'message' => $message,
             'status' => 'pending',

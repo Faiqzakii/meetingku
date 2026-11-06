@@ -4,10 +4,10 @@
 - CodeIgniter 4 app lives in `app/` (`Controllers`, `Models`, `Views`, `Config`, `Commands`, `Database/Migrations`).
 - Public webroot is `public/`; configure web server/Nginx to point here only.
 - Runtime state belongs in `writable/` and `public/writable/`; do not commit logs/cache/session/uploads.
-- WhatsApp queue/worker and external WAHA adapter live in PHP (`app/Commands`, `app/Libraries`, `app/Models`); no bundled gateway is deployed.
+- WhatsApp queue/worker and external GOWA adapter live in PHP (`app/Commands`, `app/Libraries`, `app/Models`); no bundled gateway is deployed.
 - Deploy assets live in `Dockerfile`, `docker-compose.yml`, and `docker/nginx/`.
 - Tests live in `tests/`; project-specific unit tests are under `tests/unit/`.
-- API documentation in `API.md`; README.md for general overview; AGENTS.md for dev guidelines.
+- `API.md` is a retirement notice, not an endpoint reference; README.md covers operation and breaking upgrade/rollback steps; AGENTS.md covers dev guidelines.
 
 ## Build, Test, and Development Commands
 - `composer install` — install PHP dependencies.
@@ -23,15 +23,18 @@
 - Use PSR-4 namespaces: `App\` for `app/`, `Config\` for `app/Config/`.
 - Classes use `PascalCase`; methods and variables use `camelCase`.
 - Keep views in `app/Views/`; prefer small controller methods and model/library helpers for reusable logic.
-- Keep WAHA integration in `App\Libraries\WahaClient`; session management belongs only in the external WAHA dashboard. Do not add automatic session creation/start/delete or browser-side provider calls.
+- Keep GOWA integration in `App\Libraries\GowaClient`; device/session management belongs only in the external GOWA dashboard. Do not add automatic device/session creation/start/delete or browser-side provider calls. Every provider request must explicitly select `GOWA_DEVICE_ID` with `X-Device-Id`.
+- MeetingKu has no inbound meeting/rooms/WhatsApp API or API-key management. Do not restore removed routes, key services, filters, or unauthenticated replacements. Meeting/room CRUD uses the authenticated UI; internal notifications and the WhatsApp queue/worker/scheduler remain active.
 
 ## Configuration & Secrets
 - Use `env` as template; local secrets go in `.env` only.
-- Required deploy env includes `APP_BASE_URL`, DB settings, and `WAHA_API_KEY` (plain WAHA token, not SHA-512 hash). `WAHA_BASE_URL` defaults to `https://waha.kaltarastats.id`, `WAHA_SESSION` to `default`; `WA_DAILY_SUMMARY_GROUP_ID` is optional. App and worker need the same WAHA settings.
+- Required deploy env includes `APP_BASE_URL`, DB settings, and `GOWA_USERNAME`/`GOWA_PASSWORD` (HTTP Basic Auth). `GOWA_BASE_URL` defaults to `https://gowa.kaltarastats.id`, `GOWA_DEVICE_ID` to case-sensitive `Meetingku`; `WA_DAILY_SUMMARY_GROUP_ID` is optional. App and worker need the same GOWA settings. `WAHA_*` is no longer used.
 - Do not commit `.env`, generated sessions, logs, cache, upload contents, zip archives, or local tool context.
 - Database config supports `database.defaultGroup`, `database.*.schema`, and development overrides.
-- WAHA session must already exist and be `WORKING`; connect it through `<WAHA_BASE_URL>/dashboard`. Old Baileys auth is not migrated. Recreate/restart the long-running worker after code/config changes; recreate it when Compose environment changes.
-- During cutover stop/remove the old gateway orphan (`docker compose up -d --remove-orphans` for the same project), but preserve old auth volumes/directories. Never use `down -v` or volume pruning as a migration step. No database migration is required for this provider switch.
+- GOWA device must already exist and have both `is_connected` and `is_logged_in` true; connect it through `<GOWA_BASE_URL>/`. Old WAHA/Baileys auth is not migrated. Recreate/restart the long-running worker after code/config changes; recreate it when Compose environment changes.
+- For the earlier provider cutover only, stop/remove an existing old `wa-sender` orphan after reviewing the orphan list; preserve old auth volumes/directories. If already retired, no further container deletion is needed. All four Compose services (proxy, app, worker, scheduler) remain necessary. Never use `down -v` or volume pruning as a migration step.
+- API removal requires `php spark migrate`: `2026-10-23-000001_RemoveWhatsappApiKeys.php` drops the queue key FK/column and `wa_api_keys`, preserving queue/history and `wa_settings`. Back up the full database before upgrade, quiesce writers/worker/scheduler during cutover, and recreate services with the new code afterward. Historical migrations must remain unchanged.
+- Migration rollback restores only empty key schema and a nullable queue key FK/column, not credentials or prior associations. These are unrecoverable without a pre-upgrade backup. Full rollback needs matching old code plus that backup; reconcile already-sent messages before restarting the restored queue. See README for deployment steps.
 
 ## Testing Guidelines
 - Add focused tests for library/worker behavior under `tests/unit/`.
@@ -48,9 +51,6 @@
 ## Security Notes
 - Public document root must remain `public/`.
 - Validate all request input; keep CSRF protections enabled for forms.
-- Treat MeetingKu API keys and `WAHA_API_KEY` as credentials; rotate after exposure. Provider credentials must remain backend-only and never appear in views, URLs, logs, or public API requests/responses.
-- Use valid TLS for WAHA and restrict API/dashboard access to trusted networks/VPN or deployment source allowlists. `/healthz` intentionally does not check WAHA connectivity; inspect the WhatsApp status page separately.
-- API keys (Meeting & WhatsApp) only accepted via `X-API-KEY` header, never query parameters.
-- API routes have rate limiting (60 req/min) via Throttler filter.
-- Failed API auth attempts are logged with IP address.
+- Treat `GOWA_USERNAME`/`GOWA_PASSWORD` as outbound provider credentials; rotate after exposure. They are not inbound MeetingKu API keys. Keep them backend-only and never expose them in views, URLs, logs, or browser requests/responses. Old database backups may contain removed MeetingKu key credentials and remain sensitive.
+- Use valid TLS for GOWA and restrict API/dashboard access to trusted networks/VPN or deployment source allowlists. `/healthz` intentionally does not check GOWA connectivity; inspect the WhatsApp status page separately.
 - Error responses use generic messages; never expose internal details to clients.

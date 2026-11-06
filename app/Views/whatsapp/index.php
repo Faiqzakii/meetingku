@@ -60,22 +60,20 @@
     $state = is_string($status['status'] ?? null) && trim($status['status']) !== '' ? $status['status'] : 'UNKNOWN';
     $hasStatusError = !empty($status['error']);
     $sessionStates = [
-        'WORKING' => ['success', 'fa-circle-check', 'WhatsApp terhubung', 'Session siap digunakan untuk mengirim pesan dari antrean.'],
-        'STARTING' => ['warning', 'fa-hourglass-half', 'Session sedang dimulai', 'WhatsApp belum siap mengirim pesan. Periksa kembali status setelah proses inisialisasi selesai.'],
-        'SCAN_QR_CODE' => ['warning', 'fa-qrcode', 'Menunggu pemindaian QR', 'Buka dashboard WAHA dan pindai kode QR untuk menghubungkan akun WhatsApp.'],
-        'FAILED' => ['danger', 'fa-circle-xmark', 'Koneksi session gagal', 'WhatsApp belum siap mengirim pesan. Periksa session dan sambungkan ulang melalui dashboard WAHA.'],
-        'STOPPED' => ['neutral', 'fa-circle-stop', 'Session berhenti', 'Jalankan session melalui dashboard WAHA sebelum mengirim pesan.'],
+        'CONNECTED' => ['success', 'fa-circle-check', 'WhatsApp terhubung', 'Perangkat siap digunakan untuk mengirim pesan dari antrean.'],
+        'DISCONNECTED' => ['warning', 'fa-plug-circle-xmark', 'WhatsApp terputus', 'Perangkat sudah login tetapi belum terhubung. Periksa koneksi melalui dashboard GOWA.'],
+        'NOT_LOGGED_IN' => ['warning', 'fa-qrcode', 'Perangkat belum login', 'Pilih perangkat ini di dashboard GOWA dan pindai kode QR untuk menghubungkan akun WhatsApp.'],
     ];
     [$sessionTone, $sessionIcon, $sessionTitle, $sessionDescription] = $hasStatusError
-        ? ['danger', 'fa-triangle-exclamation', 'Status koneksi belum dapat diperiksa', 'MeetingKu tidak dapat memastikan koneksi WhatsApp. Periksa layanan dan session melalui dashboard WAHA.']
-        : ($sessionStates[$state] ?? ['neutral', 'fa-circle-question', 'Status session belum dikenali', 'Kesiapan pengiriman belum dapat dipastikan. Periksa status session melalui dashboard WAHA.']);
+        ? ['danger', 'fa-triangle-exclamation', 'Status koneksi belum dapat diperiksa', 'MeetingKu tidak dapat memastikan koneksi WhatsApp. Periksa layanan dan perangkat melalui dashboard GOWA.']
+        : ($sessionStates[$state] ?? ['neutral', 'fa-circle-question', 'Status perangkat belum dikenali', 'Kesiapan pengiriman belum dapat dipastikan. Periksa status perangkat melalui dashboard GOWA.']);
 ?>
 <div class="wa-page">
     <section class="wa-hero">
         <div>
             <p class="wa-eyebrow">Admin · WhatsApp</p>
             <h1 class="wa-title">WhatsApp Gateway</h1>
-            <p class="wa-subtitle">Pantau status WhatsApp dan antrean pengiriman pesan. Pengelolaan session dilakukan di dashboard WAHA.</p>
+            <p class="wa-subtitle">Pantau status WhatsApp dan antrean pengiriman pesan. Pengelolaan perangkat dilakukan di dashboard GOWA.</p>
         </div>
     </section>
 
@@ -88,7 +86,7 @@
                 <span class="wa-session-mark"><i class="fab fa-whatsapp" aria-hidden="true"></i></span>
                 <div>
                     <h2 class="wa-card-title" id="wa-session-title">Koneksi WhatsApp</h2>
-                    <p class="wa-card-desc">Session WAHA</p>
+                    <p class="wa-card-desc">Perangkat GOWA</p>
                 </div>
             </div>
             <span class="wa-session-status is-<?= esc($sessionTone, 'attr') ?>">
@@ -102,8 +100,8 @@
                 <p><?= esc($sessionDescription) ?></p>
             </div>
             <dl class="wa-session-detail">
-                <dt>Nama session</dt>
-                <dd><code><?= esc($sessionName) ?></code></dd>
+                <dt>ID perangkat</dt>
+                <dd><code><?= esc($deviceId) ?></code></dd>
             </dl>
         </div>
         <?php if ($hasStatusError): ?>
@@ -113,10 +111,12 @@
             </div>
         <?php endif; ?>
         <div class="wa-session-footer">
-            <p>Login, pindai QR, dan kelola session di dashboard WAHA. Status diperiksa saat halaman dimuat.</p>
-            <a class="btn btn-secondary wa-dashboard-link" href="<?= esc($dashboardUrl, 'attr') ?>" target="_blank" rel="noopener noreferrer" aria-label="Buka dashboard WAHA (tab baru)">
-                Buka dashboard WAHA <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+            <p>Login, pindai QR, dan kelola perangkat di dashboard GOWA. Status diperiksa saat halaman dimuat.</p>
+            <?php if ($dashboardUrl !== null): ?>
+            <a class="btn btn-secondary wa-dashboard-link" href="<?= esc($dashboardUrl, 'attr') ?>" target="_blank" rel="noopener noreferrer" aria-label="Buka dashboard GOWA (tab baru)">
+                Buka dashboard GOWA <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
             </a>
+            <?php endif; ?>
         </div>
     </section>
 

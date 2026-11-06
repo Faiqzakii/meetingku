@@ -93,13 +93,16 @@ cookie.httponly = true
 cookie.samesite = 'Lax'
 
 #--------------------------------------------------------------------
-# WHATSAPP (external WAHA; backend only)
+# WHATSAPP (external GOWA; backend only)
 #--------------------------------------------------------------------
 
-# WAHA_BASE_URL = 'https://waha.kaltarastats.id'
-# WAHA_API_KEY = 'replace-with-plain-waha-api-token'
-# WAHA_SESSION = 'default'
-# Required: WAHA_API_KEY is the plain token, not its SHA-512 hash.
-# Create/connect the session in the WAHA dashboard first; status must be WORKING.
-# Never put this provider key in browser code or public API requests.
+# GOWA_BASE_URL = 'https://gowa.kaltarastats.id'
+# GOWA_USERNAME = 'replace-with-gowa-basic-auth-username'
+# GOWA_PASSWORD = 'replace-with-gowa-basic-auth-password'
+# GOWA_DEVICE_ID = 'Meetingku'
+# Required outbound provider credentials: GOWA_USERNAME and GOWA_PASSWORD (HTTP Basic Auth).
+# GOWA_DEVICE_ID is case-sensitive and sent as X-Device-Id on every provider request.
+# No MeetingKu inbound API-key environment setting is needed.
+# Connect the existing device in the GOWA dashboard first; it must be connected and logged in.
+# Never put provider credentials in browser code, URLs, or logs. WAHA_* is no longer used.
 # WA_DAILY_SUMMARY_GROUP_ID = '120363425375670792@g.us'

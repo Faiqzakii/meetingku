@@ -15,6 +15,49 @@ final class ImportMysqlDumpToPostgresTest extends CIUnitTestCase
         return new ImportMysqlDumpToPostgres(new NullLogger(), new Commands(new NullLogger()));
     }
 
+    public function testDefaultTablesExcludeRemovedApiKeys(): void
+    {
+        $command = $this->makeCommand();
+        $property = new ReflectionProperty($command, 'defaultTables');
+        $property->setAccessible(true);
+
+        $this->assertSame(['pegawai', 'ruangan', 'meeting', 'wa_settings', 'wa_message_queue'], $property->getValue($command));
+    }
+
+    public function testParseInsertStatementRemovesLegacyQueueKeyWithoutChangingHistory(): void
+    {
+        $command = $this->makeCommand();
+        $method = new ReflectionMethod($command, 'parseInsertStatement');
+        $method->setAccessible(true);
+
+        $parsed = $method->invoke($command, "INSERT INTO `wa_message_queue` (`id`, `api_key_id`, `message`, `status`, `attempts`, `sent_at`) VALUES (1, 42, 'First', 'sent', 2, '2026-10-22 10:00:00'), (2, NULL, 'Second', 'pending', 0, NULL);");
+
+        $this->assertSame('wa_message_queue', $parsed['table']);
+        $this->assertSame(['id', 'message', 'status', 'attempts', 'sent_at'], $parsed['columns']);
+        $this->assertSame([
+            [1, 'First', 'sent', 2, '2026-10-22 10:00:00'],
+            [2, 'Second', 'pending', 0, null],
+        ], $parsed['rows']);
+    }
+
+    public function testParseInsertStatementPreservesCurrentQueueAndOtherTableColumns(): void
+    {
+        $command = $this->makeCommand();
+        $method = new ReflectionMethod($command, 'parseInsertStatement');
+        $method->setAccessible(true);
+
+        $this->assertSame([
+            'table' => 'wa_message_queue',
+            'columns' => ['id', 'message'],
+            'rows' => [[1, 'Current']],
+        ], $method->invoke($command, "INSERT INTO `wa_message_queue` (`id`, `message`) VALUES (1, 'Current');"));
+        $this->assertSame([
+            'table' => 'other_table',
+            'columns' => ['id', 'api_key_id'],
+            'rows' => [[1, 42]],
+        ], $method->invoke($command, 'INSERT INTO `other_table` (`id`, `api_key_id`) VALUES (1, 42);'));
+    }
+
     public function testNormalizeRowConvertsMysqlBooleanIntegers(): void
     {
         $command = $this->makeCommand();

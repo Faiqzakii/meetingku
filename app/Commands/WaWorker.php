@@ -2,7 +2,7 @@
 
 namespace App\Commands;
 
-use App\Libraries\WahaClient;
+use App\Libraries\GowaClient;
 use App\Libraries\WaRetrySchedule;
 use App\Models\WaMessageQueueModel;
 use CodeIgniter\CLI\BaseCommand;
@@ -36,7 +36,7 @@ class WaWorker extends BaseCommand
     {
         $db = db_connect();
         $queueModel = new WaMessageQueueModel();
-        $client = new WahaClient();
+        $client = new GowaClient();
         $processed = 0;
 
         $db->transStart();

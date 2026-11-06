@@ -2,9 +2,7 @@
 
 namespace App\Controllers;
 
-use App\Libraries\WaApiKeyService;
-use App\Libraries\WahaClient;
-use App\Models\WaApiKeyModel;
+use App\Libraries\GowaClient;
 use App\Models\WaMessageQueueModel;
 use CodeIgniter\Controller;
 
@@ -12,9 +10,11 @@ class WhatsappController extends Controller
 {
     public function index()
     {
-        $client = new WahaClient();
+        $client = new GowaClient();
         $status = ['status' => 'UNKNOWN'];
+        $dashboardUrl = null;
         try {
+            $dashboardUrl = $client->dashboardUrl();
             $status = $client->status();
         } catch (\Throwable $e) {
             $status['error'] = 'Status WhatsApp tidak dapat diambil.';
@@ -23,36 +23,9 @@ class WhatsappController extends Controller
         return view('whatsapp/index', [
             'pageTitle' => 'WhatsApp',
             'status' => $status,
-            'sessionName' => $client->sessionName(),
-            'dashboardUrl' => $client->dashboardUrl(),
+            'deviceId' => $client->deviceId(),
+            'dashboardUrl' => $dashboardUrl,
             'queue' => (new WaMessageQueueModel())->orderBy('id', 'DESC')->limit(20)->findAll(),
         ]);
     }
-
-    public function createApiKey()
-    {
-        $name = trim((string) $this->request->getPost('name')) ?: 'Integration';
-        $plainKey = WaApiKeyService::generatePlainKey();
-
-        (new WaApiKeyModel())->insert([
-            'name' => $name,
-            'plain_key' => $plainKey,
-            'key_hash' => WaApiKeyService::hash($plainKey),
-            'prefix' => WaApiKeyService::getPrefix($plainKey),
-            'is_active' => true,
-        ]);
-
-        return redirect()->to(base_url('whatsapp'))->with('newApiKey', $plainKey);
-    }
-
-    public function revokeApiKey(int $id)
-    {
-        (new WaApiKeyModel())->update($id, [
-            'is_active' => false,
-            'revoked_at' => date('Y-m-d H:i:s'),
-        ]);
-
-        return redirect()->to(base_url('whatsapp'))->with('success', 'API key revoked.');
-    }
-
 }

@@ -36,11 +36,6 @@ class Filters extends BaseConfig
             'csrf' => ['except' => [
                 'healthz', // Read-only internal HTTP probe must not issue secure CSRF cookies.
                 'auth/logout',
-                'api/whatsapp/messages',
-                'api/whatsapp/messages/*',
-                'api/meetings',
-                'api/meetings/*',
-                'api/rooms',
             ]],
             'invalidchars',
         ],
