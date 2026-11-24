@@ -48,6 +48,8 @@ class App extends BaseConfig
      */
     public string $uriProtocol = 'REQUEST_URI';
 
+    public string $permittedURIChars = 'a-z 0-9~%.:_\-';
+
     /**
      * --------------------------------------------------------------------------
      * Default Locale

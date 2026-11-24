@@ -72,13 +72,7 @@ class Security extends BaseConfig
      *
      * @var int
      */
-    public $expire = 7200;
-    public $expires; // Tambahkan ini
-
-    public function __construct()
-    {
-        $this->expires = $this->expire;
-    }
+    public int $expires = 7200;
 
     /**
      * --------------------------------------------------------------------------
