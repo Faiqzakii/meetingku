@@ -45,6 +45,8 @@ $RECYCLE.BIN/
 .vagrant
 Vagrantfile
 *.zip
+/datakalt_meeting.sql
+/error.log
 
 #-------------------------
 # Temporary Files

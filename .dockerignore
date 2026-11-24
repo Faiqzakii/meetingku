@@ -5,6 +5,11 @@ writable/cache/*
 writable/debugbar/*
 writable/logs/*
 writable/session/*
+writable/uploads/*
+public/writable
+**/*.zip
+datakalt_meeting.sql
+error.log
 .env
 .opencode-context.md
 .opencode-jce
