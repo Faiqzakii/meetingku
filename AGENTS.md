@@ -14,12 +14,12 @@
 - `php spark serve` — run local app at `http://localhost:8080`.
 - `php spark migrate` — apply database migrations.
 - `composer test` or `vendor/bin/phpunit -c phpunit.xml.dist` — run PHPUnit suite.
-- `php spark wa:worker --sleep=3 --limit=20` — process WhatsApp queue.
-- `php spark wa:daily-summary-scheduler --time=15:00 --sleep=60` — run scheduler that sends tomorrow's agenda at 15:00.
+- `php spark wa:worker --sleep 3 --limit 20` — process WhatsApp queue.
+- `php spark wa:daily-summary-scheduler --time 15:00 --sleep 60` — enqueue tomorrow's agenda once per day at or after 15:00.
 - `docker compose up -d --build` — run container stack.
 
 ## Coding Style & Naming Conventions
-- Target PHP `^8.1`; follow PSR-12 with 4-space indentation.
+- Target PHP `^8.2`; follow PSR-12 with 4-space indentation.
 - Use PSR-4 namespaces: `App\` for `app/`, `Config\` for `app/Config/`.
 - Classes use `PascalCase`; methods and variables use `camelCase`.
 - Keep views in `app/Views/`; prefer small controller methods and model/library helpers for reusable logic.
@@ -35,6 +35,7 @@
 - For the earlier provider cutover only, stop/remove an existing old `wa-sender` orphan after reviewing the orphan list; preserve old auth volumes/directories. If already retired, no further container deletion is needed. All four Compose services (proxy, app, worker, scheduler) remain necessary. Never use `down -v` or volume pruning as a migration step.
 - API removal requires `php spark migrate`: `2026-10-23-000001_RemoveWhatsappApiKeys.php` drops the queue key FK/column and `wa_api_keys`, preserving queue/history and `wa_settings`. Back up the full database before upgrade, quiesce writers/worker/scheduler during cutover, and recreate services with the new code afterward. Historical migrations must remain unchanged.
 - Migration rollback restores only empty key schema and a nullable queue key FK/column, not credentials or prior associations. These are unrecoverable without a pre-upgrade backup. Full rollback needs matching old code plus that backup; reconcile already-sent messages before restarting the restored queue. See README for deployment steps.
+- Audit remediation requires forward migrations for Zoom token rotation, WhatsApp queue durability, and the meeting index. Quiesce writers before rotating tokens; never restore the exposed links. Reconcile uncertain WhatsApp deliveries before requeueing. See README for the upgrade and rollback procedure.
 
 ## Testing Guidelines
 - Add focused tests for library/worker behavior under `tests/unit/`.

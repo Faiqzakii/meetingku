@@ -5,7 +5,7 @@
 
 <div class="page-header">
     <div>
-        <h2 class="section-title">
+        <h2 class="page-title">
             <i class="fas fa-users" aria-hidden="true"></i>
             Data Pegawai
         </h2>
@@ -29,7 +29,7 @@
 <div class="card">
     <div class="card-section" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div class="field" style="flex:1;min-width:240px;">
-            <label class="field-label sr-only" for="searchPegawai" style="position:absolute;left:-9999px;">Cari pegawai</label>
+            <label class="visually-hidden" for="searchPegawai">Cari pegawai</label>
             <input type="search" id="searchPegawai" class="input" placeholder="Cari nama, NIP, atau username...">
         </div>
         <span style="color:var(--mute);font-size:.8125rem;">
@@ -155,7 +155,7 @@
                         </div>
                         <div class="field">
                             <label class="field-label" for="add_password">Password</label>
-                            <input class="input" type="password" id="add_password" name="password" placeholder="Password" required
+                            <input class="input" type="password" id="add_password" name="password" autocomplete="new-password" placeholder="Password" required
                                    minlength="3" maxlength="100"
                                    data-rule-label="Password"
                                    data-rule-min="3" data-rule-max="100">
@@ -194,9 +194,9 @@
                     </p>
                     <div style="border:1.5px dashed var(--border-strong);border-radius:var(--radius-md);padding:18px;text-align:center;">
                         <i class="fas fa-cloud-arrow-up" aria-hidden="true" style="font-size:1.5rem;color:var(--mute);"></i>
-                        <p style="margin:8px 0 4px;font-weight:600;font-size:.875rem;">Pilih file Excel</p>
-                        <p style="color:var(--mute);font-size:.75rem;margin:0 0 10px;">Format .xlsx</p>
-                        <input type="file" name="excel_file" accept=".xlsx" required>
+                        <label for="excelFile" class="field-label" style="display:block;margin:8px 0 4px;">Pilih file Excel (.xlsx)</label>
+                        <p id="excelHelp" class="field-help">Gunakan lembar pertama, kolom A–F, maksimal 250 baris data dan 2 MiB. Isi NIP dan nomor HP sebagai teks; gunakan nilai, bukan rumus.</p>
+                        <input type="file" id="excelFile" name="excel_file" accept=".xlsx" aria-describedby="excelHelp" required>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -220,6 +220,13 @@
         <div class="toast-notification toast-error" id="flashToast" role="alert">
             <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
             <span><?= esc(session()->getFlashdata('error')) ?></span>
+            <button class="toast-close" type="button" aria-label="Tutup notifikasi"><i class="fas fa-times" aria-hidden="true"></i></button>
+        </div>
+    <?php endif; ?>
+    <?php if ($warning = session()->getFlashdata('warning')): ?>
+        <div class="toast-notification toast-warning toast-report" id="flashToast" role="status" data-persistent>
+            <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+            <span><?= nl2br(esc($warning)) ?></span>
             <button class="toast-close" type="button" aria-label="Tutup notifikasi"><i class="fas fa-times" aria-hidden="true"></i></button>
         </div>
     <?php endif; ?>
@@ -259,7 +266,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (toast) {
         var c = toast.querySelector('.toast-close');
         if (c) c.addEventListener('click', function() { toast.classList.add('toast-hiding'); setTimeout(function(){ toast.remove(); }, 250); });
-        setTimeout(function() { toast.classList.add('toast-hiding'); setTimeout(function(){ toast.remove(); }, 250); }, 4000);
+        if (!toast.hasAttribute('data-persistent')) {
+            setTimeout(function() { toast.classList.add('toast-hiding'); setTimeout(function(){ toast.remove(); }, 250); }, 4000);
+        }
     }
 });
 </script>

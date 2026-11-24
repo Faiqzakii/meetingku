@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use Closure;
+use CodeIgniter\Database\BaseBuilder;
 use CodeIgniter\Model;
+use RuntimeException;
 
 class MeetingModel extends Model
 {
@@ -125,64 +128,194 @@ class MeetingModel extends Model
 
     public function getMeetingsByDateRange($startDate, $endDate)
     {
-        return $this->db->table('meeting')
-            ->where('waktu_mulai >=', $startDate)
-            ->where('waktu_selesai <=', $endDate)
-            ->join('ruangan', 'ruangan.id = meeting.ruangan_id')
-            ->join('pegawai', 'pegawai.id = meeting.pegawai_id', 'left')
-            ->join('pegawai as status_pegawai', 'status_pegawai.id = meeting.status_changed_by', 'left')
-            ->join('pegawai as edit_pegawai', 'edit_pegawai.id = meeting.last_edited_by', 'left')
-            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin, pegawai.no_hp as pegawai_no_hp, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
-            ->orderBy('waktu_mulai', 'ASC')
+        return $this->withRoom()
+            ->select('meeting.nama_keg, meeting.waktu_mulai, meeting.waktu_selesai, meeting.status, ruangan.nama_ruangan')
+            ->where('meeting.waktu_mulai >=', $startDate)
+            ->where('meeting.waktu_selesai <=', $endDate)
             ->get()
             ->getResultArray();
     }
 
-    public function getNotRejectedMeetingWithDetails()
+    public function calendarMeetings(string $start, string $end, ?int $roomId, bool $loggedIn, bool $admin): array
     {
-        return $this->db->table('meeting')
-            ->join('ruangan', 'ruangan.id = meeting.ruangan_id')
+        $builder = $this->withRoom()
             ->join('pegawai', 'pegawai.id = meeting.pegawai_id', 'left')
-            ->join('pegawai as status_pegawai', 'status_pegawai.id = meeting.status_changed_by', 'left')
-            ->join('pegawai as edit_pegawai', 'edit_pegawai.id = meeting.last_edited_by', 'left')
-            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin, pegawai.no_hp as pegawai_no_hp, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
-            ->where('status !=', 'rejected')
-            ->orderBy('waktu_mulai', 'ASC')
-            ->get()
-            ->getResultArray();
+            ->select('meeting.id, meeting.nama_keg, meeting.waktu_mulai, meeting.waktu_selesai, meeting.status, '
+                . 'meeting.pegawai_id, meeting.jumlah_peserta, meeting.fasilitas, ruangan.nama_ruangan, ruangan.tipe, '
+                . 'pegawai.nama as nama_pegawai')
+            ->where('meeting.status !=', 'rejected')
+            ->where('meeting.waktu_mulai <', $end)
+            ->where('meeting.waktu_selesai >', $start);
+
+        if ($roomId !== null) {
+            $builder->where('meeting.ruangan_id', $roomId);
+        }
+        if ($loggedIn) {
+            $builder->select('meeting.zoom_meeting_id, meeting.zoom_join_url, meeting.start_token');
+        }
+        if ($admin) {
+            $builder->join('pegawai as status_pegawai', 'status_pegawai.id = meeting.status_changed_by', 'left')
+                ->join('pegawai as edit_pegawai', 'edit_pegawai.id = meeting.last_edited_by', 'left')
+                ->select('status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name, '
+                    . 'meeting.status_changed_at, meeting.last_edited_at, meeting.created_at');
+        }
+
+        return $builder->get()->getResultArray();
     }
 
-    public function getTodayMeetings()
+    public function scheduleList(string $start, ?string $end, ?int $roomId, bool $loggedIn): BaseBuilder
     {
-        $today_start = date('Y-m-d 00:00:00');
-        $today_end = date('Y-m-d 23:59:59');
+        $builder = $this->withRoom()
+            ->select('meeting.id, meeting.nama_keg, meeting.pegawai_id, meeting.waktu_mulai, meeting.waktu_selesai, '
+                . 'meeting.status, meeting.zoom_join_url, ruangan.nama_ruangan, ruangan.tipe')
+            ->where('meeting.waktu_mulai >=', $start);
 
-        return $this->db->table('meeting')
-            ->where('waktu_mulai >=', $today_start)
-            ->where('waktu_mulai <=', $today_end)
-            ->join('ruangan', 'ruangan.id = meeting.ruangan_id')
-            ->join('pegawai', 'pegawai.id = meeting.pegawai_id', 'left')
-            ->join('pegawai as status_pegawai', 'status_pegawai.id = meeting.status_changed_by', 'left')
-            ->join('pegawai as edit_pegawai', 'edit_pegawai.id = meeting.last_edited_by', 'left')
-            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin, pegawai.no_hp as pegawai_no_hp, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
-            ->orderBy('waktu_mulai', 'ASC')
-            ->get()
-            ->getResultArray();
+        if ($end !== null) {
+            $builder->where('meeting.waktu_mulai <', $end);
+        }
+        if ($roomId !== null) {
+            $builder->where('meeting.ruangan_id', $roomId);
+        }
+        if ($loggedIn) {
+            $builder->select('meeting.zoom_meeting_id, meeting.start_token');
+        }
+
+        return $builder;
     }
 
-    public function getUpcomingMeetings()
+    public function reportList(string $start, string $end, string $status, string $query): BaseBuilder
     {
-        $tomorrow = date('Y-m-d 00:00:00', strtotime('+1 day'));
-        return $this->db->table('meeting')
-            ->where('waktu_mulai >=', $tomorrow)
+        $builder = $this->withRoom()
+            ->select('meeting.id, meeting.nama_keg, meeting.waktu_mulai, meeting.waktu_selesai, meeting.status, '
+                . 'meeting.zoom_join_url, ruangan.nama_ruangan, ruangan.tipe')
+            ->where('meeting.waktu_mulai >=', $start)
+            ->where('meeting.waktu_mulai <', $end)
+            ->where('meeting.waktu_selesai <', $end);
+
+        if ($status !== 'all') {
+            $builder->where('meeting.status', $status);
+        }
+        if ($query !== '') {
+            $builder->groupStart()
+                ->like('meeting.nama_keg', $query, 'both', null, true)
+                ->orLike('ruangan.nama_ruangan', $query, 'both', null, true)
+                ->groupEnd();
+        }
+
+        return $builder;
+    }
+
+    private function withRoom(): BaseBuilder
+    {
+        return $this->db->table($this->table)
             ->join('ruangan', 'ruangan.id = meeting.ruangan_id')
-            ->join('pegawai', 'pegawai.id = meeting.pegawai_id', 'left')
-            ->join('pegawai as status_pegawai', 'status_pegawai.id = meeting.status_changed_by', 'left')
-            ->join('pegawai as edit_pegawai', 'edit_pegawai.id = meeting.last_edited_by', 'left')
-            ->select('meeting.*, ruangan.nama_ruangan, ruangan.tipe, pegawai.nama as nama_pegawai, pegawai.id as pegawai_id, pegawai.is_admin, pegawai.no_hp as pegawai_no_hp, status_pegawai.nama as status_changed_by_name, edit_pegawai.nama as last_edited_by_name')
-            ->orderBy('waktu_mulai', 'ASC')
-            ->get()
-            ->getResultArray();
+            ->orderBy('meeting.waktu_mulai')
+            ->orderBy('meeting.id');
+    }
+
+    public function withZoomWrite(array $booking, ?string $nextZoomId, Closure $write): mixed
+    {
+        $id = (int) $booking['id'];
+        $keys = ['meeting:' . $id];
+        foreach (array_unique([$booking['zoom_meeting_id'] ?? '', $nextZoomId ?? '']) as $zoomId) {
+            if ($zoomId !== '') {
+                $keys[] = 'zoom:' . $zoomId;
+            }
+        }
+        sort($keys);
+
+        // Serialize the sharing check with local link changes and remote mutations.
+        $locked = [];
+        try {
+            foreach ($keys as $key) {
+                $name = hash('sha256', $this->db->getDatabase() . ':' . $this->db->getPrefix() . ':meetingku:' . $key);
+                $result = match ($this->db->DBDriver) {
+                    'Postgre' => $this->db->query(
+                        'SELECT CAST(pg_try_advisory_lock(hashtext(?), hashtext(?)) AS INTEGER) AS acquired',
+                        ['meetingku-zoom', $name],
+                    )->getRowArray()['acquired'],
+                    'MySQLi' => $this->db->query('SELECT GET_LOCK(?, 0) AS acquired', [$name])->getRowArray()['acquired'],
+                    'SQLite3' => 1, // Local tests have no concurrent provider writes.
+                    default => throw new RuntimeException('Unsupported database for Zoom booking writes.'),
+                };
+                if ((int) $result !== 1) {
+                    throw new RuntimeException('Zoom booking is already being updated.');
+                }
+                $locked[] = $name;
+            }
+
+            $current = $this->find($id);
+            if ($current === null || $current !== $booking) {
+                throw new RuntimeException('Meeting changed before the Zoom booking could be updated.');
+            }
+            return $write();
+        } finally {
+            foreach (array_reverse($locked) as $name) {
+                match ($this->db->DBDriver) {
+                    'Postgre' => $this->db->query('SELECT pg_advisory_unlock(hashtext(?), hashtext(?))', ['meetingku-zoom', $name]),
+                    'MySQLi' => $this->db->query('SELECT RELEASE_LOCK(?)', [$name]),
+                    default => null,
+                };
+            }
+        }
+    }
+
+    public function hasOtherZoomBookings(array $meeting): bool
+    {
+        return $this->otherZoomBookings($meeting)->select('id')->get(1)->getRowArray() !== null;
+    }
+
+    /**
+     * Detach the current row without orphaning the host link of a remaining booking.
+     * When the canonical row goes away, transfer its provider credentials to a new root.
+     */
+    public function detachZoomBooking(array $meeting, ?array $replacement = null): bool
+    {
+        $id = (int) $meeting['id'];
+        if (empty($meeting['zoom_meeting_id'])) {
+            return $replacement === null ? $this->delete($id) : $this->update($id, $replacement);
+        }
+
+        if (!$this->db->transBegin()) {
+            return false;
+        }
+
+        $committed = false;
+        try {
+            if (empty($meeting['zoom_source_meeting_id'])) {
+                $next = $this->otherZoomBookings($meeting)
+                    ->select('id')
+                    ->orderBy('id')
+                    ->get(1)
+                    ->getRowArray();
+                if ($next !== null) {
+                    $nextId = (int) $next['id'];
+                    if (!$this->otherZoomBookings($meeting)->where('id !=', $nextId)->update([
+                        'zoom_source_meeting_id' => $nextId,
+                    ]) || !$this->db->table($this->table)->where('id', $nextId)->update([
+                        'zoom_source_meeting_id' => null,
+                        'zoom_start_url' => $meeting['zoom_start_url'],
+                    ])) {
+                        return false;
+                    }
+                }
+            }
+
+            $saved = $replacement === null ? $this->delete($id) : $this->update($id, $replacement);
+            $committed = $saved && $this->db->transStatus() && $this->db->transCommit();
+            return $committed;
+        } finally {
+            if (!$committed) {
+                $this->db->transRollback();
+            }
+        }
+    }
+
+    private function otherZoomBookings(array $meeting): BaseBuilder
+    {
+        return $this->db->table($this->table)
+            ->where('zoom_meeting_id', $meeting['zoom_meeting_id'])
+            ->where('id !=', $meeting['id']);
     }
 
     /**

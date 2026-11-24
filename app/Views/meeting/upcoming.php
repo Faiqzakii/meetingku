@@ -23,7 +23,7 @@
         $isToday          = date('Y-m-d', strtotime($meeting['waktu_mulai'])) === date('Y-m-d');
 
         ob_start(); ?>
-        <tr data-ruangan-id="<?= esc($meeting['ruangan_id'], 'attr') ?>">
+        <tr>
             <td class="cell-truncate" style="max-width:280px;" title="<?= esc($meeting['nama_keg'], 'attr') ?>">
                 <span style="font-weight:600;"><?= esc($meeting['nama_keg']) ?></span>
             </td>
@@ -141,29 +141,29 @@
     };
 ?>
 
-<div data-logged-in="<?= $loggedIn ? 'true' : 'false' ?>"
-     data-is-admin="<?= $isAdmin ? 'true' : 'false' ?>"
-     data-pegawai-id="<?= esc($pegawaiId, 'attr') ?>">
-    <script>var baseUrl = '<?= rtrim(base_url(), '/') ?>';</script>
+<div>
 
     <div class="page-header">
         <div>
-            <h2 class="section-title">
+            <h2 class="page-title">
                 <i class="fas fa-clock" aria-hidden="true"></i>
                 Meeting saya
             </h2>
             <p class="page-subtitle">Hari ini &amp; mendatang. Filter cepat per ruangan.</p>
         </div>
         <div class="page-actions">
-            <div class="field" style="min-width:200px;">
-                <label class="field-label sr-only" for="ruanganFilter" style="position:absolute;left:-9999px;">Filter ruangan</label>
-                <select class="input" id="ruanganFilter">
-                    <option value="">Semua ruangan</option>
-                    <?php foreach ($ruangan as $r): ?>
-                        <option value="<?= esc($r['id'], 'attr') ?>"><?= esc($r['nama_ruangan']) ?> (<?= esc($r['tipe']) ?>)</option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+            <search aria-label="Filter kegiatan terjadwal">
+                <form method="get" action="<?= esc(current_url(), 'attr') ?>" class="row-actions">
+                    <label class="visually-hidden" for="ruanganFilter">Filter ruangan</label>
+                    <select class="input" name="room" id="ruanganFilter">
+                        <option value="">Semua ruangan</option>
+                        <?php foreach ($ruangan as $r): ?>
+                            <option value="<?= esc($r['id'], 'attr') ?>" <?= (int) $r['id'] === $roomId ? 'selected' : '' ?>><?= esc($r['nama_ruangan']) ?> (<?= esc($r['tipe']) ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                    <button type="submit" class="btn btn-secondary">Terapkan</button>
+                </form>
+            </search>
         </div>
     </div>
 
@@ -171,7 +171,7 @@
         <div class="card-section" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
             <h3 style="font-size:1rem;font-weight:700;display:inline-flex;align-items:center;gap:8px;">
                 <i class="fas fa-sun" style="color:var(--warning);"></i> Hari ini
-                <span class="badge-status badge-primary"><?= count($today_meetings) ?></span>
+                <span class="badge-status badge-primary"><?= $pager->getTotal('today') ?></span>
             </h3>
         </div>
         <div class="card-divider"></div>
@@ -200,13 +200,14 @@
                 </tbody>
             </table>
         </div>
+        <?= view('meeting/pagination', ['pager' => $pager, 'group' => 'today', 'label' => 'Halaman meeting hari ini']) ?>
     </section>
 
     <section class="card">
         <div class="card-section" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
             <h3 style="font-size:1rem;font-weight:700;display:inline-flex;align-items:center;gap:8px;">
                 <i class="fas fa-calendar-day" style="color:var(--primary);"></i> Mendatang
-                <span class="badge-status badge-primary"><?= count($upcoming_meetings) ?></span>
+                <span class="badge-status badge-primary"><?= $pager->getTotal('upcoming') ?></span>
             </h3>
         </div>
         <div class="card-divider"></div>
@@ -235,6 +236,7 @@
                 </tbody>
             </table>
         </div>
+        <?= view('meeting/pagination', ['pager' => $pager, 'group' => 'upcoming', 'label' => 'Halaman meeting mendatang']) ?>
     </section>
 </div>
 
@@ -285,20 +287,6 @@
 <?= $this->section('scripts') ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Ruangan filter (toggle visibility)
-    var filter = document.getElementById('ruanganFilter');
-    if (filter) {
-        filter.addEventListener('change', function() {
-            var v = filter.value;
-            ['todayTable', 'upcomingTable'].forEach(function(id) {
-                document.querySelectorAll('#' + id + ' tbody tr').forEach(function(tr) {
-                    if (!v) { tr.style.display = ''; return; }
-                    tr.style.display = (tr.getAttribute('data-ruangan-id') === v) ? '' : 'none';
-                });
-            });
-        });
-    }
-
     // Copy zoom link
     document.addEventListener('click', function(e) {
         var btn = e.target.closest('[data-copy]');
@@ -357,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var modalEl = document.getElementById('manualZoomModal');
                 if (!modalEl) return;
                 var form = document.getElementById('manualZoomForm');
-                form.action = baseUrl + '/meeting/manual-zoom/' + zid;
+                form.action = <?= json_encode(base_url('meeting/manual-zoom/')) ?> + zid;
                 document.getElementById('manualZoomUrl').value = zoomBtn.getAttribute('data-current') || '';
                 if (window.bootstrap) {
                     var m = bootstrap.Modal.getOrCreateInstance(modalEl); m.show();

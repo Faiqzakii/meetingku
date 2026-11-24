@@ -3,7 +3,7 @@
 <?= $this->section('content') ?>
 <div class="page-header">
     <div>
-        <h2 class="section-title">
+        <h2 class="page-title">
             <i class="fas fa-pen-to-square" aria-hidden="true"></i>
             Edit Meeting
         </h2>
@@ -20,7 +20,7 @@
     <div class="card">
         <form action="<?= base_url('meeting/update/' . $meeting['id']) ?>" method="POST" class="card-section js-validated" id="editMeetingForm" novalidate>
             <?= csrf_field() ?>
-            <input type="hidden" name="form_token" value="<?= bin2hex(random_bytes(16)) ?>">
+            <input type="hidden" name="form_token" value="<?= esc($formToken, 'attr') ?>">
             <div class="form-grid">
                 <div class="field col-span-2">
                     <label class="field-label" for="nama_keg">Nama kegiatan</label>

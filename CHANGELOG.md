@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Restrict Zoom host links to the booking owner and administrators, rotate unexpired host tokens, and prevent shared Zoom sessions from being changed or deleted by one booking.
+- Remove legacy session archives, dumps, and logs from the release. Upgrade CodeIgniter, PhpSpreadsheet, and PHPUnit and require PHP 8.2.
+- Commit one WhatsApp claim before sending, quarantine uncertain outcomes for reconciliation, and make daily summary catch-up atomic and idempotent.
+- Reject replayed meeting form tokens. Bound calendar and list queries and keep CSV/print exports independent of pagination.
+- Bound employee XLSX imports; scope calendar assets, verify pinned CDN assets with SRI, and remove retired views and styles.
 - Show full room names in a responsive table instead of truncating them in cards. Keep room search, type filters, and actions available.
+
 ### Changed — GOWA provider (2026-11-06)
 - Replaced the WAHA adapter with external GOWA at `https://gowa.kaltarastats.id`, using case-sensitive device ID `Meetingku` through `X-Device-Id` on status and send requests. Device management/pairing remains in the external dashboard.
 - App and worker now require backend-only `GOWA_USERNAME`/`GOWA_PASSWORD` for HTTP Basic Auth; `GOWA_BASE_URL` and `GOWA_DEVICE_ID` have the defaults above. `WAHA_*` settings are no longer read. Rebuild/recreate app and worker with the new environment.

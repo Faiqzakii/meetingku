@@ -3,7 +3,7 @@
 <?= $this->section('content') ?>
 <div class="page-header">
     <div>
-        <h2 class="section-title">
+        <h2 class="page-title">
             <i class="fas fa-user-pen" aria-hidden="true"></i>
             Edit Pegawai
         </h2>
@@ -75,7 +75,7 @@
 
             <div class="field">
                 <label class="field-label" for="password">Password</label>
-                <input class="input" type="password" id="password" name="password" placeholder="Kosongkan jika tidak diubah"
+                <input class="input" type="password" id="password" name="password" autocomplete="new-password" placeholder="Kosongkan jika tidak diubah"
                        minlength="3" maxlength="100"
                        data-rule-label="Password"
                        data-rule-min="3" data-rule-max="100">

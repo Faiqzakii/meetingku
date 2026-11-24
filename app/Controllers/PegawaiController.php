@@ -2,13 +2,22 @@
 
 namespace App\Controllers;
 
+use App\Libraries\EmployeeXlsxReader;
 use App\Models\PegawaiModel;
 use CodeIgniter\Controller;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Worksheet\CellIterator;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use ZipArchive;
 
 class PegawaiController extends Controller
 {
+    private const MAX_IMPORT_FILE_BYTES = 2 * 1024 * 1024;
+    private const MAX_IMPORT_EXPANDED_BYTES = 8 * 1024 * 1024;
+    private const MAX_IMPORT_ZIP_ENTRIES = 256;
+
     protected $pegawaiModel;
 
     public function __construct()
@@ -143,62 +152,165 @@ class PegawaiController extends Controller
 
     public function import()
     {
-        if (!$this->isAdmin()) {
+        if (!session()->get('logged_in') || !$this->isAdmin()) {
             return redirect()->back()->with('error', 'Hanya admin yang dapat mengimport data pegawai');
         }
 
         $file = $this->request->getFile('excel_file');
-        
-        if (!$file->isValid() || $file->getExtension() !== 'xlsx') {
+        if (in_array($file?->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+            return redirect()->back()->with('error', 'Ukuran file Excel maksimal 2 MB.');
+        }
+        if (!$file?->isValid()) {
+            return redirect()->back()->with('error', 'File harus dalam format Excel (.xlsx)');
+        }
+        $size = $file->getSize();
+        if ($size > self::MAX_IMPORT_FILE_BYTES) {
+            return redirect()->back()->with('error', 'Ukuran file Excel maksimal 2 MB.');
+        }
+        if (!$size || strtolower($file->getExtension()) !== 'xlsx') {
             return redirect()->back()->with('error', 'File harus dalam format Excel (.xlsx)');
         }
 
+        $path = $file->getTempName();
+        $spreadsheet = null;
+        $successCount = 0;
+        $errors = [];
+        $readError = 'File Excel tidak dapat dibaca. Gunakan template import pegawai.';
+        $emptyError = 'Tidak ada data pegawai pada lembar pertama. Isi kolom A–F mulai baris 2.';
+
         try {
-            $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
-            $spreadsheet = $reader->load($file->getTempName());
-            $worksheet = $spreadsheet->getActiveSheet();
-            $rows = $worksheet->toArray();
+            $archiveError = $this->checkImportArchive($path, $readError);
+            if ($archiveError !== null) {
+                return redirect()->back()->with('error', $archiveError);
+            }
 
-            array_shift($rows);
+            $reader = new EmployeeXlsxReader();
+            // The import always uses the first tab, regardless of which tab was active when saved.
+            $sheetNames = $reader->listWorksheetNames($path);
+            $firstSheet = $sheetNames[0] ?? '';
+            // Xlsx compares sheet names loosely; reject ambiguous names before loading.
+            if ($firstSheet === '' || count(array_keys($sheetNames, $firstSheet)) !== 1) {
+                return redirect()->back()->with('error', $readError);
+            }
 
-            $successCount = 0;
-            $errorCount = 0;
-            $errors = [];
+            $spreadsheet = $reader->setLoadSheetsOnly($firstSheet)
+                ->load($path);
+            if ($reader->rowLimitExceeded()) {
+                return redirect()->back()->with(
+                    'error',
+                    'Lembar pertama hanya boleh berisi data pada kolom A–F sampai baris ' . EmployeeXlsxReader::LAST_IMPORT_ROW
+                    . ' (maksimal ' . EmployeeXlsxReader::MAX_DATA_ROWS . ' baris data).',
+                );
+            }
+            if ($spreadsheet->getSheetCount() !== 1) {
+                return redirect()->back()->with('error', $readError);
+            }
 
-            foreach ($rows as $row) {
-                if (empty($row[0])) continue;
+            $worksheet = $spreadsheet->getSheet(0);
+            $lastDataRow = min(EmployeeXlsxReader::LAST_IMPORT_ROW, $worksheet->getHighestDataRow());
+            if ($lastDataRow < 2) {
+                return redirect()->back()->with('error', $emptyError);
+            }
+
+            foreach ($worksheet->getRowIterator(2, $lastDataRow) as $rowNumber => $row) {
+                $cells = $row->getCellIterator('A', 'F');
+                $cells->setIfNotExists(CellIterator::IF_NOT_EXISTS_RETURN_NULL);
+                $values = [];
+                $rowError = null;
+
+                foreach ($cells as $column => $cell) {
+                    $type = $cell?->getDataType();
+                    if ($type === DataType::TYPE_FORMULA || $type === DataType::TYPE_ERROR) {
+                        $rowError = 'Gunakan nilai biasa, bukan rumus atau nilai error Excel.';
+                        break;
+                    }
+                    if ($column === 'B' && $type === DataType::TYPE_NUMERIC) {
+                        $rowError = 'NIP harus diisi sebagai teks agar 18 digitnya tetap utuh.';
+                        break;
+                    }
+                    if ($column === 'C' && $type === DataType::TYPE_NUMERIC) {
+                        $rowError = 'Nomor HP harus diisi sebagai teks agar angka awalnya tetap utuh.';
+                        break;
+                    }
+                    $value = trim((string) $cell?->getValue());
+                    if ($value !== '') {
+                        $values[$column] = $value;
+                    }
+                }
+                if ($rowError !== null) {
+                    $errors[] = "Baris $rowNumber: $rowError";
+                    continue;
+                }
+                if ($values === []) {
+                    continue;
+                }
 
                 $data = [
-                    'nama' => trim($row[0]),
-                    'nip' => trim($row[1]),
-                    'no_hp' => isset($row[2]) ? trim($row[2]) : '',
-                    'username' => trim($row[3]),
-                    'password' => trim($row[4]),
-                    'is_admin' => isset($row[5]) && strtolower(trim($row[5])) === 'ya',
+                    'nama' => $values['A'] ?? '',
+                    'nip' => $values['B'] ?? '',
+                    'no_hp' => $values['C'] ?? '',
+                    'username' => $values['D'] ?? '',
+                    'password' => $values['E'] ?? '',
+                    'is_admin' => strtolower($values['F'] ?? '') === 'ya',
                     'terima_notif_offline' => 0,
-                    'terima_notif_zoom' => 0
+                    'terima_notif_zoom' => 0,
                 ];
 
                 if ($this->pegawaiModel->insert($data) === false) {
-                    $errorCount++;
-                    $errors[] = "Baris " . ($successCount + $errorCount + 1) . ": " . implode(', ', $this->pegawaiModel->errors());
+                    $rowError = implode(', ', $this->pegawaiModel->errors()) ?: 'Data pegawai tidak dapat disimpan.';
+                    $errors[] = "Baris $rowNumber: $rowError";
                 } else {
                     $successCount++;
                 }
             }
 
-            $message = "Berhasil import $successCount data pegawai.";
-            if ($errorCount > 0) {
-                $message .= " Gagal import $errorCount data.";
-                if (!empty($errors)) {
-                    $message .= "\nError: " . implode("\n", $errors);
-                }
-                return redirect()->back()->with('warning', $message);
+            if ($successCount === 0 && $errors === []) {
+                return redirect()->back()->with('error', $emptyError);
             }
 
+            $message = "Berhasil import $successCount data pegawai.";
+            if ($errors !== []) {
+                $errorCount = count($errors);
+                $message .= " Gagal import $errorCount data.\nError: " . implode("\n", $errors);
+                return redirect()->back()->with('warning', $message);
+            }
             return redirect()->back()->with('success', $message);
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal mengimport data: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            log_message('error', 'Import pegawai gagal ({type}).', ['type' => $e::class]);
+            $message = $spreadsheet === null ? $readError : "Import terhenti. Berhasil import $successCount data pegawai.";
+            return redirect()->back()->with('error', $message);
+        } finally {
+            $spreadsheet?->disconnectWorksheets();
+        }
+    }
+
+    private function checkImportArchive(string $path, string $readError): ?string
+    {
+        $zip = new ZipArchive();
+        if ($zip->open($path, ZipArchive::RDONLY | ZipArchive::CHECKCONS) !== true) {
+            return $readError;
+        }
+
+        // The reader still expands package XML and shared strings before applying its cell filter.
+        $archiveTooLarge = 'Isi file Excel terlalu besar. Pindahkan data ke template import pegawai.';
+        try {
+            if ($zip->numFiles > self::MAX_IMPORT_ZIP_ENTRIES) {
+                return $archiveTooLarge;
+            }
+            $expandedBytes = 0;
+            for ($index = 0; $index < $zip->numFiles; $index++) {
+                $entry = $zip->statIndex($index);
+                if ($entry === false || $entry['size'] < 0) {
+                    return $readError;
+                }
+                $expandedBytes += $entry['size'];
+                if ($entry['size'] > self::MAX_IMPORT_FILE_BYTES || $expandedBytes > self::MAX_IMPORT_EXPANDED_BYTES) {
+                    return $archiveTooLarge;
+                }
+            }
+            return null;
+        } finally {
+            $zip->close();
         }
     }
 
@@ -215,11 +327,13 @@ class PegawaiController extends Controller
         $sheet->setCellValue('F1', 'Admin (Ya/Tidak)');
 
         $sheet->setCellValue('A2', 'John Doe');
-        $sheet->setCellValue('B2', '198501012010011001');
-        $sheet->setCellValue('C2', '08123456789');
+        $sheet->setCellValueExplicit('B2', '198501012010011001', DataType::TYPE_STRING);
+        $sheet->setCellValueExplicit('C2', '08123456789', DataType::TYPE_STRING);
         $sheet->setCellValue('D2', 'johndoe');
         $sheet->setCellValue('E2', 'password123');
         $sheet->setCellValue('F2', 'Tidak');
+        $sheet->getStyle('B:C')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+        $sheet->setSelectedCells('A1');
 
         foreach (range('A', 'F') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);

@@ -63,7 +63,7 @@
 
 <div class="page-header">
     <div>
-        <h2 class="section-title">
+        <h2 class="page-title">
             <i class="fas fa-door-open" aria-hidden="true"></i>
             Data Ruangan
         </h2>

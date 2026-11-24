@@ -8,22 +8,22 @@ MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwal
 - CRUD pegawai dan ruangan, termasuk impor pegawai dari spreadsheet.
 - Tautan Zoom/manual meeting dan pengiriman ulang tautan.
 - WhatsApp admin page untuk status perangkat GOWA, tautan dashboard GOWA, dan riwayat antrean pesan.
-- Worker retry WhatsApp dengan backoff dan scheduler pengingat agenda besok pukul 15:00 WITA.
+- Worker WhatsApp dengan retry/backoff, rekonsiliasi hasil kirim yang tidak pasti, dan ringkasan agenda besok mulai pukul 15:00 WITA.
 - Docker Compose untuk PHP-FPM, Nginx reverse proxy, worker, dan scheduler; GOWA dikelola terpisah.
 
 ## Stack
 
-- PHP `^8.1`, CodeIgniter 4, Composer.
+- PHP `^8.2`, CodeIgniter 4, Composer.
 - PHPUnit 10 untuk test.
 - MySQL/MariaDB lokal; PostgreSQL didukung untuk deploy container via env.
-- UI server-rendered PHP views dengan Tailwind CDN, Bootstrap, Font Awesome, FullCalendar.
+- UI server-rendered PHP dengan Bootstrap dan Font Awesome. FullCalendar, Moment, dan utility Tailwind hanya dimuat di kalender.
 - GOWA eksternal di `https://gowa.kaltarastats.id`, device ID `Meetingku`, untuk pengiriman WhatsApp.
 
 ## Struktur Penting
 
 - `app/Controllers`, `app/Models`, `app/Views` — kode aplikasi utama.
 - `app/Commands` — worker dan scheduler WhatsApp.
-- `app/Database/Migrations` — migrasi tabel WhatsApp.
+- `app/Database/Migrations` — migrasi skema dan data aplikasi.
 - `docker/`, `Dockerfile`, `docker-compose.yml` — deploy container.
 - `writable/` — runtime logs/cache/session/uploads; tidak untuk commit.
 
@@ -95,10 +95,23 @@ Halaman WhatsApp menampilkan **Jadwal kirim** (`scheduled_at`, termasuk jadwal u
 Command aplikasi:
 
 ```bash
-php spark wa:worker --sleep=3 --limit=20
+php spark wa:worker --sleep 3 --limit 20
 php spark wa:daily-summary
-php spark wa:daily-summary-scheduler --time=15:00 --sleep=60
+php spark wa:daily-summary-scheduler --time 15:00 --sleep 60
 ```
+
+Scheduler mengejar jadwal jika hidup kembali setelah jam mulai pada hari yang sama. Enqueue otomatis hanya sekali per tanggal kirim. `wa:daily-summary --force` menambahkan satu pesan ekstra; setelah itu run tanpa `--force` tetap tidak menggandakan ringkasan.
+
+Pesan `processing` yang klaimnya kedaluwarsa (lima menit), atau yang hasil kirimnya tidak pasti, masuk `needs_review`. Worker tidak mengirimnya ulang sendiri. Dari host yang tepercaya:
+
+```bash
+php spark wa:queue-reconcile list
+php spark wa:queue-reconcile show ID
+php spark wa:queue-reconcile confirm-sent ID --provider-id PROVIDER_ID
+php spark wa:queue-reconcile confirm-unsent-and-requeue ID
+```
+
+Gunakan `list --after ID` untuk halaman berikutnya. Cocokkan pesan dengan riwayat WhatsApp/GOWA sebelum konfirmasi. `--provider-id` opsional; `confirm-sent` mencatat waktu rekonsiliasi, bukan waktu pengiriman yang tidak diketahui. Hentikan semua worker sebelum `confirm-unsent-and-requeue` dan jalankan hanya setelah dipastikan pesan memang belum terkirim. Biarkan item dalam `needs_review` jika hasilnya masih tidak jelas.
 
 ## Docker / Coolify
 
@@ -137,6 +150,24 @@ Service utama:
 - `meetingku-scheduler` — ringkasan harian.
 
 Keempat service tersebut masih diperlukan dan tetap aktif setelah penghapusan API inbound. Tidak ada container tambahan yang perlu dihapus untuk perubahan ini; pertahankan volume `writable_data` dan volume/direktori auth lama.
+
+### Upgrade perbaikan audit
+
+1. Pastikan semua runtime memakai PHP 8.2 atau lebih baru. Siapkan backup database yang sudah diuji pulih. Batasi akses aplikasi dan hentikan worker serta scheduler lama sebelum migrasi. Jika deployment lama masih memuat `public.zip`, blokir `/public.zip` dan `/writable/` di proxy sekarang, bukan setelah build selesai. Tinjau log akses, image lama, dan riwayat Git untuk paparan; cabut sesi atau rotasi kredensial yang diduga terdampak.
+2. Build image baru, jalankan migrasi dari service app, lalu recreate keempat service. Jangan jalankan penulis lama bersamaan, dan jangan menghapus volume:
+
+   ```bash
+   docker compose build
+   docker compose run --rm --no-deps meetingku-app php spark migrate
+   docker compose up -d --force-recreate
+   ```
+
+3. Migrasi merotasi token host untuk meeting yang belum berakhir. Pesan yang belum tuntas di antrean memakai link baru; tautan lama yang sudah dikirim tidak berlaku. Pemilik/admin dapat menyalin link baru dari **Meeting saya** dan membagikannya kembali hanya ke host yang dituju.
+4. Migrasi antrean mempertahankan riwayat dan penanda ringkasan lama. Pada MySQL, konversi tabel antrean ke InnoDB bila perlu dapat membangun ulang tabel. Periksa `/healthz`, login HTTPS, akses kalender, dan `wa:queue-reconcile list` sebelum membuka kembali akses.
+
+**Rollback:** hentikan penulisan, worker, dan scheduler. Periksa `php spark migrate:status`, lalu kembalikan skema antrean dan indeks ke batch tepat sebelum upgrade audit. Rekonsiliasi `needs_review` sebelum berpindah karena worker lama tidak memproses status itu. Tanggal ringkasan terakhir dikembalikan ke penanda lama. Rotasi token sengaja tidak dibalik. Jangan membuka kembali versi yang menampilkan token di kalender publik atau image yang menyajikan arsip sesi. Rekonsiliasi pesan yang terlanjur terkirim sebelum menyalakan worker jika database dipulihkan dari backup.
+
+Kalender mengambil rentang hari, minggu, atau bulan yang dibuka. Daftar meeting menampilkan 20 baris per halaman; laporan CSV dan cetak mengambil seluruh hasil filter, dengan periode maksimal 366 hari. Impor pegawai menerima XLSX maksimal 2 MiB, lembar pertama, kolom A–F, dan 250 baris data. Isi NIP dan nomor HP sebagai teks.
 
 ### Penghapusan API inbound dan API key MeetingKu
 
@@ -201,6 +232,8 @@ Output probe yang diharapkan: `ok`. `unhealthy` tidak otomatis me-restart contai
 ## Import Data MySQL ke PostgreSQL
 
 Gunakan saat aplikasi lama masih memakai MySQL dan deployment baru memakai PostgreSQL. Jalankan migrasi PostgreSQL dulu agar schema target tersedia, lalu import data dari dump MySQL.
+
+Untuk dump yang dibuat sebelum upgrade audit, impor dengan skema/kode sumber yang sesuai terlebih dahulu, lalu jalankan migrasi audit pada data hasil impor sebelum membuka akses atau memulai worker/scheduler. Ini memastikan token lama dirotasi dan penanda ringkasan lama terbawa.
 
 1. Buat dump data dari server MySQL lama:
 

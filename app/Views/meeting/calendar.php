@@ -1,5 +1,10 @@
 <?= $this->extend('layout') ?>
 
+<?= $this->section('pageStylesheets') ?>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" integrity="sha384-HtMZLkYo+pR5/u7zCzXxMJP6QoNnQJt1qkHM0EaOPvGDIzaVZbmYr/TlvUZ/sKAg" crossorigin="anonymous" referrerpolicy="no-referrer">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" integrity="sha384-39yVKLsD9lMelmY+ij49KZgE+Mfk6hjdUPNE8yKHqdMPceLXzhlCJAK81xlD5jDj" crossorigin="anonymous" referrerpolicy="no-referrer">
+<?= $this->endSection() ?>
+
 <?= $this->section('styles') ?>
 <style>
     .meeting-form-grid {
@@ -16,29 +21,196 @@
         .meeting-form-grid .col-half,
         .meeting-form-grid .col-third { grid-column: 1 / -1; }
     }
+        /* ================= FULLCALENDAR THEMING ================= */
+        .fc { font-family: var(--font-body); font-size: .875rem; }
+        .fc .fc-toolbar.fc-header-toolbar { margin-bottom: 1.25em; gap: 8px; flex-wrap: wrap; }
+        .fc .fc-toolbar-title {
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: var(--ink);
+            font-size: clamp(1.05rem, 1.6vw, 1.25rem) !important;
+            letter-spacing: -.01em;
+        }
+        .fc .fc-button-group { gap: 0; }
+        .fc .fc-button-primary {
+            background: var(--surface) !important;
+            color: var(--body) !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: none !important;
+            border-radius: var(--radius-sm) !important;
+            font-weight: 500 !important;
+            font-size: .8125rem !important;
+            padding: 6px 12px !important;
+            min-height: 34px;
+            line-height: 1 !important;
+            text-transform: capitalize !important;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .fc .fc-button-primary:hover {
+            background: var(--canvas-soft) !important;
+            border-color: var(--border-strong) !important;
+            color: var(--ink) !important;
+        }
+        .fc .fc-button-primary:focus-visible { box-shadow: var(--shadow-focus) !important; }
+        /* segmented view switcher */
+        .fc .fc-button-group > .fc-button-primary { border-radius: 0 !important; }
+        .fc .fc-button-group > .fc-button-primary:first-child { border-top-left-radius: var(--radius-sm) !important; border-bottom-left-radius: var(--radius-sm) !important; }
+        .fc .fc-button-group > .fc-button-primary:last-child { border-top-right-radius: var(--radius-sm) !important; border-bottom-right-radius: var(--radius-sm) !important; }
+        .fc .fc-button-group > .fc-button-primary + .fc-button-primary { margin-left: -1px; }
+        .fc .fc-button-primary:not(:disabled).fc-button-active,
+        .fc .fc-button-primary:not(:disabled):active {
+            background: var(--canvas-soft) !important;
+            color: var(--ink) !important;
+            border-color: var(--border-strong) !important;
+            font-weight: 600 !important;
+            position: relative;
+            z-index: 1;
+        }
+        /* Today button: subtle, not loud */
+        .fc .fc-today-button {
+            background: var(--surface) !important;
+            color: var(--ink) !important;
+            border-color: var(--border-strong) !important;
+            font-weight: 600 !important;
+        }
+        .fc .fc-today-button:hover { background: var(--canvas-soft) !important; }
+        .fc .fc-today-button:disabled { opacity: .55; }
+        /* prev/next as icon-style ghost */
+        .fc .fc-prev-button, .fc .fc-next-button {
+            width: 34px; padding: 6px 0 !important;
+            color: var(--ink) !important;
+        }
+
+        .fc .fc-daygrid-day.fc-day-today { background: var(--primary-soft) !important; }
+        .fc .fc-col-header-cell-cushion {
+            font-size: .75rem; font-weight: 600;
+            color: var(--mute);
+            text-transform: uppercase; letter-spacing: .04em;
+            padding: 8px 4px;
+        }
+        .fc .fc-daygrid-day-number {
+            color: var(--body); font-size: .8rem; font-weight: 600;
+            padding: 6px 8px;
+        }
+        .fc .fc-day-today .fc-daygrid-day-number { color: var(--primary-dark); font-weight: 800; }
+
+        /* Status-aware events (legend match) */
+        .fc .fc-event,
+        .fc .fc-event .fc-event-main,
+        .fc .fc-event .fc-event-main-frame,
+        .fc .fc-event .fc-event-title,
+        .fc .fc-event .fc-event-time,
+        .fc .fc-event .fc-event-title-container {
+            color: inherit !important;
+        }
+        .fc .fc-event {
+            border: 0 !important;
+            border-left: 3px solid transparent !important;
+            border-radius: var(--radius-sm) !important;
+            padding: 2px 6px !important;
+            font-size: .75rem !important;
+            font-weight: 600 !important;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        .fc .fc-event .fc-event-title,
+        .fc .fc-event .fc-event-title-container {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        /* Week/Day view: allow text wrap inside event blocks */
+        .fc-timegrid-event,
+        .fc-timegrid-event .fc-event-main,
+        .fc-timegrid-event .fc-event-main-frame {
+            white-space: normal !important;
+            overflow: hidden;
+        }
+        .fc-timegrid-event .fc-event-title,
+        .fc-timegrid-event .fc-event-title-container {
+            white-space: normal !important;
+            overflow: hidden;
+            text-overflow: clip;
+            word-break: break-word;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 4;
+            line-clamp: 4;
+        }
+        .fc-timegrid-event .fc-event-time {
+            display: block;
+            margin-bottom: 2px;
+            opacity: .85;
+        }
+        .fc .fc-event-status-approved,
+        .fc .fc-event-status-approved .fc-event-main,
+        .fc .fc-event-status-approved .fc-event-main-frame,
+        .fc .fc-event-status-approved .fc-event-title,
+        .fc .fc-event-status-approved .fc-event-time {
+            background: var(--success-soft) !important;
+            color: #14532d !important;
+            border-left-color: var(--success) !important;
+        }
+        .fc .fc-event-status-pending,
+        .fc .fc-event-status-pending .fc-event-main,
+        .fc .fc-event-status-pending .fc-event-main-frame,
+        .fc .fc-event-status-pending .fc-event-title,
+        .fc .fc-event-status-pending .fc-event-time {
+            background: var(--warning-soft) !important;
+            color: #78350f !important;
+            border-left-color: var(--warning) !important;
+        }
+        .fc .fc-event-status-rejected,
+        .fc .fc-event-status-rejected .fc-event-main,
+        .fc .fc-event-status-rejected .fc-event-main-frame,
+        .fc .fc-event-status-rejected .fc-event-title,
+        .fc .fc-event-status-rejected .fc-event-time {
+            background: var(--danger-soft) !important;
+            color: #7f1d1d !important;
+            border-left-color: var(--danger) !important;
+        }
+        /* TimeGrid (week/day) keep colored fill but readable dark text */
+        .fc-timegrid-event,
+        .fc-timegrid-event .fc-event-main {
+            color: inherit !important;
+        }
+        .fc-timegrid-event.fc-event-status-approved { background: var(--success-soft) !important; }
+        .fc-timegrid-event.fc-event-status-pending  { background: var(--warning-soft) !important; }
+        .fc-timegrid-event.fc-event-status-rejected { background: var(--danger-soft) !important; }
+        .fc .fc-event:hover { filter: brightness(.97); }
+        .fc .fc-event-time {
+            font-weight: 700; opacity: 1; margin-right: 4px;
+        }
+
 </style>
 <?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <div class="page-header">
     <div>
-        <h2 class="section-title">
+        <h2 class="page-title">
             <i class="fas fa-calendar-alt" aria-hidden="true"></i>
             Jadwal Pertemuan
         </h2>
         <p class="page-subtitle">Lihat dan kelola jadwal meeting di satu tempat.</p>
     </div>
     <div class="page-actions" style="align-items:center;">
-        <div class="field" style="min-width:200px;">
-            <label class="field-label sr-only" for="ruanganFilter" style="position:absolute;left:-9999px;">Filter ruangan</label>
-            <select id="ruanganFilter" class="input">
-                <option value="">Semua ruangan</option>
-                <?php foreach ($ruangan as $r): ?>
-                    <option value="<?= esc($r['id'], 'attr') ?>"><?= esc($r['nama_ruangan']) ?> (<?= esc($r['tipe']) ?>)</option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-        <?php if (session()->get('logged_in')): ?>
+        <search aria-label="Filter kalender">
+            <form method="get" action="<?= esc(current_url(), 'attr') ?>" class="row-actions">
+                <input type="hidden" name="date" value="<?= esc($calendarDate, 'attr') ?>">
+                <input type="hidden" name="view" value="<?= esc($calendarView, 'attr') ?>">
+                <label class="visually-hidden" for="ruanganFilter">Filter ruangan</label>
+                <select id="ruanganFilter" name="room" class="input">
+                    <option value="">Semua ruangan</option>
+                    <?php foreach ($ruangan as $r): ?>
+                        <option value="<?= esc($r['id'], 'attr') ?>" <?= (int) $r['id'] === $calendarRoomId ? 'selected' : '' ?>><?= esc($r['nama_ruangan']) ?> (<?= esc($r['tipe']) ?>)</option>
+                    <?php endforeach; ?>
+                </select>
+                <button type="submit" class="btn btn-secondary">Terapkan</button>
+            </form>
+        </search>
+        <?php if ($formToken !== null): ?>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createMeetingModal">
                 <i class="fas fa-plus" aria-hidden="true"></i>
                 <span>Buat Meeting</span>
@@ -61,10 +233,12 @@
 
 <div class="card">
     <div class="card-section" style="padding:16px;">
+        <p id="calendarStatus" class="field-help" role="status">Memuat kalender…</p>
         <div id="calendar"></div>
     </div>
 </div>
 
+<?php if ($formToken !== null): ?>
 <!-- Create Meeting Modal -->
 <div class="modal fade" id="createMeetingModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -76,6 +250,7 @@
             <form action="<?= base_url('meeting/create') ?>" method="POST" id="createMeetingForm" class="js-validated" novalidate>
                 <div class="modal-body">
                     <?= csrf_field() ?>
+                    <input type="hidden" name="form_token" value="<?= esc($formToken, 'attr') ?>">
                     <div class="meeting-form-grid">
                         <div class="field col-full">
                             <label class="field-label" for="nama_keg">Nama kegiatan</label>
@@ -108,12 +283,12 @@
 
                         <div class="field col-third">
                             <label class="field-label" for="tanggal_mulai">Tanggal</label>
-                            <input class="input" type="date" id="tanggal_mulai" required>
+                            <input class="input" type="date" id="tanggal_mulai" name="tanggal_mulai" required>
                         </div>
 
                         <div class="field col-third">
                             <label class="field-label" for="jam_mulai">Jam mulai</label>
-                            <select class="input" id="jam_mulai" required>
+                            <select class="input" id="jam_mulai" name="jam_mulai" required>
                                 <?php
                                 for ($h = 7; $h <= 17; $h++) {
                                     for ($m = 0; $m < 60; $m += 15) {
@@ -124,7 +299,7 @@
                                 }
                                 ?>
                             </select>
-                            <input type="hidden" id="waktu_mulai" name="waktu_mulai">
+                            <input type="hidden" id="waktu_mulai">
                         </div>
 
                         <div class="field col-third">
@@ -172,7 +347,7 @@
                             </div>
                         </div>
 
-                        <input type="hidden" id="waktu_selesai" name="waktu_selesai">
+                        <input type="hidden" id="waktu_selesai">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -205,6 +380,7 @@
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <!-- Event Details Modal -->
 <div class="modal fade" id="eventDetailsModal" tabindex="-1" aria-labelledby="eventDetailsModalTitle" aria-hidden="true">
@@ -277,20 +453,20 @@
                     <div id="eventZoomSection" class="hidden border-t pt-3 mt-1" style="border-color:#e2e8f0;">
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"><i class="fas fa-video mr-1"></i>Zoom Meeting</p>
                         <div class="flex flex-wrap items-center gap-2">
-                            <a id="zoomJoinLink" href="#" target="_blank" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe;">
+                            <a id="zoomJoinLink" href="#" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
                                 <i class="fas fa-video"></i> Join Zoom
                             </a>
-                            <a id="zoomHostLink" href="#" target="_blank" rel="noopener" class="btn-outline-custom hidden" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#7c3aed; border-color:#ddd6fe;" title="Buka sebagai Host">
+                            <a id="zoomHostLink" href="#" target="_blank" rel="noopener" class="btn btn-secondary btn-sm hidden" title="Buka sebagai Host">
                                 <i class="fas fa-play-circle"></i> Host
                             </a>
-                            <button type="button" id="zoomHostLinkCopy" class="btn-outline-custom hidden" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#334155; border-color:#cbd5e1;">
+                            <button type="button" id="zoomHostLinkCopy" class="btn btn-secondary btn-sm hidden">
                                 <i class="fas fa-copy"></i> Copy Host Link
                             </button>
-                            <input id="zoomHostLinkInput" type="text" readonly class="sr-only" value="">
+                            <input id="zoomHostLinkInput" type="hidden" value="">
                         </div>
                     </div>
                     <!-- Audit trail (admin only) -->
-                    <?php if (session()->get('is_admin')): ?>
+                    <?php if ($isAdmin): ?>
                     <div id="eventAuditSection" class="hidden border-t pt-3 mt-1" style="border-color:#e2e8f0;">
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"><i class="fas fa-history mr-1"></i>Riwayat</p>
                         <div class="space-y-2">
@@ -312,44 +488,49 @@
                 </div>
             </div>
             <div class="modal-footer flex justify-between">
+                <?php if ($isAdmin): ?>
                 <div id="eventAdminActions" class="hidden flex items-center gap-2 flex-wrap">
                     <form id="approveForm" method="POST" class="inline-block">
                         <?= csrf_field() ?>
                         <input type="hidden" name="status" value="approved">
-                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#059669; border-color:#a7f3d0;">
+                        <button type="submit" class="btn btn-secondary btn-sm">
                             <i class="fas fa-check"></i> Setujui
                         </button>
                     </form>
 
                     <form id="sendZoomForm" method="POST" class="inline-block hidden" onsubmit="return confirm('Buat Zoom meeting dan kirim link ke pegawai?');">
                         <?= csrf_field() ?>
-                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#2563eb; border-color:#bfdbfe; font-weight:600;">
-                            🚀 Kirim Zoom
+                        <button type="submit" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-video" aria-hidden="true"></i> Kirim Zoom
                         </button>
                     </form>
-                    <form id="manualZoomForm" method="POST" class="hidden items-center gap-1 flex-nowrap">
+                    <form id="manualZoomForm" method="POST" class="hidden inline-flex items-center gap-1 flex-wrap">
                         <?= csrf_field() ?>
-                        <input id="manualZoomInput" type="url" name="zoom_join_url" placeholder="https://us02web.zoom.us/j/..." class="input-modern" style="height:30px; font-size:0.75rem; min-width:220px; padding:0.25rem 0.5rem;" required>
-                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#0f766e; border-color:#99f6e4; white-space:nowrap;">
+                        <label class="visually-hidden" for="manualZoomInput">URL Zoom</label>
+                        <input id="manualZoomInput" type="url" name="zoom_join_url" placeholder="https://us02web.zoom.us/j/..." class="input" style="width:min(100%, 18rem);" required>
+                        <button type="submit" class="btn btn-secondary btn-sm">
                             <i class="fas fa-link"></i> Simpan Link
                         </button>
                     </form>
                 </div>
+                <?php endif; ?>
+                <?php if ($formToken !== null): ?>
                 
                 <div id="eventOwnerActions" class="hidden flex items-center gap-2 flex-wrap ml-2">
-                    <a id="editMeetingLink" href="#" class="btn-outline-custom hidden" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#334155; border-color:#cbd5e1;">
+                    <a id="editMeetingLink" href="#" class="btn btn-secondary btn-sm hidden">
                         <i class="fas fa-pen"></i> Edit
                     </a>
                     <form id="deleteForm" method="POST" class="inline-block hidden" onsubmit="return confirm('Apakah Anda yakin ingin menghapus meeting ini?');">
                         <?= csrf_field() ?>
-                        <button type="submit" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem; color:#ef4444; border-color:#fecaca;">
+                        <button type="submit" class="btn btn-secondary btn-sm">
                             <i class="fas fa-trash-alt"></i> Hapus
                         </button>
                     </form>
                 </div>
+                <?php endif; ?>
 
                 <div class="ml-auto">
-                    <button type="button" class="btn-outline-custom" style="padding:0.375rem 0.75rem; font-size:0.75rem;" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
                 </div>
             </div>
         </div>
@@ -361,8 +542,8 @@
     <?php if (session()->getFlashdata('success')): ?>
         <div class="toast-notification toast-success" id="flashToast">
             <div class="toast-icon"><i class="fas fa-check"></i></div>
-            <span><?= session()->getFlashdata('success') ?></span>
-            <button class="toast-close" onclick="this.parentElement.classList.add('toast-hiding');setTimeout(()=>this.parentElement.remove(),300)">
+            <span><?= esc(session()->getFlashdata('success')) ?></span>
+            <button type="button" class="toast-close" aria-label="Tutup notifikasi">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -370,8 +551,8 @@
     <?php if (session()->getFlashdata('error')): ?>
         <div class="toast-notification toast-error" id="flashToast">
             <div class="toast-icon"><i class="fas fa-exclamation"></i></div>
-            <span><?= session()->getFlashdata('error') ?></span>
-            <button class="toast-close" onclick="this.parentElement.classList.add('toast-hiding');setTimeout(()=>this.parentElement.remove(),300)">
+            <span><?= esc(session()->getFlashdata('error')) ?></span>
+            <button type="button" class="toast-close" aria-label="Tutup notifikasi">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -381,6 +562,8 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js" defer integrity="sha384-5/vsv56401Wf+RP3yE5/aIKW4wutk4nLY3HjueTXN0rA+DmweMtrYaN6RSjdv31b" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" defer integrity="sha384-Uz1UHyakAAz121kPY0Nx6ZGzYeUTy9zAtcpdwVmFCEwiTGPA2K6zSGgkKJEQfMhK" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     function safeHttpUrl(url) {
@@ -400,24 +583,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return '';
     }
 
-    // Generate unique form token
-    function generateFormToken() {
-        return 'token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    }
-
-    // Add hidden token field to form
-    function addTokenToForm() {
-        const form = document.getElementById('createMeetingForm');
-        if (form) {
-            const existingToken = form.querySelector('input[name="form_token"]');
-            if (existingToken) existingToken.remove();
-            const tokenInput = document.createElement('input');
-            tokenInput.type = 'hidden';
-            tokenInput.name = 'form_token';
-            tokenInput.value = generateFormToken();
-            form.appendChild(tokenInput);
-        }
-    }
     
     function hasInvalidTimeRange() {
         var startTime = document.getElementById('waktu_mulai').value;
@@ -426,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showTimeRangeError() {
-        var modal = new bootstrap.Modal(document.getElementById('timeRangeErrorModal'));
+        var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('timeRangeErrorModal'));
         modal.show();
     }
 
@@ -439,7 +604,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (form && submitBtn) {
             form.addEventListener('submit', function(e) {
-                combineDateTime();
+                if (submitBtn.disabled) {
+                    e.preventDefault();
+                    return;
+                }
                 updateEndTime();
                 if (hasInvalidTimeRange()) {
                     e.preventDefault();
@@ -447,15 +615,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
 
-                addTokenToForm();
                 submitBtn.disabled = true;
                 submitText.textContent = 'Menyimpan...';
                 submitSpinner.classList.remove('hidden');
-                setTimeout(function() {
-                    submitBtn.disabled = false;
-                    submitText.textContent = 'Simpan';
-                    submitSpinner.classList.add('hidden');
-                }, 5000);
+            });
+            window.addEventListener('pageshow', function(e) {
+                if (!e.persisted) return;
+                submitBtn.disabled = false;
+                submitText.textContent = 'Simpan';
+                submitSpinner.classList.add('hidden');
             });
         }
     }
@@ -514,53 +682,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    document.getElementById('tanggal_mulai').addEventListener('change', updateEndTime);
-    document.getElementById('jam_mulai').addEventListener('change', updateEndTime);
-    document.getElementById('durasi').addEventListener('change', updateEndTime);
-
-    // Store all events
-    var allEvents = <?= json_encode(array_map(function($meeting) {
-        return [
-            'id' => $meeting['id'],
-            'title' => $meeting['nama_keg'],
-            'start' => $meeting['waktu_mulai'],
-            'end' => $meeting['waktu_selesai'],
-            'classNames' => ['fc-event-status-' . ($meeting['status'] ?? 'pending')],
-            'extendedProps' => [
-                'ruangan_id' => $meeting['ruangan_id'],
-                'ruangan' => $meeting['nama_ruangan'],
-                'tipe' => $meeting['tipe'],
-                'status' => $meeting['status'],
-                'waktu_mulai_ts' => isset($meeting['waktu_mulai']) ? strtotime($meeting['waktu_mulai']) : null,
-                'waktu_selesai_ts' => isset($meeting['waktu_selesai']) ? strtotime($meeting['waktu_selesai']) : null,
-                'pegawai' => $meeting['nama_pegawai'] ?? null,
-                'pegawai_id' => $meeting['pegawai_id'] ?? null,
-                'jumlah_peserta' => $meeting['jumlah_peserta'] ?? null,
-                'fasilitas' => $meeting['fasilitas'] ? implode(', ', json_decode($meeting['fasilitas'], true) ?? []) : '-',
-                'status_changed_by_name' => $meeting['status_changed_by_name'] ?? null,
-                'status_changed_at' => $meeting['status_changed_at'] ?? null,
-                'last_edited_by_name' => $meeting['last_edited_by_name'] ?? null,
-                'last_edited_at' => $meeting['last_edited_at'] ?? null,
-                'created_at' => $meeting['created_at'] ?? null,
-                'zoom_meeting_id' => $meeting['zoom_meeting_id'] ?? null,
-                'zoom_join_url' => $meeting['zoom_join_url'] ?? null,
-                'start_token' => $meeting['start_token'] ?? null,
-            ]
-        ];
-    }, $meetings)) ?>;
-
-    // Filter events based on selected ruangan
-    function filterEvents(ruanganId) {
-        if (!ruanganId) return allEvents;
-        return allEvents.filter(function(event) {
-            return event.extendedProps.ruangan_id == ruanganId;
-        });
+    if (document.getElementById('createMeetingForm')) {
+        document.getElementById('tanggal_mulai').addEventListener('change', updateEndTime);
+        document.getElementById('jam_mulai').addEventListener('change', updateEndTime);
+        document.getElementById('durasi').addEventListener('change', updateEndTime);
     }
 
-    // Initialize calendar
-    var calendarEl = document.getElementById('calendar');
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
+    var calendarStatus = document.getElementById('calendarStatus');
+    var calendarReady = false;
+    var calendar = window.FullCalendar && window.moment && new FullCalendar.Calendar(document.getElementById('calendar'), {
+        initialDate: <?= json_encode($calendarDate) ?>,
+        initialView: <?= json_encode($calendarView) ?>,
+        firstDay: 0,
+        fixedWeekCount: true,
+        datesSet: function(info) {
+            if (!calendarReady) return;
+            var url = new URL(window.location.href);
+            url.searchParams.delete('action');
+            url.searchParams.set('date', moment(calendar.getDate()).format('YYYY-MM-DD'));
+            url.searchParams.set('view', info.view.type);
+            window.location.assign(url);
+        },
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
@@ -575,7 +717,18 @@ document.addEventListener('DOMContentLoaded', function() {
             minute: '2-digit',
             hour12: false
         },
-        events: allEvents,
+        events: <?= json_encode($calendarEvents, JSON_HEX_TAG | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR) ?>,
+        eventDidMount: function(info) {
+            info.el.tabIndex = 0;
+            info.el.setAttribute('role', 'button');
+            info.el.setAttribute('aria-haspopup', 'dialog');
+            info.el.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    info.el.click();
+                }
+            });
+        },
         eventClick: function(info) {
             var event = info.event;
             var props = event.extendedProps;
@@ -599,7 +752,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Show admin actions based on status
             var adminActions = document.getElementById('eventAdminActions');
-            var isAdmin = <?= session()->get('is_admin') ? 'true' : 'false' ?>;
+            var isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
             if (adminActions) {
                 var approveForm = document.getElementById('approveForm');
                 var sendZoomForm = document.getElementById('sendZoomForm');
@@ -620,7 +773,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Show "Kirim Zoom" only for approved + Online/Hybrid + no zoom yet
                 if (sendZoomForm) {
                     var isOnlineOrHybrid = props.tipe === 'Online' || props.tipe === 'Hybrid';
-                    var hasHostMeeting = props.zoom_meeting_id && props.zoom_meeting_id !== '';
+                    var hasHostMeeting = props.hasZoomMeeting;
                     if (isAdmin && props.status === 'approved' && isOnlineOrHybrid && !hasHostMeeting) {
                         sendZoomForm.classList.remove('hidden');
                         sendZoomForm.action = '<?= base_url('meeting/send-zoom/') ?>' + event.id;
@@ -635,12 +788,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     var meetingNotEnded = Date.now() < (Number(props.waktu_selesai_ts) * 1000);
                     if (isAdmin && props.status === 'approved' && isOnlineOrHybrid && meetingNotEnded) {
                         manualZoomForm.classList.remove('hidden');
-                        manualZoomForm.classList.add('inline-flex');
                         manualZoomForm.action = '<?= base_url('meeting/manual-zoom/') ?>' + event.id;
                         manualZoomInput.value = props.zoom_join_url || '';
                         showContainer = true;
                     } else {
-                        manualZoomForm.classList.remove('inline-flex');
                         manualZoomForm.classList.add('hidden');
                         manualZoomInput.value = '';
                     }
@@ -651,9 +802,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Owner Actions (Delete)
             var ownerActions = document.getElementById('eventOwnerActions');
-            var currentPegawaiId = <?= (int)session()->get('pegawai_id') ?>;
-            var isOwner = parseInt(props.pegawai_id) === currentPegawaiId;
-            var isAdmin = <?= session()->get('is_admin') ? 'true' : 'false' ?>;
 
             if (ownerActions) {
                 var editMeetingLink = document.getElementById('editMeetingLink');
@@ -663,7 +811,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 deleteForm.classList.add('hidden');
                 ownerActions.classList.add('hidden');
 
-                if (isOwner || isAdmin) {
+                if (props.canManage) {
                     editMeetingLink.href = '<?= base_url('meeting/edit/') ?>' + event.id;
                     editMeetingLink.classList.remove('hidden');
                     // Direct Delete
@@ -673,7 +821,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            var eventModal = new bootstrap.Modal(document.getElementById('eventDetailsModal'));
+            var eventModalEl = document.getElementById('eventDetailsModal');
+            var eventModal = bootstrap.Modal.getOrCreateInstance(eventModalEl);
+            eventModalEl.addEventListener('hidden.bs.modal', function() { info.el.focus(); }, { once: true });
 
             // Populate audit trail (admin only)
             var auditSection = document.getElementById('eventAuditSection');
@@ -712,10 +862,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (zoomSection) {
                 var isOnlineOrHybrid = props.tipe === 'Online' || props.tipe === 'Hybrid';
                 var hasJoinUrl = props.zoom_join_url && props.zoom_join_url !== '';
-                var hasHostMeeting = props.zoom_meeting_id && props.zoom_meeting_id !== '';
-                var currentPegawaiId = <?= (int) session()->get('pegawai_id') ?>;
-                var isOwner = parseInt(props.pegawai_id) === currentPegawaiId;
-                var canSeeZoom = isAdmin || isOwner;
+                var canSeeZoom = props.canManage;
                 var meetingNotEnded = Date.now() < (Number(props.waktu_selesai_ts) * 1000);
                 var meetingStart = Number(props.waktu_mulai_ts) * 1000;
                 var canHostNow = meetingNotEnded && Date.now() >= (meetingStart - 3600000);
@@ -727,8 +874,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     var hostLinkCopy = document.getElementById('zoomHostLinkCopy');
                     var hostLinkInput = document.getElementById('zoomHostLinkInput');
 
-                    if (hasHostMeeting && canHostNow && props.start_token && props.start_token !== '') {
-                        var hostUrl = <?= json_encode(base_url('zoom/start/')) ?> + encodeURIComponent(props.start_token);
+                    if (canHostNow && props.zoomHostUrl) {
+                        var hostUrl = props.zoomHostUrl;
                         hostLink.href = hostUrl;
                         hostLink.classList.remove('hidden');
                         hostLinkInput.value = hostUrl;
@@ -747,14 +894,13 @@ document.addEventListener('DOMContentLoaded', function() {
             eventModal.show();
         }
     });
-    calendar.render();
-
-    // Handle ruangan filter change
-    document.getElementById('ruanganFilter').addEventListener('change', function(e) {
-        var ruanganId = e.target.value;
-        calendar.removeAllEvents();
-        calendar.addEventSource(filterEvents(ruanganId));
-    });
+    if (calendar) {
+        calendar.render();
+        calendarReady = true;
+        calendarStatus.remove();
+    } else {
+        calendarStatus.textContent = 'Kalender gagal dimuat. Muat ulang halaman untuk mencoba lagi.';
+    }
 
     // Auto-open create modal via ?action=create (used by topbar "+ Meeting")
     try {
@@ -770,10 +916,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-hide toast
     var toast = document.getElementById('flashToast');
     if (toast) {
-        setTimeout(function() {
+        function dismissToast() {
             toast.classList.add('toast-hiding');
-            setTimeout(function(){ toast.remove(); }, 300);
-        }, 4000);
+            setTimeout(function() { toast.remove(); }, 300);
+        }
+        toast.querySelector('.toast-close').addEventListener('click', dismissToast);
+        setTimeout(dismissToast, 4000);
     }
 
     // Copy host shortlink in event modal

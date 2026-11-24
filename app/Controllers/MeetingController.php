@@ -8,6 +8,8 @@ use App\Models\PegawaiModel;
 use App\Models\WaMessageQueueModel;
 use App\Libraries\ZoomLibrary;
 use CodeIgniter\Controller;
+use CodeIgniter\Database\BaseBuilder;
+use DateTimeImmutable;
 
 class MeetingController extends Controller
 {
@@ -31,65 +33,62 @@ class MeetingController extends Controller
         return session()->get('is_admin') === true;
     }
 
-    // ── Form token helpers ──────────────────────────────────────────
-
-    protected function consumeFormToken(): ?string
+    private function issueFormToken(string $action): string
     {
-        $formToken = $this->request->getPost('form_token');
-        if (!$formToken) {
-            return null;
-        }
-
-        $usedTokens = session()->get('used_form_tokens');
-        if (!is_array($usedTokens)) {
-            $usedTokens = [];
-        }
-        if (in_array($formToken, $usedTokens)) {
-            return '__duplicate__';
-        }
-
-        $usedTokens[] = $formToken;
-        session()->set('used_form_tokens', $usedTokens);
-        return $formToken;
+        $token = bin2hex(random_bytes(16));
+        $tokens = session()->get('meeting_form_tokens') ?? [];
+        $tokens[$token] = $action;
+        session()->set('meeting_form_tokens', array_slice($tokens, -20, null, true));
+        return $token;
     }
 
-    protected function releaseFormToken(string $formToken): void
+    private function consumeFormToken(string $action): bool
     {
-        $currentTokens = session()->get('used_form_tokens');
-        if (!is_array($currentTokens)) {
-            $currentTokens = [];
+        $token = $this->request->getPost('form_token');
+        $tokens = session()->get('meeting_form_tokens') ?? [];
+        if (!is_string($token) || ($tokens[$token] ?? null) !== $action) {
+            return false;
         }
-        $currentTokens = array_diff($currentTokens, [$formToken]);
-        session()->set('used_form_tokens', $currentTokens);
-    }
 
-    protected function pruneFormTokens(): void
-    {
-        $currentTokens = session()->get('used_form_tokens');
-        if (is_array($currentTokens) && count($currentTokens) > 10) {
-            session()->set('used_form_tokens', array_slice($currentTokens, -10));
-        }
+        unset($tokens[$token]);
+        session()->set('meeting_form_tokens', $tokens);
+        return true;
     }
 
     // ── Shared meeting data helpers ─────────────────────────────────
 
-    protected function resolveTimeRange(): array
+    protected function resolveTimeRange(bool $calendarCreate = false): array
     {
-        $waktuMulai = $this->request->getPost('waktu_mulai');
-        $durasi = $this->request->getPost('durasi');
-
-        $waktuMulai = date('Y-m-d H:i:s', strtotime($waktuMulai));
-
-        if ($durasi == 'Penuh') {
-            $dayOfWeek = (int) date('N', strtotime($waktuMulai));
-            $closeTime = $dayOfWeek <= 4 ? '17:00:00' : '17:30:00';
-            $waktuSelesai = date('Y-m-d ' . $closeTime, strtotime($waktuMulai));
+        if ($calendarCreate) {
+            $day = $this->request->getPost('tanggal_mulai');
+            $time = $this->request->getPost('jam_mulai');
+            $start = is_string($day) && $day !== '' && is_string($time) && $time !== '' ? "$day $time" : null;
         } else {
-            $durasi = (int) $durasi;
-            $waktuSelesai = date('Y-m-d H:i:s', strtotime($waktuMulai . ' + ' . $durasi . ' minutes'));
+            $start = $this->request->getPost('waktu_mulai');
         }
+        $duration = $this->request->getPost('durasi');
 
-        return [$waktuMulai, $waktuSelesai];
+        if (!is_string($start) || !preg_match('/^[1-9]\d{3}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?$/D', $start)) {
+            return ['', ''];
+        }
+        $start = str_replace('T', ' ', $start);
+        if (strlen($start) === 16) {
+            $start .= ':00';
+        }
+        $parsed = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $start);
+        if (!$parsed || $parsed->format('Y-m-d H:i:s') !== $start) {
+            return ['', ''];
+        }
+        if ($duration === 'Penuh') {
+            $end = $parsed->setTime(17, (int) $parsed->format('N') <= 4 ? 0 : 30);
+        } else {
+            $minutes = filter_var($duration, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 1440]]);
+            if ($minutes === false) {
+                return [$start, ''];
+            }
+            $end = $parsed->modify("+$minutes minutes");
+        }
+        return [$start, $end->format('Y-m-d H:i:s')];
     }
 
     protected function buildValidationRules(bool $isOnline): array
@@ -412,7 +411,7 @@ class MeetingController extends Controller
 
     protected function generateStartToken(): string
     {
-        return bin2hex(random_bytes(10));
+        return bin2hex(random_bytes(32));
     }
 
     protected function buildManualZoomUpdateData(
@@ -426,6 +425,9 @@ class MeetingController extends Controller
         return [
             'zoom_join_url' => $canonicalJoinUrl,
             'zoom_meeting_id' => $zoomMeetingId,
+            'zoom_start_url' => $sourceMeeting === null && $zoomMeetingId === ($meeting['zoom_meeting_id'] ?? null)
+                ? ($meeting['zoom_start_url'] ?? null)
+                : null,
             'zoom_source_meeting_id' => isset($sourceMeeting['id']) ? (int) $sourceMeeting['id'] : null,
             'start_token' => !empty($meeting['start_token'])
                 ? $meeting['start_token']
@@ -442,40 +444,174 @@ class MeetingController extends Controller
         return $this->meetingModel
             ->where('zoom_meeting_id', $zoomMeetingId)
             ->where('id !=', $excludeId)
+            ->where('zoom_source_meeting_id', null)
             ->where('start_token IS NOT NULL')
+            ->orderBy('zoom_start_url IS NULL', 'ASC', false)
             ->orderBy('waktu_mulai', 'ASC')
             ->first();
     }
 
-    // ── Controller actions ──────────────────────────────────────────
-
-    public function index()
+    private function isZoomHostSource(array $meeting): bool
     {
-        if (!session()->get('logged_in')) {
-            return redirect()->to('auth/login');
+        if (empty($meeting['zoom_meeting_id']) || !empty($meeting['zoom_source_meeting_id']) || empty($meeting['zoom_start_url'])) {
+            return false;
         }
 
-        $data['meetings'] = $this->meetingModel->getUpcomingMeetings();
-        $data['ruangan'] = $this->ruanganModel->getActiveRooms();
-        $data['isAdmin'] = $this->isAdmin();
-        return view('meeting/index', $data);
+        // Older manual replacements could leave a start URL for a different provider meeting.
+        $path = parse_url($meeting['zoom_start_url'], PHP_URL_PATH);
+        return is_string($path) && trim($path, '/') === 's/' . $meeting['zoom_meeting_id'];
     }
+
+    private function zoomHostSource(array $meeting): ?array
+    {
+        if ($this->isZoomHostSource($meeting)) {
+            return $meeting;
+        }
+        $root = $this->findSharedZoomSource($meeting['zoom_meeting_id'], (int) $meeting['id']);
+        return $root !== null && $this->isZoomHostSource($root) ? $root : null;
+    }
+
+    private function deleteDetachedZoom(array $meeting): void
+    {
+        if (!$this->isZoomHostSource($meeting) || $this->meetingModel->hasOtherZoomBookings($meeting)) {
+            return;
+        }
+        try {
+            $this->zoomLibrary->deleteMeeting($meeting['zoom_meeting_id']);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to delete Zoom meeting: ' . $e->getMessage());
+        }
+    }
+
+    // ── Controller actions ──────────────────────────────────────────
 
     public function calendar()
     {
-        $data['meetings'] = $this->meetingModel->getNotRejectedMeetingWithDetails();
-        $data['ruangan'] = $this->ruanganModel->getActiveRooms();
-        $data['isAdmin'] = session()->get('logged_in') ? $this->isAdmin() : false;
-        return view('meeting/calendar', $data);
+        $loggedIn = (bool) session()->get('logged_in');
+        $admin = $loggedIn && $this->isAdmin();
+        $viewerId = $loggedIn ? (int) session()->get('pegawai_id') : null;
+        $view = $this->request->getGet('view');
+        $view = in_array($view, ['dayGridMonth', 'timeGridWeek', 'timeGridDay'], true) ? $view : 'dayGridMonth';
+        $today = new DateTimeImmutable('today');
+        $date = $this->queryDate('date', $today) ?? $today;
+        $roomId = $this->requestedRoomId();
+
+        $anchor = $view === 'dayGridMonth' ? $date->modify('first day of this month') : $date;
+        $start = $view === 'timeGridDay' ? $anchor : $anchor->modify('-' . $anchor->format('w') . ' days');
+        $days = match ($view) {
+            'dayGridMonth' => 42, // The calendar shows six rows, including days from neighbouring months.
+            'timeGridWeek' => 7,
+            'timeGridDay' => 1,
+        };
+        $rows = $this->meetingModel->calendarMeetings(
+            $start->format('Y-m-d H:i:s'),
+            $start->modify("+$days days")->format('Y-m-d H:i:s'),
+            $roomId,
+            $loggedIn,
+            $admin,
+        );
+        if ($loggedIn) {
+            $this->response->setHeader('Cache-Control', 'private, no-store');
+        }
+
+        return view('meeting/calendar', [
+            'calendarDate' => $date->format('Y-m-d'),
+            'calendarView' => $view,
+            'calendarEvents' => array_map(fn (array $row): array => $this->calendarEvent($row, $viewerId, $admin), $rows),
+            'calendarRoomId' => $roomId,
+            'ruangan' => $this->ruanganModel->getActiveRooms(),
+            'isAdmin' => $admin,
+            'formToken' => $loggedIn ? $this->issueFormToken('create') : null,
+        ]);
+    }
+
+    private function calendarEvent(array $meeting, ?int $viewerId, bool $admin): array
+    {
+        $canManage = $admin || ($viewerId !== null && $viewerId > 0 && $viewerId === (int) $meeting['pegawai_id']);
+        $facilities = json_decode($meeting['fasilitas'] ?? '[]', true);
+        $props = [
+            'ruangan' => $meeting['nama_ruangan'],
+            'tipe' => $meeting['tipe'],
+            'status' => $meeting['status'],
+            'pegawai' => $meeting['nama_pegawai'],
+            'jumlah_peserta' => $meeting['jumlah_peserta'],
+            'fasilitas' => is_array($facilities) ? implode(', ', $facilities) : '',
+            'canManage' => $canManage,
+        ];
+        if ($canManage) {
+            $props['waktu_mulai_ts'] = strtotime($meeting['waktu_mulai']);
+            $props['waktu_selesai_ts'] = strtotime($meeting['waktu_selesai']);
+            $props['zoom_join_url'] = $meeting['zoom_join_url'];
+            $props['hasZoomMeeting'] = !empty($meeting['zoom_meeting_id']);
+            if ($props['hasZoomMeeting'] && $meeting['status'] === 'approved' && !empty($meeting['start_token'])) {
+                $props['zoomHostUrl'] = base_url('zoom/start/' . $meeting['start_token']);
+            }
+        }
+        if ($admin) {
+            foreach (['status_changed_by_name', 'status_changed_at', 'last_edited_by_name', 'last_edited_at', 'created_at'] as $key) {
+                $props[$key] = $meeting[$key];
+            }
+        }
+        return [
+            'id' => $meeting['id'],
+            'title' => $meeting['nama_keg'],
+            'start' => str_replace(' ', 'T', $meeting['waktu_mulai']),
+            'end' => str_replace(' ', 'T', $meeting['waktu_selesai']),
+            'classNames' => ['fc-event-status-' . $meeting['status']],
+            'extendedProps' => $props,
+        ];
     }
 
     public function upcoming()
     {
-        $data['today_meetings'] = $this->meetingModel->getTodayMeetings();
-        $data['upcoming_meetings'] = $this->meetingModel->getUpcomingMeetings();
+        $loggedIn = (bool) session()->get('logged_in');
+        $roomId = $this->requestedRoomId();
+        $today = date('Y-m-d 00:00:00');
+        $tomorrow = date('Y-m-d 00:00:00', strtotime('tomorrow'));
+        $data['today_meetings'] = $this->paginate(
+            $this->meetingModel->scheduleList($today, $tomorrow, $roomId, $loggedIn),
+            'today',
+        );
+        $data['upcoming_meetings'] = $this->paginate(
+            $this->meetingModel->scheduleList($tomorrow, null, $roomId, $loggedIn),
+            'upcoming',
+        );
+        $data['pager'] = service('pager')->only(['room', 'page_today', 'page_upcoming']);
         $data['ruangan'] = $this->ruanganModel->getActiveRooms();
-        $data['isAdmin'] = session()->get('logged_in') ? $this->isAdmin() : false;
+        $data['roomId'] = $roomId;
+        $data['isAdmin'] = $loggedIn && $this->isAdmin();
+        if ($loggedIn) {
+            $this->response->setHeader('Cache-Control', 'private, no-store');
+        }
         return view('meeting/upcoming', $data);
+    }
+
+    private function requestedRoomId(): ?int
+    {
+        return filter_var($this->request->getGet('room'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
+    }
+
+    private function queryDate(string $name, DateTimeImmutable $default): ?DateTimeImmutable
+    {
+        $raw = $this->request->getGet($name);
+        if ($raw === null || $raw === '') {
+            return $default;
+        }
+        if (!is_string($raw) || !preg_match('/^[1-9]\d{3}-\d{2}-\d{2}$/D', $raw) || $raw >= '9999-01-01') {
+            return null;
+        }
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $raw);
+        return $date !== false && $date->format('Y-m-d') === $raw ? $date : null;
+    }
+
+    private function paginate(BaseBuilder $builder, string $group): array
+    {
+        $pager = service('pager');
+        $total = $builder->countAllResults(false);
+        $perPage = $pager->getPerPage($group);
+        $pager->store($group, $pager->getCurrentPage($group), $perPage, $total);
+        $offset = ($pager->getCurrentPage($group) - 1) * $perPage;
+        return $total === 0 ? [] : $builder->get($perPage, $offset)->getResultArray();
     }
 
     public function all()
@@ -484,21 +620,67 @@ class MeetingController extends Controller
             return redirect()->to('auth/login');
         }
 
-        $startParam = $this->request->getGet('start_date');
-        $endParam   = $this->request->getGet('end_date');
+        $this->response->setHeader('Cache-Control', 'private, no-store');
 
-        $monday = date('Y-m-d 00:00:00', strtotime('monday this week'));
-        $sunday = date('Y-m-d 23:59:59', strtotime('sunday this week'));
-        $startDate = $startParam ? date('Y-m-d 00:00:00', strtotime($startParam)) : $monday;
-        $endDate   = $endParam ? date('Y-m-d 23:59:59', strtotime($endParam)) : $sunday;
+        $monday = new DateTimeImmutable('monday this week');
+        $start = $this->queryDate('start_date', $monday);
+        $end = $this->queryDate('end_date', $monday->modify('+6 days'));
+        if ($start === null || $end === null || $end < $start || $end > $start->modify('+365 days')) {
+            return redirect()->to('meeting/all')->with('error', 'Pilih periode tanggal yang valid dengan maksimal 366 hari.');
+        }
 
-        $data['startDate'] = date('Y-m-d', strtotime($startDate));
-        $data['endDate']   = date('Y-m-d', strtotime($endDate));
-        $data['meetings'] = $this->meetingModel->getMeetingsByDateRange($startDate, $endDate);
-        $data['ruangan']  = $this->ruanganModel->getActiveRooms();
-        $data['isAdmin']  = true;
-
+        $status = $this->request->getGet('status');
+        $status = in_array($status, ['pending', 'approved', 'rejected', 'cancelled'], true) ? $status : 'all';
+        $query = $this->request->getGet('q');
+        $query = is_string($query) ? mb_substr(trim($query), 0, 100) : '';
+        $range = $this->request->getGet('range');
+        $data['filters'] = [
+            'start_date' => $start->format('Y-m-d'),
+            'end_date' => $end->format('Y-m-d'),
+            'status' => $status,
+            'q' => $query,
+            'range' => in_array($range, ['today', 'week', 'month', 'pending'], true) ? $range : 'custom',
+        ];
+        $builder = $this->meetingModel->reportList(
+            $start->format('Y-m-d H:i:s'),
+            $end->modify('+1 day')->format('Y-m-d H:i:s'),
+            $status,
+            $query,
+        );
+        $format = $this->request->getGet('format');
+        if ($format === 'csv') {
+            return $this->downloadMeetingReport($builder);
+        }
+        if ($format === 'print') {
+            $data['meetings'] = $builder->get();
+            return view('meeting/print', $data);
+        }
+        $data['meetings'] = $this->paginate($builder, 'default');
+        $data['pager'] = service('pager')->only(['page', 'start_date', 'end_date', 'status', 'q', 'range']);
         return view('meeting/all', $data);
+    }
+
+    private function downloadMeetingReport(BaseBuilder $builder)
+    {
+        $file = fopen('php://temp', 'w+b');
+        fputcsv($file, ['Nama Kegiatan', 'Ruangan', 'Waktu', 'Status'], ',', '"', '');
+        $results = $builder->get();
+        while ($meeting = $results->getUnbufferedRow('array')) {
+            $row = [
+                $meeting['nama_keg'],
+                $meeting['nama_ruangan'] . ' (' . $meeting['tipe'] . ')',
+                date('d M Y H:i', strtotime($meeting['waktu_mulai'])) . ' – ' . date('H:i', strtotime($meeting['waktu_selesai'])),
+                ucfirst($meeting['status']),
+            ];
+            // Keep text as text when opening the report in a spreadsheet.
+            $row = array_map(static fn (string $value): string => preg_match('/^[\x00-\x20]*[=+@-]/', $value) ? "'" . $value : $value, $row);
+            fputcsv($file, $row, ',', '"', '');
+        }
+        rewind($file);
+        $content = stream_get_contents($file);
+        fclose($file);
+        return $this->response->download('meetingku-' . date('Y-m-d') . '.csv', $content, true)
+            ->setHeader('Cache-Control', 'private, no-store');
     }
 
     public function create()
@@ -506,10 +688,14 @@ class MeetingController extends Controller
         if (!session()->get('logged_in')) {
             return redirect()->to('auth/login');
         }
-        [$waktuMulai, $waktuSelesai] = $this->resolveTimeRange();
+        if (!$this->consumeFormToken('create')) {
+            return redirect()->back()->with('error', 'Form tidak valid atau sudah dikirim. Buka kembali kalender.');
+        }
 
-        $ruanganId = $this->request->getPost('ruangan_id');
-        $ruangan = $this->ruanganModel->find($ruanganId);
+        [$waktuMulai, $waktuSelesai] = $this->resolveTimeRange(true);
+
+        $ruanganId = filter_var($this->request->getPost('ruangan_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $ruangan = $ruanganId !== false ? $this->ruanganModel->find($ruanganId) : null;
         $isOnline = ($ruangan && $ruangan['tipe'] === 'Online');
 
         $this->meetingModel->setValidationRules($this->buildValidationRules($isOnline));
@@ -549,14 +735,11 @@ class MeetingController extends Controller
                 $meetingId,
                 $this->scheduleNewMeetingGroupNotification($waktuMulai)
             );
-            $this->pruneFormTokens();
 
             return redirect()->back()->with('success', 'Meeting berhasil dibuat');
-        } catch (\Exception $e) {
-            $this->releaseFormToken($formToken);
-            return redirect()->back()
-                ->with('error', 'Gagal membuat meeting: ' . $e->getMessage())
-                ->withInput();
+        } catch (\Throwable $e) {
+            log_message('error', 'Meeting creation failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat meeting.')->withInput();
         }
     }
 
@@ -579,6 +762,7 @@ class MeetingController extends Controller
         $data['meeting'] = $meeting;
         $data['ruangan'] = $this->ruanganModel->getActiveRooms();
         $data['isAdmin'] = $this->isAdmin();
+        $data['formToken'] = $this->issueFormToken('edit:' . $meeting['id']);
         return view('meeting/edit', $data);
     }
 
@@ -598,18 +782,14 @@ class MeetingController extends Controller
             return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk mengupdate meeting ini');
         }
 
-        $formToken = $this->consumeFormToken();
-        if ($formToken === null) {
-            return redirect()->back()->with('error', 'Token form tidak valid')->withInput();
-        }
-        if ($formToken === '__duplicate__') {
-            return redirect()->back()->with('error', 'Form telah dikirim. Mohon tunggu proses selesai.')->withInput();
+        if (!$this->consumeFormToken('edit:' . $meeting['id'])) {
+            return redirect()->back()->with('error', 'Form tidak valid atau sudah dikirim. Buka kembali halaman edit.')->withInput();
         }
 
         [$waktuMulai, $waktuSelesai] = $this->resolveTimeRange();
 
-        $ruanganId = $this->request->getPost('ruangan_id');
-        $ruangan = $this->ruanganModel->find($ruanganId);
+        $ruanganId = filter_var($this->request->getPost('ruangan_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $ruangan = $ruanganId !== false ? $this->ruanganModel->find($ruanganId) : null;
         $isOnline = ($ruangan && $ruangan['tipe'] === 'Online');
 
         $this->meetingModel->setValidationRules($this->buildValidationRules($isOnline));
@@ -634,19 +814,20 @@ class MeetingController extends Controller
         }
 
         try {
-            if ($this->meetingModel->update($id, $data) === false) {
+            $updated = $this->meetingModel->withZoomWrite($meeting, null, function () use ($id, $meeting, $data): bool {
+                if (!$this->meetingModel->update($id, $data)) {
+                    return false;
+                }
+                if ($meeting['waktu_mulai'] !== $data['waktu_mulai'] || $meeting['waktu_selesai'] !== $data['waktu_selesai']
+                    || $meeting['nama_keg'] !== $data['nama_keg']) {
+                    $this->syncZoomOnScheduleChange((int) $id, $meeting, $data);
+                }
+                return true;
+            });
+            if (!$updated) {
                 return redirect()->back()
                     ->with('error', 'Gagal mengupdate meeting: ' . implode(', ', $this->meetingModel->errors()))
                     ->withInput();
-            }
-
-            if (!empty($meeting['zoom_meeting_id'])) {
-                $scheduleChanged = ($meeting['waktu_mulai'] !== $data['waktu_mulai'])
-                                || ($meeting['waktu_selesai'] !== $data['waktu_selesai'])
-                                || ($meeting['nama_keg'] !== $data['nama_keg']);
-                if ($scheduleChanged) {
-                    $this->syncZoomOnScheduleChange($id, $meeting, $data);
-                }
             }
 
             $meetingId = (int) $id;
@@ -659,19 +840,20 @@ class MeetingController extends Controller
             } else {
                 log_message('info', 'Group edit notif skipped for meeting ' . $meetingId . ' (new-meeting notif not yet sent or outside H-2 window)');
             }
-            $this->pruneFormTokens();
 
             return redirect()->to('/upcoming')->with('success', 'Meeting berhasil diupdate');
         } catch (\Exception $e) {
-            $this->releaseFormToken($formToken);
-            return redirect()->back()
-                ->with('error', 'Gagal mengupdate meeting: ' . $e->getMessage())
-                ->withInput();
+            log_message('error', 'Meeting update failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal mengupdate meeting. Muat ulang halaman dan coba lagi.')->withInput();
         }
     }
 
     protected function syncZoomOnScheduleChange(int $id, array $meeting, array $data): void
     {
+        if (!$this->isZoomHostSource($meeting) || $this->meetingModel->hasOtherZoomBookings($meeting)) {
+            return;
+        }
+
         try {
             $startTimestamp = strtotime($data['waktu_mulai']);
             $endTimestamp   = strtotime($data['waktu_selesai']);
@@ -721,22 +903,20 @@ class MeetingController extends Controller
             return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk menghapus meeting ini');
         }
 
-        if (!empty($meeting['zoom_meeting_id'])) {
-            try {
-                $this->zoomLibrary->deleteMeeting($meeting['zoom_meeting_id']);
-            } catch (\Exception $e) {
-                log_message('error', 'Failed to delete Zoom meeting: ' . $e->getMessage());
-                // Continue with DB deletion even if Zoom fails
-            }
-        }
-
         try {
-            if ($this->meetingModel->delete($id) === false) {
-                $errors = $this->meetingModel->errors();
-                return redirect()->back()->with('error', 'Gagal menghapus meeting: ' . implode(', ', $errors));
+            $deleted = $this->meetingModel->withZoomWrite($meeting, null, function () use ($meeting): bool {
+                if (!$this->meetingModel->detachZoomBooking($meeting)) {
+                    return false;
+                }
+                $this->deleteDetachedZoom($meeting);
+                return true;
+            });
+            if (!$deleted) {
+                return redirect()->back()->with('error', 'Gagal menghapus meeting.');
             }
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat menghapus meeting: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            log_message('error', 'Meeting deletion failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menghapus meeting.');
         }
 
         return redirect()->back()->with('success', 'Meeting berhasil dihapus');
@@ -774,31 +954,37 @@ class MeetingController extends Controller
                 'status_changed_at' => date('Y-m-d H:i:s'),
             ];
 
-            if (in_array($status, ['rejected', 'cancelled']) && !empty($meeting['zoom_meeting_id'])) {
-                try {
-                    $this->zoomLibrary->deleteMeeting($meeting['zoom_meeting_id']);
-                } catch (\Throwable $ze) {
-                    log_message('error', 'Failed to delete Zoom meeting: ' . $ze->getMessage());
-                }
+            $detach = in_array($status, ['rejected', 'cancelled'], true) && !empty($meeting['zoom_join_url']);
+            if ($detach) {
                 $updateData['zoom_meeting_id'] = null;
-                $updateData['zoom_join_url']   = null;
-                $updateData['zoom_start_url']  = null;
-                $updateData['start_token']     = null;
-
-                $this->sendWhatsAppToPegawai($meeting, 'cancelled');
+                $updateData['zoom_source_meeting_id'] = null;
+                $updateData['zoom_join_url'] = null;
+                $updateData['zoom_start_url'] = null;
+                $updateData['start_token'] = null;
             }
-
-            $result = $this->meetingModel->update($id, $updateData);
+            $result = $this->meetingModel->withZoomWrite($meeting, null, function () use ($id, $meeting, $detach, $updateData): bool {
+                if (!$detach) {
+                    return $this->meetingModel->update($id, $updateData);
+                }
+                if (!$this->meetingModel->detachZoomBooking($meeting, $updateData)) {
+                    return false;
+                }
+                $this->deleteDetachedZoom($meeting);
+                return true;
+            });
             if ($result === false) {
                 return redirect()->back()
                     ->with('error', 'Gagal mengupdate status meeting: ' . implode(', ', $this->meetingModel->errors()));
+            }
+            if ($detach) {
+                $this->sendWhatsAppToPegawai($meeting, 'cancelled');
             }
 
             return redirect()->back()
                 ->with('success', 'Status meeting berhasil diupdate menjadi ' . strtoupper($status));
         } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Gagal mengupdate status meeting: ' . $e->getMessage());
+            log_message('error', 'Meeting status update failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal mengupdate status meeting. Muat ulang halaman dan coba lagi.');
         }
     }
 
@@ -840,29 +1026,29 @@ class MeetingController extends Controller
             $duration       = max(30, (int) round(($endTimestamp - $startTimestamp) / 60));
             $startTimeISO   = date('Y-m-d\TH:i:s', $startTimestamp);
 
-            $zoomResult = $this->zoomLibrary->createMeeting(
-                $meeting['nama_keg'],
-                $startTimeISO,
-                $duration,
-                'Meeting: ' . $meeting['nama_keg']
-            );
-
-            if (!$zoomResult) {
-                return redirect()->back()->with('error', 'Gagal membuat Zoom meeting. Periksa konfigurasi Zoom API.');
+            $zoom = $this->meetingModel->withZoomWrite($meeting, null, function () use ($id, $meeting, $startTimeISO, $duration): ?array {
+                $result = $this->zoomLibrary->createMeeting(
+                    $meeting['nama_keg'],
+                    $startTimeISO,
+                    $duration,
+                    'Meeting: ' . $meeting['nama_keg'],
+                );
+                if (!$result) {
+                    return null;
+                }
+                $fields = [
+                    'zoom_meeting_id' => $result['id'],
+                    'zoom_join_url' => $result['join_url'],
+                    'zoom_start_url' => $result['start_url'],
+                    'start_token' => $this->generateStartToken(),
+                ];
+                $this->meetingModel->setValidationRules([]);
+                return $this->meetingModel->update($id, $fields) ? $fields : null;
+            });
+            if ($zoom === null) {
+                return redirect()->back()->with('error', 'Gagal membuat atau menyimpan Zoom meeting. Periksa konfigurasi Zoom API.');
             }
-
-            $startToken = $this->generateStartToken();
-            $this->meetingModel->setValidationRules([]);
-            $this->meetingModel->update($id, [
-                'zoom_meeting_id' => $zoomResult['id'],
-                'zoom_join_url'   => $zoomResult['join_url'],
-                'zoom_start_url'  => $zoomResult['start_url'],
-                'start_token'     => $startToken,
-            ]);
-
-            $meeting['zoom_join_url']  = $zoomResult['join_url'];
-            $meeting['zoom_start_url'] = $zoomResult['start_url'];
-            $meeting['start_token']    = $startToken;
+            $meeting = array_replace($meeting, $zoom);
 
             $this->sendWhatsAppToPegawai($meeting, 'zoom_created');
 
@@ -882,7 +1068,7 @@ class MeetingController extends Controller
         } catch (\Exception $e) {
             log_message('error', 'Exception during sendZoom: ' . $e->getMessage());
             return redirect()->back()
-                ->with('error', 'Gagal membuat Zoom meeting: ' . $e->getMessage());
+                ->with('error', 'Gagal membuat Zoom meeting. Muat ulang halaman dan coba lagi.');
         }
     }
 
@@ -928,13 +1114,25 @@ class MeetingController extends Controller
 
         $this->meetingModel->setValidationRules([]);
         $zoomMeetingId = $this->extractZoomMeetingIdFromUrl($zoomJoinUrl);
-        $sourceMeeting = $this->findSharedZoomSource($zoomMeetingId, (int) $id);
+        $sameSession = $zoomMeetingId === ($meeting['zoom_meeting_id'] ?? null);
+        try {
+            $updateData = $this->meetingModel->withZoomWrite($meeting, $zoomMeetingId, function () use ($id, $meeting, $zoomJoinUrl, $zoomMeetingId, $sameSession): ?array {
+                $sourceMeeting = $sameSession && empty($meeting['zoom_source_meeting_id'])
+                    ? null
+                    : $this->findSharedZoomSource($zoomMeetingId, (int) $id);
+                $data = $this->buildManualZoomUpdateData($zoomJoinUrl, $zoomMeetingId, $meeting, $sourceMeeting);
+                $updated = $sameSession
+                    ? $this->meetingModel->update($id, $data)
+                    : $this->meetingModel->detachZoomBooking($meeting, $data);
+                return $updated ? $data : null;
+            });
+        } catch (\Exception $e) {
+            log_message('error', 'Manual Zoom update failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menyimpan link Zoom manual. Muat ulang halaman dan coba lagi.');
+        }
         $previousJoinUrl = (string) ($meeting['zoom_join_url'] ?? '');
         $isFirstZoomLink = $previousJoinUrl === '';
-        $updateData = $this->buildManualZoomUpdateData($zoomJoinUrl, $zoomMeetingId, $meeting, $sourceMeeting);
-        $updated = $this->meetingModel->update($id, $updateData);
-
-        if ($updated === false) {
+        if ($updateData === null) {
             return redirect()->back()->with('error', 'Gagal menyimpan link Zoom manual');
         }
 
@@ -981,19 +1179,18 @@ class MeetingController extends Controller
             return redirect()->back()->with('error', 'Link Host hanya tersedia 1 jam sebelum meeting dimulai');
         }
 
+        $source = $this->zoomHostSource($meeting);
+        if ($source === null) {
+            return redirect()->back()->with('error', 'Meeting tidak memiliki link khusus host.');
+        }
+
         try {
-            $zoomData = $this->zoomLibrary->getMeeting($meeting['zoom_meeting_id']);
+            $zoomData = $this->zoomLibrary->getMeeting($source['zoom_meeting_id']);
             if (!$zoomData || empty($zoomData['start_url'])) {
                 return redirect()->back()->with('error', 'Gagal mengambil data Zoom meeting');
             }
 
-            $this->meetingModel->setValidationRules([]);
-            $this->meetingModel->update($id, [
-                'zoom_start_url' => $zoomData['start_url'],
-                'zoom_join_url'  => $zoomData['join_url'],
-            ]);
-
-            return redirect()->to($zoomData['start_url']);
+            return $this->redirectToZoom($zoomData['start_url']);
         } catch (\Exception $e) {
             log_message('error', 'Exception during refreshZoom: ' . $e->getMessage());
             return redirect()->back()
@@ -1034,37 +1231,35 @@ class MeetingController extends Controller
             );
         }
 
-        $zoomMeeting = $meeting;
-        if (!empty($meeting['zoom_source_meeting_id'])) {
-            $zoomMeeting = $this->meetingModel->find($meeting['zoom_source_meeting_id']) ?: $meeting;
-        }
-
-        if (empty($zoomMeeting['zoom_start_url'])) {
-            return redirect()->to($zoomMeeting['zoom_join_url']);
+        $zoomMeeting = $this->zoomHostSource($meeting);
+        if ($zoomMeeting === null) {
+            return $this->redirectToZoom($meeting['zoom_join_url']);
         }
 
         try {
             $zoomData = $this->zoomLibrary->getMeeting($zoomMeeting['zoom_meeting_id']);
             if (!$zoomData || empty($zoomData['start_url'])) {
-                return redirect()->to($zoomMeeting['zoom_join_url']);
+                return $this->redirectToZoom($meeting['zoom_join_url']);
             }
 
-            $this->meetingModel->setValidationRules([]);
-            $this->meetingModel->update($zoomMeeting['id'], [
-                'zoom_start_url' => $zoomData['start_url'],
-                'zoom_join_url'  => $zoomData['join_url'],
-            ]);
-
-            return redirect()->to($zoomData['start_url']);
+            return $this->redirectToZoom($zoomData['start_url']);
         } catch (\Exception $e) {
             log_message('error', 'Exception during startHost: ' . $e->getMessage());
             return $this->renderHostError('Terjadi kesalahan saat menghubungkan ke Zoom. Silakan coba lagi.');
         }
     }
 
+    private function redirectToZoom(string $url)
+    {
+        return redirect()->to($url)
+            ->setHeader('Cache-Control', 'private, no-store')
+            ->setHeader('Referrer-Policy', 'no-referrer');
+    }
+
     protected function renderHostError(string $message)
     {
-        // before passing to renderHostError(). The view renders $message as raw HTML.
+        $this->response->setHeader('Cache-Control', 'private, no-store');
+        $this->response->setHeader('Referrer-Policy', 'no-referrer');
         return view('meeting/host_error', ['message' => $message]);
     }
 

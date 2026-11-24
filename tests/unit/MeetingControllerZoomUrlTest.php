@@ -72,32 +72,46 @@ final class MeetingControllerZoomUrlTest extends CIUnitTestCase
         $this->assertSame('https://zoom.us/j/12345678901', $result['zoom_join_url']);
         $this->assertSame('12345678901', $result['zoom_meeting_id']);
         $this->assertNull($result['zoom_source_meeting_id']);
-        $this->assertMatchesRegularExpression('/^[a-f0-9]{20}$/', $result['start_token']);
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $result['start_token']);
     }
 
-    public function testCalendarPayloadDoesNotExposeRawZoomStartUrl(): void
+    public function testCalendarOnlyProjectsHostLinkForOwnerOrAdmin(): void
     {
-        $calendarView = file_get_contents(ROOTPATH . 'app/Views/meeting/calendar.php');
+        $controller = (new ReflectionClass(MeetingController::class))->newInstanceWithoutConstructor();
+        $method = new ReflectionMethod($controller, 'calendarEvent');
+        $meeting = [
+            'id' => 1,
+            'nama_keg' => 'Rapat tim',
+            'nama_ruangan' => 'Studio',
+            'tipe' => 'Online',
+            'status' => 'approved',
+            'nama_pegawai' => 'Pemohon',
+            'pegawai_id' => 25,
+            'jumlah_peserta' => 5,
+            'waktu_mulai' => '2026-11-24 08:00:00',
+            'waktu_selesai' => '2026-11-24 09:00:00',
+            'zoom_meeting_id' => '12345678901',
+            'zoom_join_url' => 'https://zoom.us/j/12345678901',
+            'zoom_start_url' => 'https://zoom.us/s/12345678901',
+            'start_token' => 'private-host-token',
+            'status_changed_by_name' => 'Administrator',
+            'status_changed_at' => null,
+            'last_edited_by_name' => null,
+            'last_edited_at' => null,
+            'created_at' => null,
+        ];
 
-        $this->assertIsString($calendarView);
-        $this->assertStringNotContainsString("'zoom_start_url'", $calendarView);
-    }
-    public function testCalendarHostButtonUsesShortlinkInsteadOfRefreshEndpoint(): void
-    {
-        $calendarView = file_get_contents(ROOTPATH . 'app/Views/meeting/calendar.php');
-
-        $this->assertIsString($calendarView);
-        $this->assertStringContainsString("base_url('zoom/start/')", $calendarView);
-        $this->assertStringNotContainsString("base_url('meeting/refresh-zoom/')", $calendarView);
-    }
-    public function testUpcomingUiUsesShortlinkInsteadOfRefreshEndpoint(): void
-    {
-        $upcomingView = file_get_contents(ROOTPATH . 'app/Views/meeting/upcoming.php');
-
-        $this->assertIsString($upcomingView);
-        $this->assertStringContainsString("base_url('zoom/start/' . \$meeting['start_token'])", $upcomingView);
-        $this->assertStringNotContainsString('meeting/refresh-zoom/', $upcomingView);
-        $this->assertStringNotContainsString('data-zoom-action="refresh"', $upcomingView);
+        foreach ([null, 42] as $viewerId) {
+            $event = $method->invoke($controller, $meeting, $viewerId, false);
+            $this->assertSame('Rapat tim', $event['title']);
+            $this->assertArrayNotHasKey('zoomHostUrl', $event['extendedProps']);
+            $this->assertArrayNotHasKey('zoom_join_url', $event['extendedProps']);
+        }
+        foreach ([[25, false], [42, true]] as [$viewerId, $admin]) {
+            $event = $method->invoke($controller, $meeting, $viewerId, $admin);
+            $this->assertSame(base_url('zoom/start/private-host-token'), $event['extendedProps']['zoomHostUrl']);
+            $this->assertArrayNotHasKey('zoom_start_url', $event['extendedProps']);
+        }
     }
 
 

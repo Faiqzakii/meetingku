@@ -2,33 +2,33 @@
 
 <?= $this->section('content') ?>
 <?php
-    $isAdmin = (bool) session()->get('is_admin');
-    $loggedIn = (bool) session()->get('logged_in');
-    $startDate = $startDate ?? date('Y-m-01');
-    $endDate   = $endDate   ?? date('Y-m-t');
-    $statusFilter = $_GET['status'] ?? 'all';
-    $rangeKey  = $_GET['range'] ?? 'custom';
+    $startDate = $filters['start_date'];
+    $endDate = $filters['end_date'];
+    $statusFilter = $filters['status'];
+    $rangeKey = $filters['range'];
+    $reportUrl = base_url('meeting/all') . '?' . http_build_query($filters);
     $today = date('Y-m-d');
 ?>
 
 <div class="page-header">
     <div>
-        <h2 class="section-title">
+        <h2 class="page-title">
             <i class="fas fa-list" aria-hidden="true"></i>
             Semua Kegiatan
         </h2>
         <p class="page-subtitle">Riwayat meeting per periode + filter cepat.</p>
     </div>
     <div class="page-actions">
-        <button type="button" class="btn btn-secondary" id="btnExportCsv">
-            <i class="fas fa-file-export" aria-hidden="true"></i> Export CSV
-        </button>
-        <button type="button" class="btn btn-secondary" onclick="window.print()">
-            <i class="fas fa-print" aria-hidden="true"></i> Print
-        </button>
+        <a class="btn btn-secondary" href="<?= esc($reportUrl . '&format=csv', 'attr') ?>">
+            <i class="fas fa-file-export" aria-hidden="true"></i> Unduh CSV
+        </a>
+        <a class="btn btn-secondary" href="<?= esc($reportUrl . '&format=print', 'attr') ?>">
+            <i class="fas fa-print" aria-hidden="true"></i> Lihat untuk dicetak
+        </a>
     </div>
 </div>
 
+<search aria-label="Filter riwayat meeting">
 <form id="filterForm" action="<?= base_url('meeting/all') ?>" method="GET" class="card" style="padding:16px;margin-bottom:20px;">
     <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;">
         <div class="field" style="min-width:160px;">
@@ -46,17 +46,16 @@
                 <option value="pending"  <?= $statusFilter === 'pending'  ? 'selected' : '' ?>>Pending</option>
                 <option value="approved" <?= $statusFilter === 'approved' ? 'selected' : '' ?>>Disetujui</option>
                 <option value="rejected" <?= $statusFilter === 'rejected' ? 'selected' : '' ?>>Ditolak</option>
+                <option value="cancelled" <?= $statusFilter === 'cancelled' ? 'selected' : '' ?>>Dibatalkan</option>
             </select>
         </div>
         <div class="field" style="flex:1;min-width:200px;">
             <label class="field-label" for="q">Cari</label>
-            <input class="input" type="search" id="q" name="q" placeholder="Cari nama kegiatan / ruangan..." value="<?= esc($_GET['q'] ?? '', 'attr') ?>">
+            <input class="input" type="search" id="q" name="q" maxlength="100" placeholder="Cari nama kegiatan / ruangan..." value="<?= esc($filters['q'], 'attr') ?>">
         </div>
         <div class="row-actions">
             <button type="submit" class="btn btn-primary"><i class="fas fa-filter" aria-hidden="true"></i> Terapkan</button>
-            <?php if (!empty($_GET) && (($_GET['q'] ?? '') !== '' || ($statusFilter !== 'all') || $rangeKey !== 'custom')): ?>
-                <a class="btn btn-ghost" href="<?= base_url('meeting/all') ?>"><i class="fas fa-rotate-left" aria-hidden="true"></i> Reset</a>
-            <?php endif; ?>
+            <a class="btn btn-ghost" href="<?= base_url('meeting/all') ?>"><i class="fas fa-rotate-left" aria-hidden="true"></i> Reset</a>
         </div>
     </div>
 
@@ -82,6 +81,7 @@
         <?php endforeach; ?>
     </div>
 </form>
+</search>
 
 <div class="card" id="meetingsCard">
     <div style="overflow-x:auto;">
@@ -93,9 +93,7 @@
                     <th scope="col">Waktu</th>
                     <th scope="col">Status</th>
                     <th scope="col">Zoom</th>
-                    <?php if ($loggedIn): ?>
-                        <th scope="col" style="width:64px;text-align:right;">Aksi</th>
-                    <?php endif; ?>
+                    <th scope="col" style="width:64px;text-align:right;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -112,11 +110,10 @@
                 <?php else: ?>
                     <?php foreach ($meetings as $meeting): ?>
                         <?php
-                            $canOwnOrAdmin = ((int)($meeting['pegawai_id'] ?? 0) === (int)session()->get('pegawai_id')) || $isAdmin;
-                            $zoomLink = $meeting['zoom_join_url'] ?? $meeting['manual_zoom_join'] ?? '';
-                            $isOnlineOrHybrid = in_array($meeting['tipe'] ?? '', ['Online', 'Hybrid'], true);
+                            $zoomLink = $meeting['zoom_join_url'];
+                            $isOnlineOrHybrid = in_array($meeting['tipe'], ['Online', 'Hybrid'], true);
                             $meetingNotEnded = time() < strtotime($meeting['waktu_selesai']);
-                            $canSetManualZoom = $isAdmin && $isOnlineOrHybrid && $meeting['status'] === 'approved' && $meetingNotEnded;
+                            $canSetManualZoom = $isOnlineOrHybrid && $meeting['status'] === 'approved' && $meetingNotEnded;
                         ?>
                         <tr>
                             <td class="cell-truncate" style="max-width:300px;" title="<?= esc($meeting['nama_keg'], 'attr') ?>">
@@ -147,9 +144,7 @@
                                     <span style="color:var(--mute);font-size:.8rem;">—</span>
                                 <?php endif; ?>
                             </td>
-                            <?php if ($loggedIn): ?>
-                                <td style="text-align:right;">
-                                    <?php if ($canOwnOrAdmin): ?>
+                            <td style="text-align:right;">
                                         <div class="kebab" data-kebab>
                                             <button type="button" class="kebab-btn" aria-haspopup="menu" aria-expanded="false" aria-label="Aksi lain">
                                                 <i class="fas fa-ellipsis-vertical" aria-hidden="true"></i>
@@ -158,7 +153,7 @@
                                                 <a href="<?= base_url('meeting/edit/' . $meeting['id']) ?>" role="menuitem">
                                                     <i class="fas fa-pen" aria-hidden="true"></i> Edit
                                                 </a>
-                                                <?php if ($isAdmin && $meeting['status'] === 'pending'): ?>
+                                                <?php if ($meeting['status'] === 'pending'): ?>
                                                     <button type="button" data-status-form="<?= esc($meeting['id'], 'attr') ?>" data-status="approved" role="menuitem">
                                                         <i class="fas fa-check" aria-hidden="true"></i> Setujui
                                                     </button>
@@ -180,27 +175,20 @@
                                         <form action="<?= base_url('meeting/delete/' . $meeting['id']) ?>" method="POST" id="deleteForm-<?= esc($meeting['id']) ?>" style="display:none;">
                                             <?= csrf_field() ?>
                                         </form>
-                                        <?php if ($isAdmin && $meeting['status'] === 'pending'): ?>
+                                        <?php if ($meeting['status'] === 'pending'): ?>
                                             <form action="<?= base_url('meeting/status/' . $meeting['id']) ?>" method="POST" id="statusForm-<?= esc($meeting['id']) ?>" style="display:none;">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="status" value="">
                                             </form>
                                         <?php endif; ?>
-                                        <?php if ($canSetManualZoom): ?>
-                                            <form action="<?= base_url('meeting/manual-zoom/' . $meeting['id']) ?>" method="POST" id="manualZoomForm-<?= esc($meeting['id']) ?>" style="display:none;">
-                                                <?= csrf_field() ?>
-                                                <input type="hidden" name="zoom_join_url" value="">
-                                            </form>
-                                        <?php endif; ?>
-                                    <?php endif; ?>
-                                </td>
-                            <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </tbody>
         </table>
     </div>
+    <?= view('meeting/pagination', ['pager' => $pager, 'group' => 'default', 'label' => 'Halaman riwayat meeting']) ?>
 </div>
 
 <div class="modal fade" id="manualZoomModal" tabindex="-1" aria-hidden="true" aria-labelledby="manualZoomTitle">
@@ -299,39 +287,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-
-    // Auto-submit when status select changes
-    var statusEl = document.getElementById('status');
-    if (statusEl) {
-        statusEl.addEventListener('change', function() {
-            document.getElementById('filterForm').submit();
-        });
-    }
-
-    // Export CSV (client-side from current table)
-    var btnExport = document.getElementById('btnExportCsv');
-    if (btnExport) {
-        btnExport.addEventListener('click', function() {
-            var rows = [['Nama Kegiatan', 'Ruangan', 'Waktu', 'Status']];
-            document.querySelectorAll('#meetingsTable tbody tr').forEach(function(tr) {
-                var cells = tr.querySelectorAll('td');
-                if (cells.length < 4) return;
-                rows.push([
-                    cells[0].innerText.trim(),
-                    cells[1].innerText.replace(/\s+/g, ' ').trim(),
-                    cells[2].innerText.replace(/\s+/g, ' ').trim(),
-                    cells[3].innerText.trim(),
-                ]);
-            });
-            if (rows.length <= 1) { window.showToast && window.showToast('Tidak ada data untuk diekspor.', 'warning'); return; }
-            var csv = rows.map(function(r) { return r.map(function(c) { return '"' + (c || '').replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
-            var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            var link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'meetingku-' + (new Date().toISOString().slice(0, 10)) + '.csv';
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        });
-    }
 
     // Auto-hide toast
     var toast = document.getElementById('flashToast');
