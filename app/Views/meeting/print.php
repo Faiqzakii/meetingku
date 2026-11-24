@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Riwayat Meeting | MeetingKU</title>
+    <link href="<?= esc(base_url('css/buttons.css'), 'attr') ?>" rel="stylesheet">
     <style>
         body { margin: 1.5rem; font-family: system-ui, sans-serif; }
         table { width: 100%; border-collapse: collapse; }
@@ -15,7 +16,7 @@
 <main>
     <h1>Riwayat meeting</h1>
     <p><?= esc($filters['start_date']) ?> sampai <?= esc($filters['end_date']) ?></p>
-    <p><button type="button" id="printReport">Cetak</button></p>
+    <p><button type="button" class="btn btn-primary" id="printReport">Cetak</button></p>
     <table>
         <thead>
             <tr>

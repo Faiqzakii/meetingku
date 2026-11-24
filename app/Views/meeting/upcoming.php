@@ -55,8 +55,8 @@
             <?php if ($loggedIn): ?>
                 <td style="text-align:right;white-space:nowrap;">
                     <?php if ($isOnlineOrHybrid && $meeting['status'] === 'approved' && $canOwnOrAdmin && $hasJoinUrl): ?>
-                        <a href="<?= esc($meeting['zoom_join_url'], 'attr') ?>" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="color:var(--info);border-color:#bae6fd;">
-                            <i class="fas fa-video" aria-hidden="true"></i> Join
+                        <a href="<?= esc($meeting['zoom_join_url'], 'attr') ?>" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-video" aria-hidden="true"></i> Join Zoom
                         </a>
                     <?php endif; ?>
                     <?php if ($canManage): ?>
@@ -169,27 +169,27 @@
 
     <section class="card" style="margin-bottom:20px;">
         <div class="card-section" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-            <h3 style="font-size:1rem;font-weight:700;display:inline-flex;align-items:center;gap:8px;">
+            <h3 id="todayTableTitle" style="font-size:1rem;font-weight:700;display:inline-flex;align-items:center;gap:8px;">
                 <i class="fas fa-sun" style="color:var(--warning);"></i> Hari ini
                 <span class="badge-status badge-primary"><?= $pager->getTotal('today') ?></span>
             </h3>
         </div>
         <div class="card-divider"></div>
-        <div style="overflow-x:auto;">
+        <div class="table-scroll" tabindex="0" role="region" aria-labelledby="todayTableTitle">
             <table class="table-modern" id="todayTable">
                 <thead>
                     <tr>
-                        <th>Nama Kegiatan</th>
-                        <th>Ruangan</th>
-                        <th>Waktu</th>
-                        <th>Status</th>
-                        <th>Zoom</th>
-                        <?php if ($loggedIn): ?><th style="width:120px;text-align:right;">Aksi</th><?php endif; ?>
+                        <th scope="col">Nama Kegiatan</th>
+                        <th scope="col">Ruangan</th>
+                        <th scope="col">Waktu</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Zoom</th>
+                        <?php if ($loggedIn): ?><th scope="col" style="width:120px;text-align:right;">Aksi</th><?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($today_meetings)): ?>
-                        <tr><td colspan="6">
+                        <tr><td colspan="<?= $loggedIn ? 6 : 5 ?>">
                             <div class="empty-state">
                                 <div class="empty-state-icon"><i class="fas fa-sun" aria-hidden="true"></i></div>
                                 <p class="empty-state-title">Tidak ada pertemuan hari ini</p>
@@ -205,27 +205,27 @@
 
     <section class="card">
         <div class="card-section" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-            <h3 style="font-size:1rem;font-weight:700;display:inline-flex;align-items:center;gap:8px;">
+            <h3 id="upcomingTableTitle" style="font-size:1rem;font-weight:700;display:inline-flex;align-items:center;gap:8px;">
                 <i class="fas fa-calendar-day" style="color:var(--primary);"></i> Mendatang
                 <span class="badge-status badge-primary"><?= $pager->getTotal('upcoming') ?></span>
             </h3>
         </div>
         <div class="card-divider"></div>
-        <div style="overflow-x:auto;">
+        <div class="table-scroll" tabindex="0" role="region" aria-labelledby="upcomingTableTitle">
             <table class="table-modern" id="upcomingTable">
                 <thead>
                     <tr>
-                        <th>Nama Kegiatan</th>
-                        <th>Ruangan</th>
-                        <th>Waktu</th>
-                        <th>Status</th>
-                        <th>Zoom</th>
-                        <?php if ($loggedIn): ?><th style="width:120px;text-align:right;">Aksi</th><?php endif; ?>
+                        <th scope="col">Nama Kegiatan</th>
+                        <th scope="col">Ruangan</th>
+                        <th scope="col">Waktu</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Zoom</th>
+                        <?php if ($loggedIn): ?><th scope="col" style="width:120px;text-align:right;">Aksi</th><?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($upcoming_meetings)): ?>
-                        <tr><td colspan="6">
+                        <tr><td colspan="<?= $loggedIn ? 6 : 5 ?>">
                             <div class="empty-state">
                                 <div class="empty-state-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></div>
                                 <p class="empty-state-title">Tidak ada pertemuan mendatang</p>

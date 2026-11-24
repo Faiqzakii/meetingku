@@ -5,8 +5,7 @@
     .ruangan-list { container-type: inline-size; }
     .ruangan-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
     .ruangan-filters .field { flex: 1 1 15rem; }
-    .ruangan-filters :is(.input, .chip) { min-height: 44px; }
-    .ruangan-filters .chip.is-active { background: var(--primary-dark); border-color: var(--primary-dark); }
+    .ruangan-filters .input { min-height: 44px; }
     .ruangan-table thead th:first-child { width: 55%; }
     .ruangan-table thead th:last-child { width: 1%; }
     .ruangan-table thead th:last-child,
@@ -18,17 +17,10 @@
         overflow-wrap: anywhere;
     }
     .ruangan-table :is(.badge-status, .row-actions) { white-space: nowrap; }
-    .ruangan-table .badge-status { color: var(--ink-soft); }
-    .ruangan-list :is(a, button, input):focus-visible {
-        outline: 2px solid var(--primary-dark);
-        outline-offset: 2px;
-    }
-    .ruangan-table .kebab-menu .danger:hover { color: var(--ink); }
     #ruanganNoMatches:empty { padding: 0; }
 
     @container (max-width: 36rem) {
         .ruangan-filters { padding: 14px; border-bottom: 1px solid var(--border); }
-        .ruangan-filters .chip { padding-inline: 10px; }
         .ruangan-table,
         .ruangan-table tbody { display: block; }
         .ruangan-table thead {
@@ -50,10 +42,6 @@
         .ruangan-table tbody :is(th, td) { padding: 0; border: 0; }
         .ruangan-table .ruangan-name { flex: 0 0 100%; min-width: 0; }
         .ruangan-table tbody td:last-child { margin-inline-start: auto; }
-        .ruangan-table :is(.btn-sm, .kebab-btn, .kebab-menu a, .kebab-menu button) {
-            min-height: 44px;
-            min-width: 44px;
-        }
     }
 </style>
 <?= $this->endSection() ?>

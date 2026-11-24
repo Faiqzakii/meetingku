@@ -44,17 +44,19 @@
             font-weight: 500 !important;
             font-size: .8125rem !important;
             padding: 6px 12px !important;
-            min-height: 34px;
+            min-inline-size: var(--control-target);
+            min-block-size: max(34px, var(--control-target));
             line-height: 1 !important;
             text-transform: capitalize !important;
             transition: background .15s, color .15s, border-color .15s;
         }
-        .fc .fc-button-primary:hover {
-            background: var(--canvas-soft) !important;
-            border-color: var(--border-strong) !important;
-            color: var(--ink) !important;
+        @media (hover: hover) {
+            .fc .fc-button-primary:where(:not(:disabled)):hover {
+                background: var(--button-neutral-hover) !important;
+                border-color: var(--border-strong) !important;
+                color: var(--ink) !important;
+            }
         }
-        .fc .fc-button-primary:focus-visible { box-shadow: var(--shadow-focus) !important; }
         /* segmented view switcher */
         .fc .fc-button-group > .fc-button-primary { border-radius: 0 !important; }
         .fc .fc-button-group > .fc-button-primary:first-child { border-top-left-radius: var(--radius-sm) !important; border-bottom-left-radius: var(--radius-sm) !important; }
@@ -62,12 +64,18 @@
         .fc .fc-button-group > .fc-button-primary + .fc-button-primary { margin-left: -1px; }
         .fc .fc-button-primary:not(:disabled).fc-button-active,
         .fc .fc-button-primary:not(:disabled):active {
-            background: var(--canvas-soft) !important;
+            background: var(--button-neutral-active) !important;
             color: var(--ink) !important;
             border-color: var(--border-strong) !important;
             font-weight: 600 !important;
             position: relative;
             z-index: 1;
+        }
+        .fc .fc-button-primary:focus-visible {
+            outline: 2px solid var(--button-primary);
+            outline-offset: 2px;
+            position: relative;
+            z-index: 2;
         }
         /* Today button: subtle, not loud */
         .fc .fc-today-button {
@@ -76,7 +84,6 @@
             border-color: var(--border-strong) !important;
             font-weight: 600 !important;
         }
-        .fc .fc-today-button:hover { background: var(--canvas-soft) !important; }
         .fc .fc-today-button:disabled { opacity: .55; }
         /* prev/next as icon-style ghost */
         .fc .fc-prev-button, .fc .fc-next-button {
@@ -933,17 +940,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Copy host shortlink in event modal
     var hostLinkCopyBtn = document.getElementById('zoomHostLinkCopy');
     if (hostLinkCopyBtn) {
+        var copyLabel = hostLinkCopyBtn.innerHTML;
         hostLinkCopyBtn.addEventListener('click', function() {
             var input = document.getElementById('zoomHostLinkInput');
             if (!input || !input.value) return;
             navigator.clipboard.writeText(input.value).then(function() {
-                hostLinkCopyBtn.innerHTML = '<i class="fas fa-check"></i> Tersalin';
-                hostLinkCopyBtn.style.color = '#16a34a';
-                hostLinkCopyBtn.style.borderColor = '#bbf7d0';
+                hostLinkCopyBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Tersalin';
                 setTimeout(function() {
-                    hostLinkCopyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-                    hostLinkCopyBtn.style.color = '';
-                    hostLinkCopyBtn.style.borderColor = '';
+                    hostLinkCopyBtn.innerHTML = copyLabel;
                 }, 2000);
             }, function() {
                 alert('Gagal menyalin link.');

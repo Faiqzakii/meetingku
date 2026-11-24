@@ -29,12 +29,10 @@
     .wa-session-footer { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 20px; background:var(--canvas-soft); border-top:1px solid var(--border); }
     .wa-session-footer p { margin:0; color:var(--body); font-size:.8125rem; max-width:55ch; }
     .wa-dashboard-link { flex-shrink:0; }
-    .wa-dashboard-link:focus-visible { outline:2px solid var(--primary-dark); outline-offset:3px; box-shadow:var(--shadow-focus); }
     .wa-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-2); overflow:hidden; }
     .wa-card-header { padding:18px 20px; border-bottom:1px solid var(--border); display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
     .wa-card-title { font-size:1rem; font-weight:800; margin:0; display:flex; align-items:center; gap:8px; }
     .wa-card-desc { margin:4px 0 0; color:var(--body); font-size:.875rem; }
-    .wa-card-body { padding:20px; }
     @media (max-width: 640px) {
         .wa-session-content { grid-template-columns:minmax(0, 1fr); gap:18px; padding:20px; }
         .wa-session-footer { align-items:stretch; flex-direction:column; }
@@ -43,15 +41,9 @@
     .wa-alert { padding:12px 14px; border-radius:var(--radius-md); border:1px solid var(--border); margin-bottom:14px; font-weight:600; }
     .wa-alert.success { background:#dcfce7; color:#14532d; border-color:#86efac; }
     .wa-alert.error { background:#fee2e2; color:#7f1d1d; border-color:#fecaca; }
-    .wa-table { width:100%; border-collapse:separate; border-spacing:0; }
-    .wa-table th { text-align:left; color:var(--mute); text-transform:uppercase; letter-spacing:.05em; font-size:.72rem; padding:10px 12px; border-bottom:1px solid var(--border); }
-    .wa-table td { padding:12px; border-bottom:1px solid var(--border); vertical-align:middle; font-size:.875rem; }
-    .wa-table .wa-timestamp { white-space:nowrap; }
-    .wa-table tr:last-child td { border-bottom:0; }
-    .wa-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 9px; border-radius:999px; font-weight:700; font-size:.75rem; }
-    .wa-badge.ok { background:#dcfce7; color:#166534; }
-    .wa-badge.muted { background:#f1f5f9; color:#475569; }
-    .wa-badge.warn { background:#fef3c7; color:#92400e; }
+    .wa-timestamp { white-space:nowrap; }
+    .wa-recipient { color:var(--body); white-space:nowrap; }
+    .wa-queue-error { max-width:380px; color:var(--body); overflow-wrap:anywhere; }
     .wa-queue { margin-top:18px; }
 </style>
 <?= $this->endSection() ?>
@@ -128,8 +120,8 @@
                 <p class="wa-card-desc">20 pesan terakhir. Waktu mengikuti zona waktu aplikasi.</p>
             </div>
         </div>
-        <div class="wa-card-body" style="overflow-x:auto;" tabindex="0" role="region" aria-labelledby="wa-queue-title">
-            <table class="wa-table">
+        <div class="table-scroll" tabindex="0" role="region" aria-labelledby="wa-queue-title">
+            <table class="table-modern">
                 <thead>
                     <tr>
                         <th scope="col">ID</th>
@@ -143,17 +135,34 @@
                 </thead>
                 <tbody>
                 <?php foreach ($queue as $row): ?>
+                    <?php
+                        $badgeClass = match ($row['status']) {
+                            'sent' => ' badge-approved',
+                            'failed' => ' badge-rejected',
+                            'pending', 'processing', 'needs_review' => ' badge-pending',
+                            default => '',
+                        };
+                    ?>
                     <tr>
                         <td><?= esc($row['id']) ?></td>
-                        <td><code><?= esc($row['to_number']) ?></code></td>
-                        <td><span class="wa-badge <?= $row['status'] === 'sent' ? 'ok' : ($row['status'] === 'failed' ? 'muted' : 'warn') ?>"><?= esc($row['status']) ?></span></td>
+                        <td><code class="wa-recipient"><?= esc($row['to_number']) ?></code></td>
+                        <td><span class="badge-status<?= $badgeClass ?>"><?= esc($row['status']) ?></span></td>
                         <td><?= esc($row['attempts']) ?></td>
                         <td class="wa-timestamp"><?= esc($row['scheduled_at'] ?? '–') ?></td>
                         <td class="wa-timestamp"><?= esc($row['sent_at'] ?? '–') ?></td>
-                        <td style="max-width:380px;color:var(--body);"><?= esc($row['last_error'] ?? '') ?></td>
+                        <td class="wa-queue-error"><?= esc($row['last_error'] ?? '') ?></td>
                     </tr>
                 <?php endforeach; ?>
-                <?php if (empty($queue)): ?><tr><td colspan="7" style="color:var(--mute);">Queue masih kosong.</td></tr><?php endif; ?>
+                <?php if (empty($queue)): ?>
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <p class="empty-state-title">Antrean WhatsApp kosong</p>
+                                <p class="empty-state-desc">Pesan akan tampil setelah dijadwalkan untuk dikirim.</p>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endif; ?>
                 </tbody>
             </table>
         </div>

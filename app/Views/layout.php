@@ -20,6 +20,7 @@
     <?= $this->renderSection('pageStylesheets') ?>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" integrity="sha384-t1nt8BQoYMLFN5p42tRAtuAAFQaCQODekUVeKKZrEnEyp4H2R0RHFz0KWpmj7i8g" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link href="<?= esc(base_url('css/buttons.css'), 'attr') ?>" rel="stylesheet">
 
     <style>
         /* ================= DESIGN TOKENS ================= */
@@ -39,20 +40,18 @@
             --primary-dark: #c2410c;
             --primary-ring: rgba(255, 79, 0, .35);
 
-            --button-primary: #343434;
-            --button-primary-hover: #454545;
-            --button-primary-active: #292929;
-            --button-neutral-hover: #f5f5f5;
-            --button-neutral-active: #ebebeb;
-
             --success: #16a34a;
             --success-soft: #dcfce7;
+            --success-ink: #166534;
             --warning: #d97706;
             --warning-soft: #fef3c7;
+            --warning-ink: #92400e;
             --danger: #dc2626;
             --danger-soft: #fee2e2;
+            --danger-ink: #991b1b;
             --info: #0284c7;
             --info-soft: #e0f2fe;
+            --info-ink: #075985;
 
             --radius-sm: 8px;
             --radius-md: 12px;
@@ -149,36 +148,18 @@
 
         .topbar-actions { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
 
-        .btn { /* base */
-            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-            padding: 7px 12px; min-height: 36px;
-            font-family: inherit; font-size: .875rem; font-weight: 600; line-height: 1.4;
-            border-radius: var(--radius-sm); border: 1px solid transparent;
-            cursor: pointer; user-select: none;
-            transition: background .15s, color .15s, border-color .15s;
-            text-decoration: none;
+        :where(.chip, .kebab-btn, .burger, .user-trigger, .toast-close, .btn-close,
+            :is(.kebab-menu, .user-dropdown) :is(a, button)) {
+            min-inline-size: var(--control-target);
+            min-block-size: var(--control-target);
         }
-        .btn:disabled, .btn.is-disabled { opacity: .55; cursor: not-allowed; }
-        .btn:focus, .btn:active:focus { box-shadow: none; }
-        .btn:focus-visible { outline: 2px solid var(--button-primary); outline-offset: 2px; }
-        .btn.btn-primary { background: var(--button-primary); color: #fff; border-color: transparent; }
-        .btn-primary:where(:not(:disabled, .is-disabled)):hover { background: var(--button-primary-hover); }
-        .btn-primary:where(:not(:disabled, .is-disabled)):active { background: var(--button-primary-active); }
-        .btn.btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--border-strong); }
-        .btn-ghost { background: transparent; color: var(--ink); }
-        .btn:is(.btn-secondary, .btn-ghost):where(:not(:disabled, .is-disabled)):hover {
-            background: var(--button-neutral-hover); color: var(--ink);
+        :where(.chip, .kebab-btn, .burger, .user-trigger, .toast-close,
+            :is(.kebab-menu, .user-dropdown) :is(a, button)):focus-visible {
+            outline: 2px solid var(--button-primary);
+            outline-offset: 2px;
+            box-shadow: none;
         }
-        .btn:is(.btn-secondary, .btn-ghost):where(:not(:disabled, .is-disabled)):active {
-            background: var(--button-neutral-active); color: var(--ink);
-        }
-        .btn-danger { background: var(--danger); color: #fff; }
-        .btn-danger:where(:not(:disabled, .is-disabled)):hover { background: #b91c1c; color: #fff; }
-        .btn-sm { padding: 5px 10px; min-height: 32px; font-size: .8125rem; }
-        .btn-icon { padding: 0; width: 36px; height: 36px; min-height: 36px; }
-        @media (pointer: coarse) {
-            .btn { min-width: 44px; min-height: 44px; }
-        }
+
         @media (max-width: 400px) {
             .topbar-inner { gap: 8px; padding-inline: 12px; }
             .topbar-actions { gap: 6px; }
@@ -198,6 +179,7 @@
             transition: border-color .15s, box-shadow .15s;
         }
         .user-trigger.user-trigger-icon {
+            justify-content: center;
             padding: 0;
             border: 0;
             background: transparent;
@@ -205,7 +187,6 @@
         }
         .user-trigger:hover { border-color: var(--primary); }
         .user-trigger.user-trigger-icon:hover { border-color: transparent; }
-        .user-trigger:focus-visible { box-shadow: var(--shadow-focus); }
         .user-trigger.user-trigger-icon:hover .user-avatar { box-shadow: 0 0 0 2px var(--primary-soft); }
         .user-avatar {
             width: 36px; height: 36px; border-radius: 50%;
@@ -244,7 +225,7 @@
             border-radius: var(--radius-sm);
             cursor: pointer; text-align: left;
         }
-        .user-dropdown a:hover, .user-dropdown button:hover { background: var(--canvas-soft); }
+        .user-dropdown a:hover, .user-dropdown button:hover { background: var(--button-neutral-hover); }
         .user-dropdown .danger { color: var(--danger); }
         .user-dropdown .danger:hover { background: var(--danger-soft); }
 
@@ -256,6 +237,8 @@
             border-radius: var(--radius-md);
             color: var(--ink); cursor: pointer;
         }
+        .burger:hover { background: var(--button-neutral-hover); }
+        .burger:active { background: var(--button-neutral-active); }
         @media (min-width: 960px) { .burger { display: none; } }
         .drawer {
             position: fixed; inset: 0;
@@ -416,6 +399,13 @@
         .hidden { display: none !important; }
 
         /* ================= TABLE ================= */
+        .table-scroll { overflow-x: auto; scroll-margin-block-start: var(--topbar-h); }
+        .table-scroll:focus-visible {
+            outline: 2px solid var(--button-primary);
+            outline-offset: -2px;
+            box-shadow: none;
+            border-radius: 0;
+        }
         .table-modern { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: auto; }
         .table-modern thead th {
             background: var(--canvas-soft);
@@ -454,16 +444,16 @@
             background: var(--canvas-soft); color: var(--ink-soft);
         }
         .badge-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-        .badge-pending  { background: var(--warning-soft); color: var(--warning); }
-        .badge-approved { background: var(--success-soft); color: var(--success); }
-        .badge-rejected { background: var(--danger-soft);  color: var(--danger);  }
-        .badge-info     { background: var(--info-soft);    color: var(--info);    }
+        .badge-pending  { background: var(--warning-soft); color: var(--warning-ink); }
+        .badge-approved { background: var(--success-soft); color: var(--success-ink); }
+        .badge-rejected { background: var(--danger-soft);  color: var(--danger-ink);  }
+        .badge-info     { background: var(--info-soft);    color: var(--info-ink);    }
         .badge-primary  { background: var(--primary-soft); color: var(--primary-dark); }
 
         /* ================= FILTER CHIPS ================= */
         .chip-row { display: inline-flex; flex-wrap: wrap; gap: 6px; }
         .chip {
-            display: inline-flex; align-items: center; gap: 6px;
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
             padding: 7px 14px;
             border-radius: var(--radius-pill);
             background: var(--surface);
@@ -472,10 +462,15 @@
             cursor: pointer;
             transition: background .15s, border-color .15s, color .15s;
         }
-        .chip:hover { border-color: var(--primary); color: var(--primary-dark); }
         .chip.is-active {
-            background: var(--primary); color: #fff; border-color: var(--primary);
+            background: var(--button-primary); color: #fff; border-color: transparent;
         }
+        @media (hover: hover) {
+            .chip:hover { background: var(--button-neutral-hover); color: var(--ink); }
+            .chip.is-active:hover { background: var(--button-primary-hover); }
+        }
+        .chip:active { background: var(--button-neutral-active); color: var(--ink); }
+        .chip.is-active:active { background: var(--button-primary-active); }
 
         /* ================= KEBAB MENU ================= */
         .kebab { position: relative; display: inline-block; }
@@ -483,10 +478,11 @@
             width: 32px; height: 32px;
             display: inline-flex; align-items: center; justify-content: center;
             background: transparent; border: 1px solid transparent;
-            border-radius: var(--radius-md);
+            border-radius: var(--radius-sm);
             color: var(--body); cursor: pointer;
         }
-        .kebab-btn:hover { background: var(--canvas-soft); border-color: var(--border); }
+        .kebab-btn:hover { background: var(--button-neutral-hover); border-color: var(--border); }
+        .kebab-btn:active { background: var(--button-neutral-active); }
         .kebab-menu {
             display: none;
             position: absolute; right: 0; top: calc(100% + 4px);
@@ -513,9 +509,11 @@
             border-radius: var(--radius-sm); text-align: left;
             cursor: pointer;
         }
-        .kebab-menu a:hover, .kebab-menu button:hover { background: var(--canvas-soft); }
-        .kebab-menu .danger { color: var(--danger); }
+        .kebab-menu :is(a, button):where(:not(:disabled)):hover { background: var(--button-neutral-hover); }
+        .kebab-menu :is(a, button):where(:not(:disabled)):active { background: var(--button-neutral-active); }
+        .kebab-menu .danger { color: var(--danger-ink); }
         .kebab-menu .danger:hover { background: var(--danger-soft); }
+        .kebab-menu button:disabled { opacity: .55; cursor: not-allowed; }
 
         /* ================= MODAL ================= */
         .modal-content {
@@ -544,9 +542,6 @@
             outline: 2px solid var(--button-primary);
             outline-offset: 2px;
             box-shadow: none;
-        }
-        @media (pointer: coarse) {
-            .modal-header .btn-close { min-width: 44px; min-height: 44px; }
         }
         .modal-footer {
             background: var(--surface) !important;
@@ -586,10 +581,11 @@
         .toast-error .toast-icon { background: var(--danger-soft); color: var(--danger); }
         .toast-warning .toast-icon { background: var(--warning-soft); color: var(--warning); }
         .toast-close {
-            background: transparent; border: 0; color: var(--mute); cursor: pointer;
-            margin-left: auto; padding: 4px; border-radius: 6px;
+            background: transparent; border: 0; color: var(--body); cursor: pointer;
+            margin-left: auto; padding: 4px; border-radius: var(--radius-sm); flex-shrink: 0;
         }
-        .toast-close:hover { background: var(--canvas-soft); color: var(--ink); }
+        .toast-close:hover { background: var(--button-neutral-hover); color: var(--ink); }
+        .toast-close:active { background: var(--button-neutral-active); color: var(--ink); }
         .toast-report { max-width: min(36rem, calc(100vw - 2.5rem)); max-height: 60vh; overflow: auto; }
         .toast-notification.toast-hiding { animation: toastOut .25s ease-in forwards; }
         @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }

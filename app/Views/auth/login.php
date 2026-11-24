@@ -15,6 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" integrity="sha384-t1nt8BQoYMLFN5p42tRAtuAAFQaCQODekUVeKKZrEnEyp4H2R0RHFz0KWpmj7i8g" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link href="<?= esc(base_url('css/buttons.css'), 'attr') ?>" rel="stylesheet">
 
     <style>
         :root {
@@ -28,7 +29,6 @@
             --border-strong: #cbd5e1;
             --primary: #ff4f00;
             --primary-soft: #fff1ea;
-            --primary-dark: #c2410c;
             --primary-ring: rgba(255, 79, 0, .35);
             --danger: #dc2626;
             --danger-soft: #fee2e2;
@@ -136,17 +136,12 @@
             border-color: var(--primary);
             box-shadow: var(--shadow-focus);
         }
-        .field-control input[type="password"],
-        .field-control input.has-toggle { padding-right: 44px; }
-        .password-toggle {
-            position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
-            width: 32px; height: 32px;
-            background: transparent; border: 0; color: var(--mute);
-            border-radius: 8px; cursor: pointer;
-            display: inline-flex; align-items: center; justify-content: center;
+        .field-control input.has-toggle {
+            padding-inline-end: calc(max(36px, var(--control-target)) + 12px);
         }
-        .password-toggle:hover { background: var(--canvas-soft); color: var(--ink); }
-        .password-toggle:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+        .password-toggle {
+            position: absolute; top: 50%; inset-inline-end: 6px; transform: translateY(-50%);
+        }
 
         .caps-hint {
             display: none;
@@ -155,22 +150,7 @@
         }
         .caps-hint.is-on { display: inline-flex; align-items: center; gap: 6px; }
 
-        .login-submit {
-            width: 100%;
-            min-height: 46px;
-            padding: 12px 16px;
-            background: var(--primary);
-            color: #fff;
-            border: 0;
-            border-radius: var(--radius-md);
-            font: inherit; font-size: .95rem; font-weight: 700;
-            cursor: pointer;
-            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            transition: background .15s, transform .15s;
-        }
-        .login-submit:hover { background: var(--primary-dark); }
-        .login-submit:active { transform: translateY(1px); }
-        .login-submit:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+        .login-submit { width: 100%; min-block-size: 46px; }
 
         .login-footer {
             margin-top: 24px;
@@ -214,11 +194,6 @@
         .center-alert ul { margin: 6px 0 14px; padding-left: 18px; color: var(--body); font-size: .85rem; line-height: 1.55; }
         .center-alert ul li { margin-bottom: 2px; }
         .center-alert .actions { display:flex; justify-content:flex-end; gap:8px; }
-        .center-alert .actions button {
-            padding: 8px 14px; border-radius: var(--radius-md); border: 0; cursor: pointer;
-            background: var(--primary); color: #fff; font-weight: 600; font-size: .85rem;
-        }
-        .center-alert .actions button:hover { background: var(--primary-dark); }
         @keyframes caFadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes caFadeOut { to { opacity: 0; } }
         @keyframes caPop {
@@ -294,7 +269,7 @@
                            data-rule-min="3" data-rule-max="100"
                            placeholder="Masukkan password"
                            autocomplete="current-password">
-                    <button type="button" class="password-toggle" id="togglePassword"
+                    <button type="button" class="btn btn-ghost btn-icon password-toggle" id="togglePassword"
                             aria-label="Tampilkan password" aria-pressed="false">
                         <i class="fas fa-eye" aria-hidden="true"></i>
                     </button>
@@ -304,7 +279,7 @@
                 </small>
             </div>
 
-            <button type="submit" class="login-submit">
+            <button type="submit" class="btn btn-primary login-submit">
                 <span>Masuk</span>
                 <i class="fas fa-arrow-right" aria-hidden="true"></i>
             </button>
@@ -390,6 +365,7 @@
         actions.className = 'actions';
         var btn = document.createElement('button');
         btn.type = 'button';
+        btn.className = 'btn btn-primary';
         btn.textContent = opts.confirmText || 'Mengerti';
         actions.appendChild(btn);
         alert.appendChild(actions);

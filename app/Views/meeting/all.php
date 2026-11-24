@@ -8,11 +8,17 @@
     $rangeKey = $filters['range'];
     $reportUrl = base_url('meeting/all') . '?' . http_build_query($filters);
     $today = date('Y-m-d');
+    $activeRange = $rangeKey;
+    if ($activeRange === 'custom') {
+        $activeRange = $statusFilter === 'pending'
+            ? 'pending'
+            : (($startDate === $today && $endDate === $today) ? 'today' : '');
+    }
 ?>
 
 <div class="page-header">
     <div>
-        <h2 class="page-title">
+        <h2 class="page-title" id="meetingsTableTitle">
             <i class="fas fa-list" aria-hidden="true"></i>
             Semua Kegiatan
         </h2>
@@ -59,7 +65,7 @@
         </div>
     </div>
 
-    <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;" role="group" aria-label="Filter cepat tanggal">
+    <div class="chip-row" style="margin-top:12px;" role="group" aria-label="Filter cepat tanggal">
         <?php
             $chips = [
                 'today'   => ['label' => 'Hari ini',     'start' => $today, 'end' => $today],
@@ -73,18 +79,16 @@
                 $href = base_url('meeting/all') . '?range=' . $key;
                 if (isset($chip['start']))  $href .= '&start_date=' . $chip['start'] . '&end_date=' . $chip['end'];
                 if (isset($chip['status'])) $href .= '&status=' . $chip['status'];
-                $active = ($rangeKey === $key)
-                    || ($key === 'pending' && $statusFilter === 'pending')
-                    || ($key === 'today' && $startDate === $today && $endDate === $today);
+                $active = $activeRange === $key;
             ?>
-            <a class="chip <?= $active ? 'is-active' : '' ?>" href="<?= esc($href, 'attr') ?>"><?= esc($chip['label']) ?></a>
+            <a class="chip<?= $active ? ' is-active' : '' ?>" href="<?= esc($href, 'attr') ?>"<?= $active ? ' aria-current="true"' : '' ?>><?= esc($chip['label']) ?></a>
         <?php endforeach; ?>
     </div>
 </form>
 </search>
 
 <div class="card" id="meetingsCard">
-    <div style="overflow-x:auto;">
+    <div class="table-scroll" tabindex="0" role="region" aria-labelledby="meetingsTableTitle">
         <table class="table-modern" id="meetingsTable">
             <thead>
                 <tr>

@@ -1,11 +1,14 @@
 <?= $this->extend('layout') ?>
 
 <?= $this->section('content') ?>
-<?php $isAdmin = (bool) session()->get('is_admin'); ?>
+<?php
+    $isAdmin = (bool) session()->get('is_admin');
+    $columnCount = $isAdmin ? 5 : 4;
+?>
 
 <div class="page-header">
     <div>
-        <h2 class="page-title">
+        <h2 class="page-title" id="pegawaiTableTitle">
             <i class="fas fa-users" aria-hidden="true"></i>
             Data Pegawai
         </h2>
@@ -32,26 +35,26 @@
             <label class="visually-hidden" for="searchPegawai">Cari pegawai</label>
             <input type="search" id="searchPegawai" class="input" placeholder="Cari nama, NIP, atau username...">
         </div>
-        <span style="color:var(--mute);font-size:.8125rem;">
+        <span role="status" class="field-help">
             <span id="rowCount"><?= count($pegawai) ?></span> dari <?= count($pegawai) ?> pegawai
         </span>
     </div>
     <div class="card-divider"></div>
-    <div style="overflow-x:auto;">
+    <div class="table-scroll" tabindex="0" role="region" aria-labelledby="pegawaiTableTitle">
         <table class="table-modern" id="pegawaiTable">
             <thead>
                 <tr>
-                    <th style="width:48px;">#</th>
-                    <th>Nama</th>
-                    <th>NIP</th>
-                    <th>Role</th>
-                    <?php if ($isAdmin): ?><th style="width:64px;text-align:right;">Aksi</th><?php endif; ?>
+                    <th scope="col" style="width:48px;">#</th>
+                    <th scope="col">Nama</th>
+                    <th scope="col">NIP</th>
+                    <th scope="col">Role</th>
+                    <?php if ($isAdmin): ?><th scope="col" style="width:64px;text-align:right;">Aksi</th><?php endif; ?>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($pegawai)): ?>
                     <tr>
-                        <td colspan="5">
+                        <td colspan="<?= $columnCount ?>">
                             <div class="empty-state">
                                 <div class="empty-state-icon"><i class="fas fa-user-plus" aria-hidden="true"></i></div>
                                 <p class="empty-state-title">Belum ada data pegawai</p>
@@ -101,6 +104,15 @@
                             <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
+                    <tr id="pegawaiNoMatches" hidden>
+                        <td colspan="<?= $columnCount ?>">
+                            <div class="empty-state">
+                                <div class="empty-state-icon"><i class="fas fa-search" aria-hidden="true"></i></div>
+                                <p class="empty-state-title">Tidak ada pegawai yang cocok</p>
+                                <p class="empty-state-desc">Coba kata kunci lain atau kosongkan pencarian.</p>
+                            </div>
+                        </td>
+                    </tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -237,19 +249,21 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var search = document.getElementById('searchPegawai');
-    var rows = document.querySelectorAll('#pegawaiTable tbody tr');
+    var rows = document.querySelectorAll('#pegawaiTable tbody tr[data-search]');
+    var noMatches = document.getElementById('pegawaiNoMatches');
     var rowCount = document.getElementById('rowCount');
-    if (search) {
+    if (search && noMatches) {
         search.addEventListener('input', function() {
             var q = (search.value || '').trim().toLowerCase();
             var visible = 0;
             rows.forEach(function(tr) {
                 var key = tr.getAttribute('data-search') || '';
                 var match = !q || key.indexOf(q) !== -1;
-                tr.style.display = match ? '' : 'none';
+                tr.hidden = !match;
                 if (match) visible++;
             });
             if (rowCount) rowCount.textContent = visible;
+            noMatches.hidden = visible !== 0;
         });
     }
 
