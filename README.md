@@ -70,6 +70,12 @@ MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwal
 
    Buka `http://localhost:8080`.
 
+### Agenda Ruangan
+
+Dari Kalender, pilih ruangan, klik **Terapkan**, lalu buka **Agenda Ruangan**. Tautannya bisa dibagikan dan dibuka tanpa login. Tanggal bawaan adalah hari ini jika tautan tidak menyertakan `?date=YYYY-MM-DD`.
+
+Pengunjung hanya melihat rapat yang disetujui, tanpa nama pemohon. Pegawai yang sudah login melihat semua status. Tambah, edit, dan hapus ruangan tetap khusus admin.
+
 ## WhatsApp Gateway
 
 MeetingKu memakai GOWA eksternal di `https://gowa.kaltarastats.id` dengan device ID **`Meetingku`** (peka huruf besar/kecil). Pengelolaan perangkat dan pairing dilakukan melalui [dashboard GOWA](https://gowa.kaltarastats.id/).

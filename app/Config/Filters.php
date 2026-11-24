@@ -62,7 +62,6 @@ class Filters extends BaseConfig
             'before' => [
                 'meeting/*',
                 'pegawai/*',
-                'ruangan/*',
                 'whatsapp/*',
                 'whatsapp'
             ],
@@ -75,13 +74,11 @@ class Filters extends BaseConfig
         'admin' => [
             'before' => [
                 'pegawai/*',
-                'ruangan/*',
                 'whatsapp/*',
                 'whatsapp'
             ],
             'except' => [
-                'pegawai/profile',
-                'ruangan/view/*'
+                'pegawai/profile'
             ]
         ],
         'public' => [

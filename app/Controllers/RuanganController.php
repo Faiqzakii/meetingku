@@ -4,6 +4,8 @@ namespace App\Controllers;
 
 use App\Models\RuanganModel;
 use CodeIgniter\Controller;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use DateTimeImmutable;
 
 class RuanganController extends Controller
 {
@@ -129,16 +131,29 @@ class RuanganController extends Controller
 
     public function meetings($id = null)
     {
-        $ruangan = $this->ruanganModel->find($id);
-        if (!$ruangan) {
-            return redirect()->to('/ruangan')->with('error', 'Ruangan tidak ditemukan');
+        $roomId = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($roomId === false || !($ruangan = $this->ruanganModel->find($roomId))) {
+            throw PageNotFoundException::forPageNotFound('Ruangan tidak ditemukan.');
         }
 
-        // Default filter is today; allow override via ?date=Y-m-d
-        $date = $this->request->getGet('date') ?: date('Y-m-d');
-        $data['meetings'] = $this->ruanganModel->getMeetings($id, $date);
-        $data['ruangan'] = $ruangan;
-        $data['date'] = $date;
-        return view('ruangan/meetings', $data);
+        $date = $this->request->getGet('date');
+        $parsedDate = is_string($date) && preg_match('/^[1-9]\d{3}-\d{2}-\d{2}$/D', $date)
+            ? DateTimeImmutable::createFromFormat('!Y-m-d', $date)
+            : false;
+        if ($parsedDate === false || $parsedDate->format('Y-m-d') !== $date) {
+            $date = date('Y-m-d');
+        }
+
+        $loggedIn = (bool) session()->get('logged_in');
+        if ($loggedIn) {
+            $this->response->setHeader('Cache-Control', 'private, no-store');
+        }
+
+        return view('ruangan/meetings', [
+            'meetings' => $this->ruanganModel->getMeetings($roomId, $date, $loggedIn),
+            'ruangan' => $ruangan,
+            'date' => $date,
+            'loggedIn' => $loggedIn,
+        ]);
     }
 }

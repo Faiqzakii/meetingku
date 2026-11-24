@@ -196,6 +196,7 @@
         <p class="page-subtitle">Lihat dan kelola jadwal meeting di satu tempat.</p>
     </div>
     <div class="page-actions" style="align-items:center;">
+        <?php $hasSelectedRoom = false; ?>
         <search aria-label="Filter kalender">
             <form method="get" action="<?= esc(current_url(), 'attr') ?>" class="row-actions">
                 <input type="hidden" name="date" value="<?= esc($calendarDate, 'attr') ?>">
@@ -204,12 +205,20 @@
                 <select id="ruanganFilter" name="room" class="input">
                     <option value="">Semua ruangan</option>
                     <?php foreach ($ruangan as $r): ?>
-                        <option value="<?= esc($r['id'], 'attr') ?>" <?= (int) $r['id'] === $calendarRoomId ? 'selected' : '' ?>><?= esc($r['nama_ruangan']) ?> (<?= esc($r['tipe']) ?>)</option>
+                        <?php
+                        $selected = (int) $r['id'] === $calendarRoomId;
+                        $hasSelectedRoom = $hasSelectedRoom || $selected;
+                        ?>
+                        <option value="<?= esc($r['id'], 'attr') ?>" <?= $selected ? 'selected' : '' ?>><?= esc($r['nama_ruangan']) ?> (<?= esc($r['tipe']) ?>)</option>
                     <?php endforeach; ?>
                 </select>
                 <button type="submit" class="btn btn-secondary">Terapkan</button>
             </form>
         </search>
+        <?php if ($hasSelectedRoom): ?>
+            <a href="<?= esc(base_url('ruangan/' . $calendarRoomId . '/meetings') . '?date=' . $calendarDate, 'attr') ?>"
+               class="btn btn-secondary">Agenda Ruangan</a>
+        <?php endif; ?>
         <?php if ($formToken !== null): ?>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createMeetingModal">
                 <i class="fas fa-plus" aria-hidden="true"></i>

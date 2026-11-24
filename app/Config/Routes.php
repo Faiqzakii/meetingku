@@ -42,12 +42,14 @@ $routes->get('pegawai/downloadTemplate', 'PegawaiController::downloadTemplate');
 
 // Ruangan Routes
 $routes->get('ruangan', 'RuanganController::index');
-$routes->post('ruangan/create', 'RuanganController::create');
-$routes->get('ruangan/edit/(:num)', 'RuanganController::edit/$1');
-$routes->post('ruangan/update/(:num)', 'RuanganController::update/$1');
-$routes->post('ruangan/delete/(:num)', 'RuanganController::delete/$1');
-// Ruangan meetings (daily filter)
+// Public read-only room agenda.
 $routes->get('ruangan/(:num)/meetings', 'RuanganController::meetings/$1');
+$routes->group('ruangan', ['filter' => ['auth', 'admin']], static function (RouteCollection $routes): void {
+    $routes->post('create', 'RuanganController::create');
+    $routes->get('edit/(:num)', 'RuanganController::edit/$1');
+    $routes->post('update/(:num)', 'RuanganController::update/$1');
+    $routes->post('delete/(:num)', 'RuanganController::delete/$1');
+});
 
 // WhatsApp Gateway Routes
 $routes->get('whatsapp', 'WhatsappController::index');

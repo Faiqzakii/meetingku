@@ -51,19 +51,20 @@ class RuanganModel extends Model
         return $this->where('is_active', true)->findAll();
     }
 
-    public function getMeetings($ruanganId, ?string $date = null)
+    public function getMeetings(int $ruanganId, string $date, bool $loggedIn): array
     {
         $builder = $this->db->table('meeting')
-            ->select('meeting.*, pegawai.nama as nama_pegawai')
-            ->join('pegawai', 'pegawai.id = meeting.pegawai_id', 'left')
-            ->where('ruangan_id', $ruanganId)
-            ->orderBy('waktu_mulai', 'ASC');
+            ->select('meeting.nama_keg, meeting.waktu_mulai, meeting.waktu_selesai, meeting.status')
+            ->where('meeting.ruangan_id', $ruanganId)
+            ->where('meeting.waktu_mulai >=', $date . ' 00:00:00')
+            ->where('meeting.waktu_selesai <=', $date . ' 23:59:59')
+            ->orderBy('meeting.waktu_mulai', 'ASC');
 
-        if ($date) {
-            $start = date('Y-m-d 00:00:00', strtotime($date));
-            $end   = date('Y-m-d 23:59:59', strtotime($date));
-            $builder->where('waktu_mulai >=', $start)
-                    ->where('waktu_selesai <=', $end);
+        if ($loggedIn) {
+            $builder->select('pegawai.nama as nama_pegawai')
+                ->join('pegawai', 'pegawai.id = meeting.pegawai_id', 'left');
+        } else {
+            $builder->where('meeting.status', 'approved');
         }
 
         return $builder->get()->getResultArray();
