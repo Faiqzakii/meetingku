@@ -21,6 +21,9 @@
         .meeting-form-grid .col-half,
         .meeting-form-grid .col-third { grid-column: 1 / -1; }
     }
+
+    #eventAdminActions { flex: 1 1 24rem; min-width: 0; }
+    #manualZoomForm { flex: 1 1 16rem; max-width: 24rem; min-width: 0; }
         /* ================= FULLCALENDAR THEMING ================= */
         .fc { font-family: var(--font-body); font-size: .875rem; }
         .fc .fc-toolbar.fc-header-toolbar { margin-bottom: 1.25em; gap: 8px; flex-wrap: wrap; }
@@ -390,9 +393,7 @@
                 <h5 class="modal-title" id="eventDetailsModalTitle">
                     <i class="fas fa-info-circle mr-2 text-orange-500"></i>Detail Meeting
                 </h5>
-                <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" data-bs-dismiss="modal" aria-label="Close">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body">
                 <div class="space-y-4">
@@ -504,13 +505,13 @@
                             <i class="fas fa-video" aria-hidden="true"></i> Kirim Zoom
                         </button>
                     </form>
-                    <form id="manualZoomForm" method="POST" class="hidden inline-flex items-center gap-1 flex-wrap">
+                    <form id="manualZoomForm" method="POST" class="hidden field">
                         <?= csrf_field() ?>
-                        <label class="visually-hidden" for="manualZoomInput">URL Zoom</label>
-                        <input id="manualZoomInput" type="url" name="zoom_join_url" placeholder="https://us02web.zoom.us/j/..." class="input" style="width:min(100%, 18rem);" required>
-                        <button type="submit" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-link"></i> Simpan Link
-                        </button>
+                        <label class="field-label" for="manualZoomInput">URL Zoom</label>
+                        <div class="zoom-link-row">
+                            <input id="manualZoomInput" type="url" name="zoom_join_url" placeholder="https://us02web.zoom.us/j/..." class="input" required>
+                            <button type="submit" class="btn btn-primary">Simpan Link</button>
+                        </div>
                     </form>
                 </div>
                 <?php endif; ?>

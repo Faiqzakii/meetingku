@@ -39,6 +39,12 @@
             --primary-dark: #c2410c;
             --primary-ring: rgba(255, 79, 0, .35);
 
+            --button-primary: #343434;
+            --button-primary-hover: #454545;
+            --button-primary-active: #292929;
+            --button-neutral-hover: #f5f5f5;
+            --button-neutral-active: #ebebeb;
+
             --success: #16a34a;
             --success-soft: #dcfce7;
             --warning: #d97706;
@@ -144,26 +150,41 @@
         .topbar-actions { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
 
         .btn { /* base */
-            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            padding: 10px 16px; min-height: 40px;
-            font-family: inherit; font-size: .875rem; font-weight: 600;
-            border-radius: var(--radius-md); border: 1px solid transparent;
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 7px 12px; min-height: 36px;
+            font-family: inherit; font-size: .875rem; font-weight: 600; line-height: 1.4;
+            border-radius: var(--radius-sm); border: 1px solid transparent;
             cursor: pointer; user-select: none;
-            transition: background .15s, color .15s, border-color .15s, box-shadow .15s, transform .15s;
+            transition: background .15s, color .15s, border-color .15s;
             text-decoration: none;
         }
         .btn:disabled, .btn.is-disabled { opacity: .55; cursor: not-allowed; }
-        .btn-primary { background: var(--primary); color: #fff; }
-        .btn-primary:hover { background: var(--primary-dark); color: #fff; }
-        .btn-primary:focus-visible { box-shadow: var(--shadow-focus); }
-        .btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--border-strong); }
-        .btn-secondary:hover { border-color: var(--primary); color: var(--primary-dark); }
+        .btn:focus, .btn:active:focus { box-shadow: none; }
+        .btn:focus-visible { outline: 2px solid var(--button-primary); outline-offset: 2px; }
+        .btn.btn-primary { background: var(--button-primary); color: #fff; border-color: transparent; }
+        .btn-primary:where(:not(:disabled, .is-disabled)):hover { background: var(--button-primary-hover); }
+        .btn-primary:where(:not(:disabled, .is-disabled)):active { background: var(--button-primary-active); }
+        .btn.btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--border-strong); }
         .btn-ghost { background: transparent; color: var(--ink); }
-        .btn-ghost:hover { background: var(--canvas-soft); }
+        .btn:is(.btn-secondary, .btn-ghost):where(:not(:disabled, .is-disabled)):hover {
+            background: var(--button-neutral-hover); color: var(--ink);
+        }
+        .btn:is(.btn-secondary, .btn-ghost):where(:not(:disabled, .is-disabled)):active {
+            background: var(--button-neutral-active); color: var(--ink);
+        }
         .btn-danger { background: var(--danger); color: #fff; }
-        .btn-danger:hover { background: #b91c1c; color: #fff; }
-        .btn-sm { padding: 6px 12px; min-height: 32px; font-size: .8125rem; }
+        .btn-danger:where(:not(:disabled, .is-disabled)):hover { background: #b91c1c; color: #fff; }
+        .btn-sm { padding: 5px 10px; min-height: 32px; font-size: .8125rem; }
         .btn-icon { padding: 0; width: 36px; height: 36px; min-height: 36px; }
+        @media (pointer: coarse) {
+            .btn { min-width: 44px; min-height: 44px; }
+        }
+        @media (max-width: 400px) {
+            .topbar-inner { gap: 8px; padding-inline: 12px; }
+            .topbar-actions { gap: 6px; }
+            #ctaCreateMeeting { width: 44px; min-height: 44px; padding: 0; }
+            #ctaCreateMeeting span { display: none; }
+        }
 
         /* User menu */
         .user-menu { position: relative; }
@@ -315,6 +336,27 @@
             outline: none; border-color: var(--primary); box-shadow: var(--shadow-focus);
         }
         .field-help { font-size: .75rem; color: var(--mute); }
+
+        .zoom-link-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px;
+        }
+        .zoom-link-row .input {
+            min-width: 0; min-height: 36px; padding: 6px 10px;
+            border-color: #8a8a8a;
+        }
+        .zoom-link-row .input:focus-visible {
+            outline: 2px solid var(--button-primary);
+            outline-offset: 2px;
+            box-shadow: none;
+        }
+        .zoom-link-row .btn { white-space: nowrap; }
+        .zoom-link-row + .field-help { color: var(--body); }
+        @media (pointer: coarse) {
+            .zoom-link-row .input, .zoom-link-row .btn { min-height: 48px; }
+            .zoom-link-row .input { font-size: 1rem; }
+        }
         select.input { appearance: none; -webkit-appearance: none; padding-right: 36px;
             background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
             background-repeat: no-repeat; background-position: right 12px center;
@@ -490,14 +532,22 @@
         }
         .modal-header .modal-title { font-family: var(--font-display); font-weight: 700; color: var(--ink) !important; font-size: 1rem; }
         .modal-header .btn-close {
-            background: transparent;
+            box-sizing: border-box;
             border: 0;
             width: 32px; height: 32px;
             border-radius: var(--radius-sm);
             opacity: .65;
             transition: opacity .15s, background .15s;
         }
-        .modal-header .btn-close:hover { opacity: 1; background: var(--canvas-soft); }
+        .modal-header .btn-close:hover { opacity: 1; background-color: var(--button-neutral-hover); }
+        .modal-header .btn-close:focus-visible {
+            outline: 2px solid var(--button-primary);
+            outline-offset: 2px;
+            box-shadow: none;
+        }
+        @media (pointer: coarse) {
+            .modal-header .btn-close { min-width: 44px; min-height: 44px; }
+        }
         .modal-footer {
             background: var(--surface) !important;
             border-top: 1px solid var(--border) !important;
@@ -687,7 +737,7 @@
         <div class="topbar-actions">
             <?php if ($loggedIn): ?>
                 <a href="<?= base_url('/') ?>?action=create" class="btn btn-primary" id="ctaCreateMeeting"
-                   data-bs-toggle="modal" data-bs-target="#createMeetingModal">
+                   data-bs-toggle="modal" data-bs-target="#createMeetingModal" aria-label="Buat Meeting">
                     <i class="fas fa-plus" aria-hidden="true"></i>
                     <span>Meeting</span>
                 </a>

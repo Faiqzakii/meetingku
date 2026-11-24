@@ -253,13 +253,15 @@
                 <div class="modal-body">
                     <div class="field">
                         <label class="field-label" for="manualZoomUrl">URL Zoom</label>
-                        <input class="input" type="url" id="manualZoomUrl" name="zoom_join_url" placeholder="https://us02web.zoom.us/j/..." required>
-                        <span class="field-help">Tempel link join Zoom yang sudah dibuat manual.</span>
+                        <div class="zoom-link-row">
+                            <input class="input" type="url" id="manualZoomUrl" name="zoom_join_url" placeholder="https://us02web.zoom.us/j/..." aria-describedby="manualZoomHelp" required>
+                            <button type="submit" class="btn btn-primary">Simpan Link</button>
+                        </div>
+                        <span class="field-help" id="manualZoomHelp">Tempel link join Zoom yang sudah dibuat manual.</span>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan link</button>
                 </div>
             </form>
         </div>

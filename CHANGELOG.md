@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bound employee XLSX imports; scope calendar assets, verify pinned CDN assets with SRI, and remove retired views and styles.
 - Show full room names in a responsive table instead of truncating them in cards. Keep room search, type filters, and actions available.
 - Open the read-only room agenda to employees and guests. Guests see approved meetings without requester names; room administration remains admin-only.
+- Restore compact buttons with neutral hover shades and keep the Zoom link input and save action side by side in meeting dialogs.
 
 ### Changed — GOWA provider (2026-11-06)
 - Replaced the WAHA adapter with external GOWA at `https://gowa.kaltarastats.id`, using case-sensitive device ID `Meetingku` through `X-Device-Id` on status and send requests. Device management/pairing remains in the external dashboard.
