@@ -72,7 +72,7 @@ MeetingKu adalah aplikasi manajemen rapat berbasis CodeIgniter 4 untuk menjadwal
 
 ### Agenda Ruangan
 
-Dari Kalender, pilih ruangan, klik **Terapkan**, lalu buka **Agenda Ruangan**. Tautannya bisa dibagikan dan dibuka tanpa login. Tanggal bawaan adalah hari ini jika tautan tidak menyertakan `?date=YYYY-MM-DD`.
+Di Kalender, memilih ruangan langsung memperbarui filter. Untuk mendapatkan tautan agenda, buka **Ruangan → Agenda** saat login. Tautan `/ruangan/{id}/meetings` bisa dibagikan dan dibuka tanpa login; jika tidak menyertakan `?date=YYYY-MM-DD`, agenda menampilkan tanggal hari ini.
 
 Pengunjung hanya melihat rapat yang disetujui, tanpa nama pemohon. Pegawai yang sudah login melihat semua status. Tambah, edit, dan hapus ruangan tetap khusus admin.
 
