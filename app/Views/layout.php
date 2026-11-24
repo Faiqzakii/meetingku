@@ -420,7 +420,7 @@
             text-align: left;
             white-space: nowrap;
         }
-        .table-modern tbody td {
+        .table-modern tbody :is(th, td) {
             padding: 12px 14px;
             font-size: .85rem;
             color: var(--ink);
@@ -435,7 +435,7 @@
             text-overflow: ellipsis;
         }
         .table-modern tbody tr:hover { background: var(--canvas-soft); }
-        .table-modern tbody tr:last-child td { border-bottom: 0; }
+        .table-modern tbody tr:last-child > :is(th, td) { border-bottom: 0; }
 
         /* ================= BADGES ================= */
         .badge-status {

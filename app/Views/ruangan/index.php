@@ -1,5 +1,63 @@
 <?= $this->extend('layout') ?>
 
+<?= $this->section('styles') ?>
+<style>
+    .ruangan-list { container-type: inline-size; }
+    .ruangan-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    .ruangan-filters .field { flex: 1 1 15rem; }
+    .ruangan-filters :is(.input, .chip) { min-height: 44px; }
+    .ruangan-filters .chip.is-active { background: var(--primary-dark); border-color: var(--primary-dark); }
+    .ruangan-table thead th:first-child { width: 55%; }
+    .ruangan-table thead th:last-child { width: 1%; }
+    .ruangan-table thead th:last-child,
+    .ruangan-table tbody td:last-child { text-align: right; }
+    .ruangan-table .ruangan-name {
+        font-size: 1rem;
+        font-weight: 600;
+        text-align: left;
+        overflow-wrap: anywhere;
+    }
+    .ruangan-table :is(.badge-status, .row-actions) { white-space: nowrap; }
+    .ruangan-table .badge-status { color: var(--ink-soft); }
+    .ruangan-list :is(a, button, input):focus-visible {
+        outline: 2px solid var(--primary-dark);
+        outline-offset: 2px;
+    }
+    .ruangan-table .kebab-menu .danger:hover { color: var(--ink); }
+    #ruanganNoMatches:empty { padding: 0; }
+
+    @container (max-width: 36rem) {
+        .ruangan-filters { padding: 14px; border-bottom: 1px solid var(--border); }
+        .ruangan-filters .chip { padding-inline: 10px; }
+        .ruangan-table,
+        .ruangan-table tbody { display: block; }
+        .ruangan-table thead {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+        }
+        .ruangan-table tbody tr:not([hidden]) {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        .ruangan-table tbody tr:last-child { border-bottom: 0; }
+        .ruangan-table tbody :is(th, td) { padding: 0; border: 0; }
+        .ruangan-table .ruangan-name { flex: 0 0 100%; min-width: 0; }
+        .ruangan-table tbody td:last-child { margin-inline-start: auto; }
+        .ruangan-table :is(.btn-sm, .kebab-btn, .kebab-menu a, .kebab-menu button) {
+            min-height: 44px;
+            min-width: 44px;
+        }
+    }
+</style>
+<?= $this->endSection() ?>
+
 <?= $this->section('content') ?>
 <?php $isAdmin = (bool) session()->get('is_admin'); ?>
 
@@ -20,82 +78,83 @@
     <?php endif; ?>
 </div>
 
-<div class="card" style="margin-bottom:20px;">
-    <div class="card-section" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <div class="field" style="flex:1;min-width:240px;">
-            <label class="field-label sr-only" for="searchRuangan" style="position:absolute;left:-9999px;">Cari ruangan</label>
-            <input type="search" id="searchRuangan" class="input" placeholder="Cari nama ruangan...">
-        </div>
-        <div class="chip-row" role="group" aria-label="Filter tipe ruangan">
-            <button type="button" class="chip is-active" data-filter-type="">Semua</button>
-            <button type="button" class="chip" data-filter-type="Offline">Offline</button>
-            <button type="button" class="chip" data-filter-type="Online">Online</button>
-            <button type="button" class="chip" data-filter-type="Hybrid">Hybrid</button>
-        </div>
-    </div>
-</div>
-
-<?php if (empty($ruangan)): ?>
-    <div class="card"><div class="card-section">
+<div class="card ruangan-list">
+    <?php if (empty($ruangan)): ?>
         <div class="empty-state">
             <div class="empty-state-icon"><i class="fas fa-building" aria-hidden="true"></i></div>
             <p class="empty-state-title">Belum ada data ruangan</p>
-            <p class="empty-state-desc">Tambahkan ruangan pertama untuk memulai.</p>
+            <?php if ($isAdmin): ?>
+                <p class="empty-state-desc">Gunakan Tambah Ruangan untuk membuat ruangan pertama.</p>
+            <?php endif; ?>
         </div>
-    </div></div>
-<?php else: ?>
-    <div id="ruanganGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;">
-        <?php foreach ($ruangan as $r): ?>
-            <?php
-                $typeIcon = $r['tipe'] === 'Online' ? 'fa-globe' : ($r['tipe'] === 'Hybrid' ? 'fa-arrows-left-right' : 'fa-building');
-                $isActive = bool_val($r['is_active'] ?? true);
-            ?>
-            <article class="card" data-type="<?= esc($r['tipe'], 'attr') ?>"
-                     data-search="<?= esc(strtolower($r['nama_ruangan']), 'attr') ?>">
-                <div class="card-section">
-                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
-                        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-                            <span style="width:40px;height:40px;border-radius:10px;background:var(--primary-soft);color:var(--primary-dark);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                <i class="fas <?= esc($typeIcon, 'attr') ?>" aria-hidden="true"></i>
+    <?php else: ?>
+        <div class="card-section ruangan-filters">
+            <div class="field">
+                <label class="visually-hidden" for="searchRuangan">Cari ruangan</label>
+                <input type="search" id="searchRuangan" class="input" placeholder="Cari nama ruangan...">
+            </div>
+            <div class="chip-row" role="group" aria-label="Filter tipe ruangan">
+                <button type="button" class="chip is-active" data-filter-type="" aria-pressed="true">Semua</button>
+                <button type="button" class="chip" data-filter-type="Offline" aria-pressed="false">Offline</button>
+                <button type="button" class="chip" data-filter-type="Online" aria-pressed="false">Online</button>
+                <button type="button" class="chip" data-filter-type="Hybrid" aria-pressed="false">Hybrid</button>
+            </div>
+        </div>
+        <table class="table-modern ruangan-table" id="ruanganTable" role="table" aria-label="Daftar ruangan">
+            <thead role="rowgroup">
+                <tr role="row">
+                    <th scope="col" role="columnheader">Nama ruangan</th>
+                    <th scope="col" role="columnheader">Tipe</th>
+                    <th scope="col" role="columnheader">Status</th>
+                    <th scope="col" role="columnheader">Aksi</th>
+                </tr>
+            </thead>
+            <tbody role="rowgroup">
+                <?php foreach ($ruangan as $r): ?>
+                    <?php $isActive = bool_val($r['is_active'] ?? true); ?>
+                    <tr role="row" data-type="<?= esc($r['tipe'], 'attr') ?>"
+                        data-search="<?= esc(mb_strtolower($r['nama_ruangan']), 'attr') ?>">
+                        <th scope="row" role="rowheader" class="ruangan-name"><?= esc($r['nama_ruangan']) ?></th>
+                        <td role="cell"><?= esc($r['tipe']) ?></td>
+                        <td role="cell">
+                            <span class="badge-status <?= $isActive ? 'badge-approved' : 'badge-rejected' ?>">
+                                <?= $isActive ? 'Aktif' : 'Nonaktif' ?>
                             </span>
-                            <div style="min-width:0;flex:1;">
-                                <h3 class="clamp-1" style="font-size:.95rem;font-weight:700;color:var(--ink);" title="<?= esc($r['nama_ruangan'], 'attr') ?>"><?= esc($r['nama_ruangan']) ?></h3>
-                                <p style="margin:2px 0 0;color:var(--mute);font-size:.75rem;"><?= esc($r['tipe']) ?></p>
+                        </td>
+                        <td role="cell">
+                            <div class="row-actions">
+                                <a href="<?= base_url('ruangan/' . $r['id'] . '/meetings') ?>" class="btn btn-secondary btn-sm"
+                                   aria-label="Agenda <?= esc($r['nama_ruangan'], 'attr') ?>">
+                                    <i class="fas fa-calendar-alt" aria-hidden="true"></i> Agenda
+                                </a>
+                                <?php if ($isAdmin): ?>
+                                    <div class="kebab" data-kebab>
+                                        <button type="button" class="kebab-btn" aria-haspopup="menu" aria-expanded="false"
+                                                aria-label="Aksi untuk <?= esc($r['nama_ruangan'], 'attr') ?>">
+                                            <i class="fas fa-ellipsis-vertical" aria-hidden="true"></i>
+                                        </button>
+                                        <div class="kebab-menu" role="menu">
+                                            <a href="<?= base_url('ruangan/edit/' . $r['id']) ?>" role="menuitem">
+                                                <i class="fas fa-pen" aria-hidden="true"></i> Edit
+                                            </a>
+                                            <button type="button" data-delete-form="<?= esc($r['id'], 'attr') ?>" role="menuitem" class="danger">
+                                                <i class="fas fa-trash-alt" aria-hidden="true"></i> Hapus
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <form action="<?= base_url('ruangan/delete/' . $r['id']) ?>" method="POST" id="deleteForm-<?= esc($r['id']) ?>" hidden>
+                                        <?= csrf_field() ?>
+                                    </form>
+                                <?php endif; ?>
                             </div>
-                        </div>
-                        <span class="badge-status <?= $isActive ? 'badge-approved' : 'badge-rejected' ?>">
-                            <?= $isActive ? 'Aktif' : 'Nonaktif' ?>
-                        </span>
-                    </div>
-
-                    <div class="row-actions" style="margin-top:14px;flex-wrap:wrap;">
-                        <a href="<?= base_url('ruangan/' . $r['id'] . '/meetings') ?>" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-calendar-alt" aria-hidden="true"></i> Agenda
-                        </a>
-                        <?php if ($isAdmin): ?>
-                            <div class="kebab" data-kebab style="margin-left:auto;">
-                                <button type="button" class="kebab-btn" aria-haspopup="menu" aria-expanded="false" aria-label="Aksi ruangan">
-                                    <i class="fas fa-ellipsis-vertical" aria-hidden="true"></i>
-                                </button>
-                                <div class="kebab-menu" role="menu">
-                                    <a href="<?= base_url('ruangan/edit/' . $r['id']) ?>" role="menuitem">
-                                        <i class="fas fa-pen" aria-hidden="true"></i> Edit
-                                    </a>
-                                    <button type="button" data-delete-form="<?= esc($r['id'], 'attr') ?>" role="menuitem" class="danger">
-                                        <i class="fas fa-trash-alt" aria-hidden="true"></i> Hapus
-                                    </button>
-                                </div>
-                            </div>
-                            <form action="<?= base_url('ruangan/delete/' . $r['id']) ?>" method="POST" id="deleteForm-<?= esc($r['id']) ?>" style="display:none;">
-                                <?= csrf_field() ?>
-                            </form>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </article>
-        <?php endforeach; ?>
-    </div>
-<?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <div id="ruanganNoMatches" class="empty-state" role="status"></div>
+    <?php endif; ?>
+</div>
 
 <!-- Add Ruangan Modal -->
 <div class="modal fade" id="addRuanganModal" tabindex="-1" aria-hidden="true" aria-labelledby="addRuanganTitle">
@@ -163,35 +222,41 @@
 <?= $this->section('scripts') ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var search = document.getElementById('searchRuangan');
-    var grid = document.getElementById('ruanganGrid');
-    var cards = grid ? grid.querySelectorAll('[data-search]') : [];
-    var typeFilter = '';
-    var queryFilter = '';
+    var table = document.getElementById('ruanganTable');
+    if (table) {
+        var search = document.getElementById('searchRuangan');
+        var rows = table.querySelectorAll('[data-search]');
+        var typeButtons = document.querySelectorAll('[data-filter-type]');
+        var noMatches = document.getElementById('ruanganNoMatches');
+        var typeFilter = '';
 
-    function applyFilters() {
-        cards.forEach(function(c) {
-            var key = c.getAttribute('data-search') || '';
-            var type = c.getAttribute('data-type') || '';
-            var matchQuery = !queryFilter || key.indexOf(queryFilter) !== -1;
-            var matchType = !typeFilter || type === typeFilter;
-            c.style.display = (matchQuery && matchType) ? '' : 'none';
+        function applyFilters() {
+            var query = search.value.trim().toLowerCase();
+            var hasMatches = false;
+
+            rows.forEach(function(row) {
+                var matches = row.dataset.search.includes(query)
+                    && (!typeFilter || row.dataset.type === typeFilter);
+                row.hidden = !matches;
+                hasMatches = hasMatches || matches;
+            });
+
+            noMatches.textContent = hasMatches ? '' : 'Tidak ada ruangan yang cocok. Coba kata kunci atau tipe lain.';
+        }
+
+        search.addEventListener('input', applyFilters);
+        typeButtons.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                typeButtons.forEach(function(button) {
+                    var active = button === btn;
+                    button.classList.toggle('is-active', active);
+                    button.setAttribute('aria-pressed', String(active));
+                });
+                typeFilter = btn.dataset.filterType;
+                applyFilters();
+            });
         });
     }
-
-    if (search) search.addEventListener('input', function() {
-        queryFilter = (search.value || '').trim().toLowerCase();
-        applyFilters();
-    });
-
-    document.querySelectorAll('[data-filter-type]').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('[data-filter-type]').forEach(function(b) { b.classList.remove('is-active'); });
-            btn.classList.add('is-active');
-            typeFilter = btn.getAttribute('data-filter-type') || '';
-            applyFilters();
-        });
-    });
 
     document.addEventListener('click', function(e) {
         var del = e.target.closest('[data-delete-form]');
