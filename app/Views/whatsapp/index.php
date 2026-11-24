@@ -46,6 +46,7 @@
     .wa-table { width:100%; border-collapse:separate; border-spacing:0; }
     .wa-table th { text-align:left; color:var(--mute); text-transform:uppercase; letter-spacing:.05em; font-size:.72rem; padding:10px 12px; border-bottom:1px solid var(--border); }
     .wa-table td { padding:12px; border-bottom:1px solid var(--border); vertical-align:middle; font-size:.875rem; }
+    .wa-table .wa-timestamp { white-space:nowrap; }
     .wa-table tr:last-child td { border-bottom:0; }
     .wa-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 9px; border-radius:999px; font-weight:700; font-size:.75rem; }
     .wa-badge.ok { background:#dcfce7; color:#166534; }
@@ -123,13 +124,23 @@
     <section class="wa-card wa-queue">
         <div class="wa-card-header">
             <div>
-                <h2 class="wa-card-title"><i class="fas fa-list-check" aria-hidden="true"></i> Queue terbaru</h2>
-                <p class="wa-card-desc">20 pesan terakhir dari database queue.</p>
+                <h2 class="wa-card-title" id="wa-queue-title"><i class="fas fa-list-check" aria-hidden="true"></i> Queue terbaru</h2>
+                <p class="wa-card-desc">20 pesan terakhir. Waktu mengikuti zona waktu aplikasi.</p>
             </div>
         </div>
-        <div class="wa-card-body" style="overflow-x:auto;">
+        <div class="wa-card-body" style="overflow-x:auto;" tabindex="0" role="region" aria-labelledby="wa-queue-title">
             <table class="wa-table">
-                <thead><tr><th>ID</th><th>Tujuan</th><th>Status</th><th>Attempts</th><th>Error</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">Tujuan</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Attempts</th>
+                        <th scope="col">Jadwal kirim</th>
+                        <th scope="col">Waktu terkirim</th>
+                        <th scope="col">Error</th>
+                    </tr>
+                </thead>
                 <tbody>
                 <?php foreach ($queue as $row): ?>
                     <tr>
@@ -137,10 +148,12 @@
                         <td><code><?= esc($row['to_number']) ?></code></td>
                         <td><span class="wa-badge <?= $row['status'] === 'sent' ? 'ok' : ($row['status'] === 'failed' ? 'muted' : 'warn') ?>"><?= esc($row['status']) ?></span></td>
                         <td><?= esc($row['attempts']) ?></td>
+                        <td class="wa-timestamp"><?= esc($row['scheduled_at'] ?? '–') ?></td>
+                        <td class="wa-timestamp"><?= esc($row['sent_at'] ?? '–') ?></td>
                         <td style="max-width:380px;color:var(--body);"><?= esc($row['last_error'] ?? '') ?></td>
                     </tr>
                 <?php endforeach; ?>
-                <?php if (empty($queue)): ?><tr><td colspan="5" style="color:var(--mute);">Queue masih kosong.</td></tr><?php endif; ?>
+                <?php if (empty($queue)): ?><tr><td colspan="7" style="color:var(--mute);">Queue masih kosong.</td></tr><?php endif; ?>
                 </tbody>
             </table>
         </div>

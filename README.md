@@ -90,6 +90,8 @@ Sebelum menjalankan worker, pastikan perangkat `Meetingku` sudah login dan terhu
 
 MeetingKu hanya membaca status dan mengirim teks; pengelolaan perangkat tetap di dashboard eksternal. Tautan dashboard menggunakan `<GOWA_BASE_URL>/`. Pastikan app dan worker dapat menjangkau GOWA melalui HTTPS dengan sertifikat TLS valid, dan batasi akses API/dashboard pada jaringan tepercaya/VPN atau allowlist sumber deployment.
 
+Halaman WhatsApp menampilkan **Jadwal kirim** (`scheduled_at`, termasuk jadwal ulang setelah gagal) dan **Waktu terkirim** (`sent_at`, diisi setelah GOWA mengonfirmasi pengiriman). Tanda `–` berarti waktu belum tercatat.
+
 Command aplikasi:
 
 ```bash
