@@ -49,8 +49,8 @@ final class GowaClient
         ]);
 
         $id = $result['message_id'] ?? null;
-        if (!is_string($id) || trim($id) === '') {
-            throw new RuntimeException('Invalid response from WhatsApp provider.');
+        if (!is_string($id) || trim($id) === '' || strlen($id) > 128) {
+            throw new GowaDeliveryUncertain('Invalid response from WhatsApp provider.');
         }
 
         return ['id' => $id];
@@ -80,6 +80,7 @@ final class GowaClient
 
     private function request(string $method, string $path, array $json = []): array
     {
+        $isSend = $path === '/send/message';
         $baseUrl = $this->resolvedBaseUrl();
         $username = (string) ($this->username ?? env('GOWA_USERNAME', ''));
         $password = (string) ($this->password ?? env('GOWA_PASSWORD', ''));
@@ -103,19 +104,27 @@ final class GowaClient
 
         try {
             $response = service('curlrequest')->request($method, $baseUrl . $path, $options);
-        } catch (\Throwable $e) {
-            throw new RuntimeException('WhatsApp provider is unavailable.');
+        } catch (\Throwable) {
+            throw $isSend
+                ? new GowaDeliveryUncertain('WhatsApp provider is unavailable.')
+                : new RuntimeException('WhatsApp provider is unavailable.');
         }
 
         $statusCode = $response->getStatusCode();
         if ($statusCode < 200 || $statusCode >= 300) {
+            // Timeouts and upstream errors can occur after the message was accepted.
+            if ($isSend && ($statusCode < 400 || $statusCode === 408 || $statusCode >= 500)) {
+                throw new GowaDeliveryUncertain('WhatsApp provider request failed.');
+            }
             throw new RuntimeException('WhatsApp provider request failed.');
         }
 
         $body = json_decode((string) $response->getBody());
         if (!$body instanceof \stdClass || ($body->code ?? null) !== 'SUCCESS'
             || !($body->results ?? null) instanceof \stdClass) {
-            throw new RuntimeException('Invalid response from WhatsApp provider.');
+            throw $isSend
+                ? new GowaDeliveryUncertain('Invalid response from WhatsApp provider.')
+                : new RuntimeException('Invalid response from WhatsApp provider.');
         }
 
         return (array) $body->results;

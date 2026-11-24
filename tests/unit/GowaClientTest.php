@@ -1,6 +1,7 @@
 <?php
 
 use App\Libraries\GowaClient;
+use App\Libraries\GowaDeliveryUncertain;
 use CodeIgniter\HTTP\CURLRequest;
 use CodeIgniter\HTTP\Response;
 use CodeIgniter\Test\CIUnitTestCase;
@@ -110,31 +111,39 @@ final class GowaClientTest extends CIUnitTestCase
     public static function failedResponses(): array
     {
         return [
-            [401, 'private provider error'],
-            [429, 'private provider error'],
-            [500, 'private provider error'],
-            [302, 'private provider redirect'],
-            [200, '<html>Login required</html>'],
-            [200, 'null'],
-            [200, '[]'],
-            [200, ['code' => 'ERROR', 'message' => 'private provider error', 'results' => ['message_id' => '123']]],
-            [200, ['code' => 'SUCCESS', 'results' => null]],
-            [200, ['code' => 'SUCCESS', 'results' => ['message_id' => '']]],
-            [200, ['code' => 'SUCCESS', 'results' => ['message_id' => 123]]],
-            [200, ['code' => 'SUCCESS', 'results' => ['schedule_id' => 'not-sent-yet']]],
+            [400, 'private provider error', false],
+            [401, 'private provider error', false],
+            [408, 'private provider error', true],
+            [429, 'private provider error', false],
+            [500, 'private provider error', true],
+            [504, 'private provider error', true],
+            [302, 'private provider redirect', true],
+            [200, '<html>Login required</html>', true],
+            [200, 'null', true],
+            [200, '[]', true],
+            [200, ['code' => 'ERROR', 'message' => 'private provider error', 'results' => ['message_id' => '123']], true],
+            [200, ['code' => 'SUCCESS', 'results' => null], true],
+            [200, ['code' => 'SUCCESS', 'results' => ['message_id' => '']], true],
+            [200, ['code' => 'SUCCESS', 'results' => ['message_id' => 123]], true],
+            [200, ['code' => 'SUCCESS', 'results' => ['message_id' => str_repeat('A', 129)]], true],
+            [200, ['code' => 'SUCCESS', 'results' => ['schedule_id' => 'not-sent-yet']], true],
         ];
     }
 
     /** @dataProvider failedResponses */
-    public function testFailedOrMalformedSendsAreNotMarkedSentAndDoNotExposeProviderErrors(int $status, mixed $body): void
+    public function testFailedOrMalformedSendsAreNotMarkedSentAndDoNotExposeProviderErrors(int $status, mixed $body, bool $uncertain): void
     {
         $this->expectRequest('POST', '/send/message', $body, $status, [
             'phone' => '62812345678@s.whatsapp.net', 'message' => 'Test',
         ]);
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage($status >= 300
-            ? 'WhatsApp provider request failed.' : 'Invalid response from WhatsApp provider.');
-        $this->client()->sendMessage('62812345678', 'Test');
+        try {
+            $this->client()->sendMessage('62812345678', 'Test');
+            $this->fail('Expected sanitized provider exception.');
+        } catch (RuntimeException $e) {
+            $this->assertSame($uncertain ? GowaDeliveryUncertain::class : RuntimeException::class, $e::class);
+            $this->assertSame($status >= 300
+                ? 'WhatsApp provider request failed.' : 'Invalid response from WhatsApp provider.', $e->getMessage());
+        }
     }
 
     public static function invalidStatuses(): array
@@ -164,7 +173,7 @@ final class GowaClientTest extends CIUnitTestCase
         try {
             $this->client()->sendMessage('62812345678', 'Test');
             $this->fail('Expected sanitized provider exception.');
-        } catch (RuntimeException $e) {
+        } catch (GowaDeliveryUncertain $e) {
             $this->assertSame('WhatsApp provider is unavailable.', $e->getMessage());
             $this->assertNull($e->getPrevious());
         }

@@ -73,7 +73,7 @@ services:
       target: app
     image: ${APP_IMAGE:-meetingku-app}:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
-    command: php spark wa:worker --sleep=3 --limit=20
+    command: ["php", "spark", "wa:worker", "--sleep", "3", "--limit", "20"]
     healthcheck:
       disable: true
     environment:
@@ -108,7 +108,7 @@ services:
       target: app
     image: ${APP_IMAGE:-meetingku-app}:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
-    command: php spark wa:daily-summary-scheduler --time=15:00 --sleep=60
+    command: ["php", "spark", "wa:daily-summary-scheduler", "--time", "15:00", "--sleep", "60"]
     healthcheck:
       disable: true
     environment:

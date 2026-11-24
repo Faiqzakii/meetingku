@@ -5,9 +5,9 @@ namespace App\Commands;
 use App\Libraries\WaDailySummaryFormatter;
 use App\Models\MeetingModel;
 use App\Models\WaMessageQueueModel;
-use App\Models\WaSettingModel;
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
+use DateTimeImmutable;
 
 class WaDailySummary extends BaseCommand
 {
@@ -16,42 +16,48 @@ class WaDailySummary extends BaseCommand
     protected $group = 'WhatsApp';
     protected $name = 'wa:daily-summary';
     protected $description = 'Enqueue daily meeting summary to WhatsApp group once per day.';
+    protected $options = [
+        '--date' => 'Agenda date (defaults to tomorrow).',
+        '--group' => 'WhatsApp group ID (defaults to WA_DAILY_SUMMARY_GROUP_ID).',
+        '--force' => 'Always enqueue an extra summary and count today as queued for unforced runs.',
+    ];
 
-    public function run(array $params)
+    public function run(array $params): int
     {
-        $force = CLI::getOption('force') !== null;
-        $date = (string) (CLI::getOption('date') ?? date('Y-m-d', strtotime('tomorrow')));
-        $groupId = (string) (CLI::getOption('group') ?? env('WA_DAILY_SUMMARY_GROUP_ID', self::DEFAULT_GROUP_ID));
-        $settingKey = 'wa_daily_summary_last_date';
-        $settingModel = new WaSettingModel();
-        $lastSent = $settingModel->find($settingKey)['value'] ?? null;
-        $todayKey = date('Y-m-d');
+        return $this->enqueue(
+            new DateTimeImmutable(),
+            $params['date'] ?? null,
+            $params['group'] ?? null,
+            array_key_exists('force', $params),
+        );
+    }
 
-        // Idempotency by send-day, not target date, so reruns same afternoon don't double-send.
-        if (!$force && $lastSent === $todayKey) {
-            CLI::write('Daily summary already queued today (' . $todayKey . ') for ' . $date);
-            return;
+    public function enqueue(
+        DateTimeImmutable $now,
+        ?string $date = null,
+        ?string $groupId = null,
+        bool $force = false,
+    ): int {
+        $sendDay = $now->format('Y-m-d');
+        $date ??= $now->modify('+1 day')->format('Y-m-d');
+        $groupId ??= (string) env('WA_DAILY_SUMMARY_GROUP_ID', self::DEFAULT_GROUP_ID);
+        $queue = new WaMessageQueueModel();
+        if (!$force && $queue->hasDailySummary($sendDay)) {
+            CLI::write('Daily summary already queued today (' . $sendDay . ')');
+
+            return EXIT_SUCCESS;
         }
 
-        $meetings = array_values(array_filter((new MeetingModel())->getMeetingsByDateRange($date . ' 00:00:00', $date . ' 23:59:59'), static function (array $meeting): bool {
-            return !in_array((string) ($meeting['status'] ?? ''), ['rejected', 'cancelled'], true);
-        }));
+        $meetings = array_values(array_filter(
+            (new MeetingModel())->getMeetingsByDateRange($date . ' 00:00:00', $date . ' 23:59:59'),
+            static fn (array $meeting): bool => !in_array((string) ($meeting['status'] ?? ''), ['rejected', 'cancelled'], true),
+        ));
 
-        $message = WaDailySummaryFormatter::format($date, $meetings);
-        $queueId = (new WaMessageQueueModel())->insert([
-            'to_number' => $groupId,
-            'message' => $message,
-            'status' => 'pending',
-            'attempts' => 0,
-            'max_attempts' => 3,
-            'scheduled_at' => date('Y-m-d H:i:s'),
-        ], true);
+        $queueId = $queue->enqueueDailySummary($sendDay, $groupId, WaDailySummaryFormatter::format($date, $meetings), $force);
+        CLI::write($queueId === null
+            ? 'Daily summary already queued today (' . $sendDay . ')'
+            : 'Daily summary queued: ' . $queueId);
 
-        $settingModel->save([
-            'key' => $settingKey,
-            'value' => $todayKey,
-        ]);
-
-        CLI::write('Daily summary queued: ' . $queueId);
+        return EXIT_SUCCESS;
     }
 }
